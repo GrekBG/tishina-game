@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#101412">
+<title>ТИШИНА — прототип 0.1</title>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#101412;font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#e5e8e2;touch-action:none}
+#game{position:fixed;inset:0;width:100%;height:100%;display:block;background:#111}
+#vignette{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 38%,rgba(0,0,0,.62) 100%)}
+#top{position:fixed;top:env(safe-area-inset-top,10px);left:14px;right:14px;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;text-shadow:0 2px 8px #000}
+.brand{font-size:12px;letter-spacing:.24em;font-weight:800;color:#d9ded4}.sub{font-size:10px;letter-spacing:.12em;color:#a6afa5;margin-top:3px}
+#stats{font-size:11px;text-align:right;color:#d0d6cc;line-height:1.7}
+#prompt{position:fixed;left:50%;bottom:calc(116px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);font-size:12px;color:#f0f0e7;background:#101512c9;border:1px solid #87918466;border-radius:20px;padding:8px 13px;white-space:nowrap;opacity:0;transition:opacity .2s;pointer-events:none}
+#hint{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);font-size:10px;color:#d5dbd0;opacity:.65;pointer-events:none}
+#controls{position:fixed;bottom:calc(16px + env(safe-area-inset-bottom,0px));left:14px;right:14px;display:flex;justify-content:space-between;align-items:end}
+#stick{width:116px;height:116px;border:1px solid #d8e0d355;border-radius:50%;background:#17201b88;position:relative;touch-action:none}
+#nub{position:absolute;width:44px;height:44px;border-radius:50%;background:#bfc8bb55;border:1px solid #e0e6dc88;left:35px;top:35px}
+#actions{display:flex;gap:9px;align-items:end}
+.action{border:1px solid #d8e0d355;background:#17201bba;color:#e5e8e2;border-radius:50%;width:62px;height:62px;font-size:11px;font-weight:700;letter-spacing:.04em;touch-action:none}
+.action.small{width:48px;height:48px;font-size:10px}
+#message{position:fixed;left:50%;top:18%;transform:translateX(-50%);max-width:82%;text-align:center;background:#101512df;border:1px solid #87918455;padding:12px 16px;border-radius:10px;font-size:13px;line-height:1.45;opacity:0;transition:opacity .3s;pointer-events:none}
+#intro{position:fixed;inset:0;background:linear-gradient(180deg,#0c100fef,#0c100fe8),radial-gradient(ellipse,#34413a,#0c100f);display:flex;align-items:center;justify-content:center;padding:28px;text-align:center}
+.panel{max-width:440px}.title{font-size:clamp(34px,9vw,58px);font-weight:900;letter-spacing:.22em;margin:0 0 8px}.tag{font-size:10px;letter-spacing:.22em;color:#aeb8aa}.desc{font-size:14px;line-height:1.65;color:#c4cbc0;margin:24px 0}.start{background:#d8dfd2;color:#141915;border:0;border-radius:5px;padding:14px 28px;font-weight:800;letter-spacing:.12em;font-size:12px}
+#inventory{position:fixed;inset:0;background:#080c0bea;display:none;align-items:center;justify-content:center;padding:24px}
+.invbox{width:min(420px,100%);border:1px solid #78847766;background:#151c17;padding:22px;border-radius:10px}
+.invbox h2{font-size:17px;letter-spacing:.12em;margin:0 0 18px}.slot{padding:12px;border-bottom:1px solid #ffffff18;font-size:13px;color:#cbd2c6}.close{margin-top:18px;width:100%;padding:12px;background:#cbd4c6;color:#172019;border:0;border-radius:5px;font-weight:700}
+@media(min-width:800px){#controls{max-width:900px;left:50%;right:auto;width:calc(100% - 40px);transform:translateX(-50%)}}
+</style>
+
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#101412">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ТИШИНА">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js").catch(()=>{}));}</script>
+</head>
+<body>
+<canvas id="game"></canvas><div id="vignette"></div>
+<div id="top"><div><div class="brand">ТИШИНА</div><div class="sub">ПРОТОТИП 0.1 · СЕВЕРНЫЙ РЕГИОН</div></div><div id="stats">ДЕНЬ 01 · 07:42<br>СОСТОЯНИЕ: СТАБИЛЬНО<br><span id="found">НАЙДЕНО: 0 / 3</span></div></div>
+<div id="hint">+</div><div id="prompt"></div><div id="message"></div>
+<div id="controls"><div id="stick"><div id="nub"></div></div><div id="actions"><button class="action small" id="bag">СУМКА</button><button class="action" id="use">ОСМОТР</button></div></div>
+<div id="inventory"><div class="invbox"><h2>СОДЕРЖИМОЕ РЮКЗАКА</h2><div class="slot" id="items">Пока пусто</div><button class="close" id="close">ЗАКРЫТЬ</button></div></div>
+<div id="intro"><div class="panel"><div class="tag">АВТОРСКИЙ ПРОТОТИП · ВЕРСИЯ 0.1</div><h1 class="title">ТИШИНА</h1><div class="tag">ПОСЛЕ КАТАСТРОФЫ МИР НЕ ИСЧЕЗ.</div><p class="desc">Северный промышленный регион. 2034 год.<br>Ты возвращаешься туда, откуда все давно уехали.<br><br>Исследуй улицу, найди три оставленных предмета и прислушивайся к тому, что осталось вокруг.</p><button class="start" id="start">ВОЙТИ В РЕГИОН</button><p class="tag" style="margin-top:18px">ПЕРВАЯ СБОРКА · УПРАВЛЕНИЕ НА СЕНСОРНОМ ЭКРАНЕ</p></div></div>
+<script>
+(()=>{
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+let W=0,H=0,zbuf=[],started=false,inventory=[],found=0,noticeTimer=0;
+const map=[
+"111111111111111111111111",
+"100000000000000000000001",
+"100000000000000000000001",
+"100011100000000000000001",
+"100010100000000000000001",
+"100010100000000000000001",
+"100000000000000000000001",
+"100000000000000000000001",
+"100000000000000000000001",
+"100000000000000000000001",
+"100000000000000000000001",
+"100000000000000000000001",
+"100000000000000000000001",
+"100000000000000000000001",
+"100000000000000000000001",
+"100000000000000000000001",
+"100000000000000000000001",
+"111111111111111111111111"
+];
+const objects=[
+{x:7.5,y:5.5,name:"Старая рация",desc:"Корпус треснул. На задней крышке маркером написано: «Канал 04. Не отвечать после 22:00».",taken:false},
+{x:13.5,y:9.5,name:"Промышленный пропуск",desc:"Пропуск на объект «Север-7». Дата выдачи — за три дня до официальной эвакуации.",taken:false},
+{x:18.5,y:4.5,name:"Фотография",desc:"На снимке — группа людей у проходной. На обороте короткая надпись: «Они знали заранее».",taken:false}
+];
+let player={x:3.5,y:9.5,a:0.05},keys={},joy={x:0,y:0},drag=null,last=0,walk=0;
+function resize(){W=canvas.width=innerWidth*devicePixelRatio;H=canvas.height=innerHeight*devicePixelRatio;ctx.setTransform(1,0,0,1,0,0)}
+addEventListener('resize',resize);resize();
+function wall(x,y){let mx=Math.floor(x),my=Math.floor(y);return !map[my]||map[my][mx]!=='0'}
+function cast(){
+const fov=Math.PI/3,cols=Math.ceil(W/2),step=W/cols;zbuf=new Array(cols);
+for(let i=0;i<cols;i++){
+let angle=player.a-fov/2+(i/cols)*fov,dist=0,hit=0,side=0;
+while(dist<24&&!hit){dist+=.035;let px=player.x+Math.cos(angle)*dist,py=player.y+Math.sin(angle)*dist;if(wall(px,py)){hit=1;side=(Math.abs((px-Math.floor(px))-.5)>Math.abs((py-Math.floor(py))-.5))?1:0}}
+let corrected=dist*Math.cos(angle-player.a);zbuf[i]=corrected;
+let h=Math.min(H,H/(corrected+.001)),top=H/2-h/2;
+let shade=Math.max(.12,1-corrected/17)*(side?.72:1);
+let c=Math.floor(73*shade),g=Math.floor(83*shade),b=Math.floor(76*shade);
+ctx.fillStyle=`rgb(${c},${g},${b})`;ctx.fillRect(i*step,top,step+1,h);
+ctx.fillStyle=`rgba(10,14,12,${Math.min(.8,corrected/23)})`;ctx.fillRect(i*step,top,step+1,h);
+}
+}
+function render(){
+if(!started)return;
+ctx.fillStyle='#87918a';ctx.fillRect(0,0,W,H/2);
+let grad=ctx.createLinearGradient(0,H*.25,0,H);grad.addColorStop(0,'#58625c');grad.addColorStop(.5,'#303a34');grad.addColorStop(1,'#151b17');ctx.fillStyle=grad;ctx.fillRect(0,H/2,W,H/2);
+cast();
+const fov=Math.PI/3;
+objects.forEach(o=>{
+if(o.taken)return;let dx=o.x-player.x,dy=o.y-player.y,dist=Math.hypot(dx,dy),ang=Math.atan2(dy,dx)-player.a;while(ang<-Math.PI)ang+=Math.PI*2;while(ang>Math.PI)ang-=Math.PI*2;
+if(Math.abs(ang)>fov*.7||dist<.2)return;
+let sx=(.5+ang/fov)*W,sz=Math.min(H*.32,H/(dist*1.2)),col=Math.max(0,Math.min(zbuf.length-1,Math.floor(sx/(W/zbuf.length))));
+if(dist>zbuf[col]+.4)return;
+let sy=H/2+sz*.1;
+ctx.fillStyle='#252a25';ctx.fillRect(sx-sz*.16,sy-sz*.18,sz*.32,sz*.34);
+ctx.fillStyle=o.name==='Фотография'?'#c0bca6':'#858d80';ctx.fillRect(sx-sz*.12,sy-sz*.14,sz*.24,sz*.23);
+ctx.fillStyle='#d7d9c9';ctx.fillRect(sx-2*devicePixelRatio,sy-sz*.2,4*devicePixelRatio,4*devicePixelRatio);
+});
+ // subtle rain streaks
+ctx.strokeStyle='rgba(210,220,213,.12)';ctx.lineWidth=devicePixel(1);
+for(let i=0;i<90;i++){let x=(i*97+performance.now()*.025)%W,y=(i*173+performance.now()*.12)%H;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-3*devicePixel(1),y+10*devicePixel(1));ctx.stroke()}
+}
+function devicePixel(v){return v*devicePixelRatio}
+function notify(t){let m=document.getElementById('message');m.textContent=t;m.style.opacity=1;clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>m.style.opacity=0,3600)}
+function nearest(){let best=null,d=2.2;objects.forEach(o=>{if(o.taken)return;let q=Math.hypot(o.x-player.x,o.y-player.y);if(q<d){d=q;best=o}});return best}
+function interact(){let o=nearest();if(!o){notify("Ничего интересного рядом. Осмотрись внимательнее.");return}o.taken=true;inventory.push(o.name);found++;document.getElementById('found').textContent=`НАЙДЕНО: ${found} / 3`;notify(o.name+" — "+o.desc);if(found===3)setTimeout(()=>notify("Все три находки собраны. Но почему пропуск выдан до эвакуации? Продолжение следует…"),900)}
+function move(dt){
+let forward=-(joy.y||0),strafe=joy.x||0;
+if(keys.w||keys.ArrowUp)forward=1;if(keys.s||keys.ArrowDown)forward=-1;if(keys.a||keys.ArrowLeft)strafe=-1;if(keys.d||keys.ArrowRight)strafe=1;
+let speed=2.0*dt,dx=(Math.cos(player.a)*forward-Math.sin(player.a)*strafe)*speed,dy=(Math.sin(player.a)*forward+Math.cos(player.a)*strafe)*speed;
+if(!wall(player.x+dx,player.y))player.x+=dx;if(!wall(player.x,player.y+dy))player.y+=dy;
+}
+function loop(t){let dt=Math.min(.04,(t-last)/1000||0);last=t;if(started){move(dt);render();let o=nearest(),p=document.getElementById('prompt');p.textContent=o?"ОСМОТРЕТЬ: "+o.name:"";p.style.opacity=o?1:0}requestAnimationFrame(loop)}
+requestAnimationFrame(loop);
+document.getElementById('start').onclick=()=>{started=true;document.getElementById('intro').style.display='none';notify("Ты на старой улице. Впереди — посёлок. Найди оставленные вещи.")};
+document.getElementById('use').onclick=interact;
+document.getElementById('bag').onclick=()=>{document.getElementById('items').textContent=inventory.length?inventory.join(' · '):'Пока пусто';document.getElementById('inventory').style.display='flex'};
+document.getElementById('close').onclick=()=>document.getElementById('inventory').style.display='none';
+const stick=document.getElementById('stick'),nub=document.getElementById('nub');
+function joySet(e){let r=stick.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,dx=e.clientX-cx,dy=e.clientY-cy,len=Math.hypot(dx,dy),max=39,scale=Math.min(1,max/(len||1));joy.x=dx*scale/max;joy.y=dy*scale/max;nub.style.transform=`translate(${joy.x*max}px,${joy.y*max}px)`}
+stick.addEventListener('pointerdown',e=>{stick.setPointerCapture(e.pointerId);joySet(e)});
+stick.addEventListener('pointermove',e=>{if(e.buttons)joySet(e)});
+function resetJoy(){joy={x:0,y:0};nub.style.transform='translate(0,0)'}
+stick.addEventListener('pointerup',resetJoy);stick.addEventListener('pointercancel',resetJoy);
+canvas.addEventListener('pointerdown',e=>{if(e.clientX<innerWidth*.42&&e.clientY>innerHeight*.55)return;drag={x:e.clientX,y:e.clientY}});
+canvas.addEventListener('pointermove',e=>{if(drag){let dx=e.clientX-drag.x;player.a+=dx*.004;drag={x:e.clientX,y:e.clientY}}});
+canvas.addEventListener('pointerup',()=>drag=null);canvas.addEventListener('pointercancel',()=>drag=null);
+addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.key==='e'||e.key===' ')interact()});
+addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+})();
+</script>
+</body></html>

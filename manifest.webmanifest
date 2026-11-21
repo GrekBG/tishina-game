@@ -1,0 +1,23 @@
+{
+  "name": "ТИШИНА — интерактивный прототип",
+  "short_name": "ТИШИНА",
+  "description": "Мрачное приключение в заброшенном северном регионе. Прототип 0.1.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#101412",
+  "theme_color": "#101412",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
