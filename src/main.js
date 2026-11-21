@@ -41,24 +41,24 @@ const legacySaved=readStored('tishina02')||{};
 const autosaved=readStored('tishinaAutoV1')||legacySaved;
 (autosaved.items||[]).forEach(x=>inventory.push(x));
 let medkits=Math.max(0,Number(autosaved.medkits)||0),energyItems=Math.max(0,Number(autosaved.energyItems)||0);
-let yaw=0, pitch=0, started=false, activeTarget=null, modalOpen=false, joy={x:0,y:0}, keys={}, drag=null, last=performance.now(), bob=0;
+let yaw=0, pitch=0, started=false, activeTarget=null, modalOpen=false, joy={x:0,y:0}, joyTarget={x:0,y:0}, keys={}, drag=null, last=performance.now(), bob=0;
 let posture='stand', jumpHeight=0, jumpVelocity=0, grounded=true, lowSpaceBlocked=false,peekState=null;
 let handAction=null, soundContext=null, physicalFeedbackTimer=null;
 let stanceFrom=null, stanceElapsed=1, sprintHeld=false, sprintBlend=0, stamina=100, staminaRecoveryDelay=0, sprintLocked=false, lastStaminaShown=-1;
 const loadedHealth=Number(autosaved.health??100);
 let health=Number.isFinite(loadedHealth)?Math.max(0,Math.min(100,loadedHealth)):100,lastHealthShown=-1,hazardClock=0,hazardNotice=false,bodyTime=0;
 let damageFlashTimer=null;
-const postures={stand:{eye:1.68,height:1.82,radius:.34,speed:3.1,label:'СТОЯ'},crouch:{eye:1.08,height:1.16,radius:.32,speed:1.75,label:'ПРИСЕЛ'},prone:{eye:.48,height:.62,radius:.28,speed:.85,label:'ЛЁЖА'}};
+const postures={stand:{eye:1.68,height:1.82,radius:.32,speed:3.5,label:'СТОЯ'},crouch:{eye:1.08,height:1.16,radius:.30,speed:2.0,label:'ПРИСЕЛ'},prone:{eye:.48,height:.62,radius:.27,speed:1.0,label:'ЛЁЖА'}};
 const stance={...postures.stand};
 const STANCE_TRANSITION_SECONDS=.38, SPRINT_MULTIPLIER=1.68, STAMINA_DRAIN=17, STAMINA_REGEN=16, STAMINA_RESTART=24;
 const HEALTH_MAX=100,HEALTH_HAZARD_DAMAGE=9,HEALTH_HAZARD_INTERVAL=.72;
-const lowClearanceZones=[{minX:-1.68,maxX:1.68,minZ:-10.65,maxZ:-9.9,clearance:.68,label:'Обрушившаяся балка'}];
+const lowClearanceZones=[{minX:-1.15,maxX:1.15,minZ:-10.65,maxZ:-9.9,clearance:.68,label:'Обрушившаяся балка'}];
 concrete.map=concreteMap; plaster.map=plasterMap; floorMat.map=floorMap;
 
 function box(parent, name, size, pos, material, opts={}) {
  const mesh=new THREE.Mesh(new THREE.BoxGeometry(...size),material); mesh.name=name; mesh.position.set(...pos); mesh.castShadow=opts.cast!==false; mesh.receiveShadow=true; parent.add(mesh); return mesh;
 }
-function wall(name,x,y,z,w,h,d,material=concrete, collide=true){const m=box(scene,name,[w,h,d],[x,y,z],material);if(collide)colliders.push({minX:x-w/2,maxX:x+w/2,minZ:z-d/2,maxZ:z+d/2});return m;}
+function wall(name,x,y,z,w,h,d,material=concrete, collide=true){const m=box(scene,name,[w,h,d],[x,y,z],material);if(collide)colliders.push({minX:x-w/2,maxX:x+w/2,minY:y-h/2,maxY:y+h/2,minZ:z-d/2,maxZ:z+d/2});return m;}
 function floor(name,x,z,w,d,material=floorMat,y=0){return box(scene,name,[w,.18,d],[x,y,z],material,{cast:false});}
 function addInteract(obj, title, description, type='ОСМОТР', action=null){obj.userData.interaction={title,description,type,action};interactables.push(obj);return obj;}
 
@@ -94,16 +94,16 @@ for(const x of [-7.8,-4.9,4.9,7.8]){
 // Entry vestibule and corridors.
 wall('Тамбур левая',-2.2,2.1,-3.5,.25,4.2,4.5,plaster);
 wall('Тамбур правая',2.2,2.1,-3.5,.25,4.2,4.5,plaster);
-wall('Тамбур задняя левая',-1.5,2.1,-5.75,1.2,4.2,.25,plaster);
-wall('Тамбур задняя правая',1.5,2.1,-5.75,1.2,4.2,.25,plaster);
+wall('Тамбур задняя левая',-1.65,2.1,-5.75,1.0,4.2,.25,plaster);
+wall('Тамбур задняя правая',1.65,2.1,-5.75,1.0,4.2,.25,plaster);
 // Main corridor cross partitions and rooms, door gaps left open.
-wall('Коридор перегородка A',-5.4,2.1,-8.1,7.8,4.2,.22,plaster);
-wall('Коридор перегородка B',5.4,2.1,-8.1,7.8,4.2,.22,plaster);
+wall('Коридор перегородка A',-5.8,2.1,-8.1,7.0,4.2,.22,plaster);
+wall('Коридор перегородка B',5.8,2.1,-8.1,7.0,4.2,.22,plaster);
 wall('Офис стена левая',-4.4,2.1,-12.4,.22,4.2,8.4,plaster);
 wall('Офис стена правая',4.4,2.1,-12.4,.22,4.2,8.4,plaster);
 wall('Офис задняя',0,2.1,-16.5,8.8,4.2,.22,plaster);
 // A collapsed low cross-beam creates a short crawl-through passage.
-box(scene,'Обрушившаяся балка',[3.45,.28,.46],[0,.82,-10.28],rust);
+box(scene,'Обрушившаяся балка',[2.3,.28,.46],[0,.82,-10.28],rust);
 box(scene,'Обломок арматуры',[1.25,.07,.07],[.15,.64,-10.42],metal);
 // Suspended ceiling strips and structural beams.
 for(let z=-2;z>=-18;z-=4){box(scene,'Балка перекрытия',[18,.34,.48],[0,4.18,z],darkConcrete);}
@@ -245,23 +245,24 @@ for(let i=0;i<rainCount;i++){rainPositions[i*3]=(Math.random()-.5)*42;rainPositi
 const rainGeo=new THREE.BufferGeometry();rainGeo.setAttribute('position',new THREE.BufferAttribute(rainPositions,3));
 const rain=new THREE.Points(rainGeo,new THREE.PointsMaterial({color:0xdce5e3,size:.035,transparent:true,opacity:.34}));scene.add(rain);
 
-// First-person body rig: sleeves, gloves, thighs and boots are attached to the camera.
-const bodyRig=new THREE.Group();camera.add(bodyRig);
-const sleeveMat=mat(0x414943,.96),sleeveTrim=mat(0x687068,.9),gloveMat=mat(0x252c29,.98),pantsMat=mat(0x343b37,.98),bootMat=mat(0x1f2523,.9,.08),stitchMat=mat(0x8b8b79,.92);
+// Restrained first-person body rig: arms stay low and only come forward for actions.
+const bodyRig=new THREE.Group();scene.add(bodyRig);const bodyParts=new THREE.Group();bodyRig.add(bodyParts);
+const armsRig=new THREE.Group();bodyParts.add(armsRig);
+const sleeveMat=mat(0x434c45,.96),sleeveTrim=mat(0x5f695f,.9),gloveMat=mat(0x252c29,.98),pantsMat=mat(0x343b37,.98),bootMat=mat(0x1f2523,.9,.08),stitchMat=mat(0x777e72,.92);
 function limbMesh(parent,geometry,material,pos,rot=[0,0,0]){const m=new THREE.Mesh(geometry,material);m.position.set(...pos);m.rotation.set(...rot);m.castShadow=false;m.receiveShadow=false;parent.add(m);return m;}
-function makeArm(side){const pivot=new THREE.Group();pivot.position.set(side*.34,-.19,-.72);bodyRig.add(pivot);
- limbMesh(pivot,new THREE.CapsuleGeometry(.105,.26,3,7),sleeveMat,[0,-.12,0],[0,0,side*.16]);
- limbMesh(pivot,new THREE.CapsuleGeometry(.082,.27,3,7),sleeveTrim,[side*.025,-.35,-.11],[.13,0,side*.1]);
- limbMesh(pivot,new THREE.TorusGeometry(.085,.012,6,12),stitchMat,[side*.025,-.23,-.055],[Math.PI/2,0,0]);
- limbMesh(pivot,new THREE.SphereGeometry(.095,10,8),gloveMat,[side*.035,-.49,-.2],[0,0,0]);
- limbMesh(pivot,new THREE.CapsuleGeometry(.025,.085,2,6),gloveMat,[side*.105,-.47,-.205],[0,0,-side*.65]);
+function makeArm(side){const pivot=new THREE.Group();pivot.position.set(side*.43,-.39,-.58);pivot.scale.setScalar(.66);armsRig.add(pivot);
+ limbMesh(pivot,new THREE.CapsuleGeometry(.092,.23,3,7),sleeveMat,[0,-.10,0],[0,0,side*.16]);
+ limbMesh(pivot,new THREE.CapsuleGeometry(.072,.22,3,7),sleeveTrim,[side*.02,-.30,-.09],[.13,0,side*.1]);
+ limbMesh(pivot,new THREE.TorusGeometry(.073,.009,6,12),stitchMat,[side*.02,-.20,-.045],[Math.PI/2,0,0]);
+ limbMesh(pivot,new THREE.SphereGeometry(.078,10,8),gloveMat,[side*.03,-.42,-.17],[0,0,0]);
  return pivot;}
-const leftArm=makeArm(-1),rightArm=makeArm(1);
-const legsRig=new THREE.Group();bodyRig.add(legsRig);
-function makeLeg(side){const pivot=new THREE.Group();pivot.position.set(side*.15,-.48,-.55);legsRig.add(pivot);
- limbMesh(pivot,new THREE.CapsuleGeometry(.105,.38,3,7),pantsMat,[0,0,-.16],[Math.PI/2,0,0]);
- limbMesh(pivot,new THREE.BoxGeometry(.22,.13,.34),bootMat,[0,-.045,-.46],[.04,0,0]);
- limbMesh(pivot,new THREE.BoxGeometry(.22,.035,.13),sleeveTrim,[0,-.112,-.43],[0,0,0]);
+const leftArm=makeArm(-1),rightArm=makeArm(1);armsRig.visible=false;
+const torso=limbMesh(bodyParts,new THREE.CapsuleGeometry(.25,.42,4,8),pantsMat,[0,-.82,-.42]);torso.scale.set(1.05,1,.78);torso.visible=false;
+const legsRig=new THREE.Group();bodyParts.add(legsRig);
+function makeLeg(side){const pivot=new THREE.Group();pivot.position.set(side*.14,-.58,-.47);pivot.scale.setScalar(.76);legsRig.add(pivot);
+ limbMesh(pivot,new THREE.CapsuleGeometry(.095,.34,3,7),pantsMat,[0,0,-.14],[Math.PI/2,0,0]);
+ limbMesh(pivot,new THREE.BoxGeometry(.19,.11,.29),bootMat,[0,-.035,-.40],[.04,0,0]);
+ limbMesh(pivot,new THREE.BoxGeometry(.19,.03,.11),sleeveTrim,[0,-.095,-.38],[0,0,0]);
  return pivot;}
 const leftLeg=makeLeg(-1),rightLeg=makeLeg(1);
 legsRig.visible=false;
@@ -310,7 +311,7 @@ function updateInventoryUI(){
 }
 function makeSnapshot(){
  const motions=motionObjects.map(obj=>{const fraction=currentMotionFraction(obj),target=obj.userData.motion==='slide'?obj.position.z:obj.rotation.y;return {name:obj.name,open:fraction>=.99,ajar:fraction>.02&&fraction<.99,fraction,target};});
- return {version:1,savedAt:new Date().toISOString(),player:{x:camera.position.x,z:camera.position.z,yaw},health,stamina,inventory:[...inventory],medkits,energyItems,motions,collected:Object.keys(pickupObjects).filter(id=>!pickupObjects[id].visible)};
+ return {version:2,savedAt:new Date().toISOString(),player:{x:camera.position.x,z:camera.position.z,yaw,pitch},health,stamina,inventory:[...inventory],medkits,energyItems,motions,collected:Object.keys(pickupObjects).filter(id=>!pickupObjects[id].visible)};
 }
 function storeJson(key,data){try{localStorage.setItem(key,JSON.stringify(data));return true;}catch(err){console.warn('Не удалось сохранить игру:',err);return false;}}
 function save(){const ok=storeJson('tishinaAutoV1',makeSnapshot());storeJson('tishina02', {items:inventory,health,stamina,medkits,energyItems});updateInventoryUI();const cont=$('continueTitle');if(cont&&ok)cont.disabled=false;}
@@ -319,7 +320,7 @@ function applySnapshot(data){
  inventory.splice(0,inventory.length,...(Array.isArray(data.inventory)?data.inventory.filter(x=>typeof x==='string'):Array.isArray(data.items)?data.items.filter(x=>typeof x==='string'):[]));
  medkits=Math.max(0,Math.min(20,Number(data.medkits)||0));energyItems=Math.max(0,Math.min(20,Number(data.energyItems)||0));
  health=Math.max(1,Math.min(100,Number.isFinite(Number(data.health))?Number(data.health):100));stamina=Math.max(0,Math.min(100,Number(data.stamina??100)||0));sprintLocked=stamina<STAMINA_RESTART;sprintHeld=false;sprintBlend=0;staminaRecoveryDelay=0;
- const px=Number(data.player?.x),pz=Number(data.player?.z);camera.position.set(Number.isFinite(px)?THREE.MathUtils.clamp(px,-8.4,8.4):0,postures.stand.eye,Number.isFinite(pz)?THREE.MathUtils.clamp(pz,-25,15):10.5);yaw=Number.isFinite(Number(data.player?.yaw))?Number(data.player.yaw):0;look(0);
+ const px=Number(data.player?.x),pz=Number(data.player?.z);camera.position.set(Number.isFinite(px)?THREE.MathUtils.clamp(px,-8.4,8.4):0,postures.stand.eye,Number.isFinite(pz)?THREE.MathUtils.clamp(pz,-25,15):10.5);yaw=Number.isFinite(Number(data.player?.yaw))?Number(data.player.yaw):0;pitch=Number.isFinite(Number(data.player?.pitch))?THREE.MathUtils.clamp(Number(data.player.pitch),-1.05,.8):0;look(0,0);
  posture='stand';stanceFrom=null;stanceElapsed=1;Object.assign(stance,postures.stand);jumpHeight=0;jumpVelocity=0;grounded=true;
  const collected=Array.isArray(data.collected)?data.collected:[];
  for(const [id,obj] of Object.entries(pickupObjects)){
@@ -338,12 +339,12 @@ function saveManual(){const ok=storeJson('tishinaManualSaveV1',makeSnapshot());$
 function loadManual(){const data=readStored('tishinaManualSaveV1');if(!data){$('menuStatus').textContent='СОХРАНЕНИЕ НЕ НАЙДЕНО';$('titleStatus').textContent='СОХРАНЕНИЕ НЕ НАЙДЕНО';notify('Сохранение пока отсутствует.');return false;}const ok=applySnapshot(data);if(ok){started=true;modalOpen=false;$('pause').style.display='none';$('intro').style.display='none';$('confirmNew').style.display='none';$('downed').style.display='none';$('menuStatus').textContent='ИГРА ЗАГРУЖЕНА';$('titleStatus').textContent='';save();notify('Сохранение загружено.');}return ok;}
 function itemRoot(id){return pickupObjects[id]||null;}
 function canCarry(id){const item=itemCatalog[id];if(!item)return false;const slotCount=inventory.length+medkits+energyItems;return slotCount<INVENTORY_MAX_SLOTS&&inventoryWeight()+item.weight<=INVENTORY_MAX_WEIGHT;}
-function openMotionPanel(obj){if(!obj?.userData?.motionKind)return;activeMotion=obj;const data=obj.userData;$('motionTitle').textContent=data.motionLabel||'МЕХАНИЗМ';$('motionDescription').textContent=data.motionDescription||'Механизм можно открыть полностью или оставить приоткрытым.';$('motionPanel').style.display='flex';modalOpen=true;activeTarget=null;$('prompt').style.opacity='0';}
+function openMotionPanel(obj){if(!obj?.userData?.motionKind)return;activeMotion=obj;const data=obj.userData;$('motionTitle').textContent=data.motionLabel||'МЕХАНИЗМ';$('motionDescription').textContent='Выбери действие.';$('motionPanel').style.display='flex';modalOpen=true;activeTarget=null;$('prompt').style.opacity='0';}
 function applyMotion(obj,fraction,speed,message){if(!obj)return;const d=obj.userData;d.manualHold=0;fraction=THREE.MathUtils.clamp(fraction,0,1);d.targetFraction=fraction;d.target=d.closedValue+(d.openedValue-d.closedValue)*fraction;d.open=fraction>=.99;d.ajar=fraction>.02&&!d.open;d.speed=speed;beginHandAction(d.motionKind==='drawer'?'slide':'pull',false);physicalSound(speed>8?'impact':d.motionKind==='drawer'?'slide':'creak',speed>8?1:.7);showPhysicalFeedback(message);save();}
 function closeMotionPanel(){if(activeMotion?.userData.manualHold)stopManualMotion();activeMotion=null;$('motionPanel').style.display='none';modalOpen=false;}
 function doMotionAction(action){if(!activeMotion)return;const d=activeMotion.userData;const name=d.motionLabel||'Механизм';if(action==='ajar')applyMotion(activeMotion,.16,d.slowSpeed||1.8,`${name}: оставлена узкая щель.`);else if(action==='slowOpen')applyMotion(activeMotion,1,d.slowSpeed||1.8,`${name}: медленно открывается.`);else if(action==='fastOpen')applyMotion(activeMotion,1,d.fastSpeed||13,`${name}: резко открывается.`);else if(action==='slowClose')applyMotion(activeMotion,0,d.slowSpeed||1.8,`${name}: медленно закрывается.`);else if(action==='fastClose')applyMotion(activeMotion,0,d.fastSpeed||13,`${name}: быстро закрывается.`);closeMotionPanel();}
-function endPeek(){if(!peekState||peekState.phase==='out')return;const p=peekState;p.phase='out';p.elapsed=0;p.duration=.34;p.fromX=camera.position.x;p.fromZ=camera.position.z;p.fromRoll=camera.rotation.z;p.fromYaw=yaw;p.toX=p.baseX;p.toZ=p.baseZ;p.toRoll=0;p.toYaw=yaw;releaseHandAction();$('peekExit').style.display='none';physicalSound('click',.65);showPhysicalFeedback('ВОЗВРАЩАЕШЬСЯ ЗА УКРЫТИЕ');}
-function doPeek(){if(!activeMotion)return;if(!(currentMotionFraction(activeMotion)>.02)){notify('Сначала оставь створку приоткрытой.');return;}const forwardX=Math.sin(yaw),forwardZ=-Math.cos(yaw),rightX=Math.cos(yaw),rightZ=Math.sin(yaw);const baseX=camera.position.x,baseZ=camera.position.z,baseYaw=yaw;peekState={phase:'in',elapsed:0,duration:.36,baseX,baseZ,baseYaw,fromX:baseX,fromZ:baseZ,fromYaw:baseYaw,fromRoll:0,toX:baseX+rightX*.24+forwardX*.10,toZ:baseZ+rightZ*.24+forwardZ*.10,toYaw:baseYaw+.07,toRoll:-.055};drag=null;keys={};joy={x:0,y:0};nubReset();beginHandAction('peek',true);physicalSound('click',.75);closeMotionPanel();$('peekExit').style.display='block';showPhysicalFeedback('ОСТОРОЖНО ЗАГЛЯДЫВАЕШЬ ИЗ-ЗА КРАЯ',true);}
+function endPeek(){if(!peekState||peekState.phase==='out')return;const p=peekState;p.phase='out';p.elapsed=0;p.duration=.34;p.fromX=camera.position.x;p.fromZ=camera.position.z;p.fromRoll=camera.rotation.z;p.fromYaw=yaw;p.fromPitch=pitch;p.toX=p.baseX;p.toZ=p.baseZ;p.toRoll=0;p.toYaw=yaw;p.toPitch=p.basePitch;releaseHandAction();$('peekExit').style.display='none';physicalSound('click',.65);showPhysicalFeedback('НАЗАД');}
+function doPeek(){if(!activeMotion)return;if(!(currentMotionFraction(activeMotion)>.02)){notify('Сначала оставь щель.');return;}const forwardX=-Math.sin(yaw),forwardZ=-Math.cos(yaw),rightX=Math.cos(yaw),rightZ=-Math.sin(yaw);const baseX=camera.position.x,baseZ=camera.position.z,baseYaw=yaw,basePitch=pitch;peekState={phase:'in',elapsed:0,duration:.36,baseX,baseZ,baseYaw,basePitch,fromX:baseX,fromZ:baseZ,fromYaw:baseYaw,fromPitch:basePitch,fromRoll:0,toX:baseX+rightX*.24+forwardX*.10,toZ:baseZ+rightZ*.24+forwardZ*.10,toYaw:baseYaw+.07,toPitch:basePitch,toRoll:-.055};drag=null;keys={};joy={x:0,y:0};joyTarget={x:0,y:0};nubReset();beginHandAction('peek',true);physicalSound('click',.75);closeMotionPanel();$('peekExit').style.display='block';showPhysicalFeedback('ЗАГЛЯДЫВАЕШЬ',true);}
 function offerItem(id){const item=itemCatalog[id];if(!item)return;pendingItemId=id;activeTarget=null;$('prompt').style.opacity='0';$('choiceType').textContent=item.type;$('choiceTitle').textContent=item.name;$('choiceText').textContent=item.description+'\n\nВзять предмет в руки, осмотреть и решить — забрать с собой или вернуть на место.';$('choiceTake').disabled=false;$('choiceTake').textContent='ВЗЯТЬ В РУКИ';$('itemChoice').style.display='flex';modalOpen=true;}
 function makeHeldClone(id){const root=itemRoot(id);if(!root)return null;const clone=root.clone(true);clone.visible=true;clone.position.set(0,0,0);clone.rotation.set(0,0,0);clone.scale.setScalar(1);return clone;}
 function renderHeldSpecialActions(){const host=$('itemSpecialActions');let html='';if(heldItemId==='photo')html='<button class="btn" data-held-action="flip">ПЕРЕВЕРНУТЬ ФОТО</button>';else if(heldItemId==='pass')html='<button class="btn" data-held-action="flip">ПОСМОТРЕТЬ ОБОРОТ</button>';else if(heldItemId==='note')html=`<button class="btn" data-held-action="fold">${heldNoteOpen?'СЛОЖИТЬ ЗАПИСКУ':'РАЗВЕРНУТЬ ЗАПИСКУ'}</button>`;else if(heldItemId==='radio')html=`<button class="btn" data-held-action="power">${heldRadioPowered?'ВЫКЛЮЧИТЬ РАЦИЮ':'ВКЛЮЧИТЬ РАЦИЮ'}</button><span class="radioTune">КАНАЛ ${String(heldRadioChannel).padStart(2,'0')}</span><button class="btn" data-held-action="down">−</button><button class="btn" data-held-action="up">+</button>`;host.innerHTML=html;host.style.display=html?'flex':'none';}
@@ -363,11 +364,11 @@ function closeInspect(){$('inspect').style.display='none';modalOpen=false;}
 function interact(){if(peekState){endPeek();return;}if(modalOpen)return;if(!activeTarget){notify('Ничего интересного в поле зрения.');return;}const d=activeTarget.userData.interaction;if(d.action){d.action();}else openInspect(d);}
 const raycaster=new THREE.Raycaster();
 function isEffectivelyVisible(obj){for(let node=obj;node;node=node.parent){if(!node.visible)return false;}return true;}
-function updateTarget(){raycaster.setFromCamera(new THREE.Vector2(0,0),camera);const hits=raycaster.intersectObjects(interactables,false).filter(h=>h.distance<3.2&&isEffectivelyVisible(h.object));activeTarget=hits.length?hits[0].object:null;$('prompt').textContent=activeTarget?`[ ДЕЙСТВИЕ ] ${activeTarget.userData.interaction.title}`:'';$('prompt').style.opacity=activeTarget?'1':'0';}
+function updateTarget(){raycaster.setFromCamera(new THREE.Vector2(0,0),camera);const hits=raycaster.intersectObjects(interactables,false).filter(h=>h.distance<3.7&&isEffectivelyVisible(h.object));activeTarget=hits.length?hits[0].object:null;$('prompt').textContent=activeTarget?`◉ ${activeTarget.userData.interaction.title}`:'';$('prompt').style.opacity=activeTarget?'1':'0';}
 function lowZoneAt(x,z,radius=0){return lowClearanceZones.find(zone=>x+radius>zone.minX&&x-radius<zone.maxX&&z+radius>zone.minZ&&z-radius<zone.maxZ)||null;}
 function canFitAt(x,z,mode=posture){const zone=lowZoneAt(x,z,postures[mode].radius);return !zone||postures[mode].height<=zone.clearance;}
 function canOccupyAt(x,z){const zone=lowZoneAt(x,z,stance.radius);return !zone||stance.height<=zone.clearance;}
-function collides(x,z){const radius=stance.radius;for(const c of colliders){if(x+radius>c.minX&&x-radius<c.maxX&&z+radius>c.minZ&&z-radius<c.maxZ)return true;}for(const obj of motionObjects){if(!obj.userData.blocksPassage||currentMotionFraction(obj)>=.98)continue;const leaf=obj.userData.leaf;if(!leaf)continue;const b=new THREE.Box3().setFromObject(leaf);if(x+radius>b.min.x&&x-radius<b.max.x&&z+radius>b.min.z&&z-radius<b.max.z)return true;}return false;}
+function collides(x,z){const radius=stance.radius,feetY=Math.max(0,camera.position.y-stance.eye),headY=feetY+stance.height;for(const c of colliders){const verticalOverlap=feetY<c.maxY&&headY>c.minY;if(verticalOverlap&&x+radius>c.minX&&x-radius<c.maxX&&z+radius>c.minZ&&z-radius<c.maxZ)return true;}for(const obj of motionObjects){if(!obj.userData.blocksPassage||currentMotionFraction(obj)>=.98)continue;const leaf=obj.userData.leaf;if(!leaf)continue;const b=new THREE.Box3().setFromObject(leaf);const verticalOverlap=feetY<b.max.y&&headY>b.min.y;if(verticalOverlap&&x+radius>b.min.x&&x-radius<b.max.x&&z+radius>b.min.z&&z-radius<b.max.z)return true;}return false;}
 function updatePostureUI(){const crouch=$('crouch'),prone=$('prone');crouch.classList.toggle('active',posture==='crouch');prone.classList.toggle('active',posture==='prone');crouch.setAttribute('aria-pressed',String(posture==='crouch'));prone.setAttribute('aria-pressed',String(posture==='prone'));$('postureStatus').textContent=`ПОЗА: ${postures[posture].label}`;}
 function setPosture(next){if(!started||modalOpen)return;if(!grounded){notify('Сначала приземлись.');return;}if(next===posture)return;const x=camera.position.x,z=camera.position.z;if(!canFitAt(x,z,next)){notify('Над головой слишком мало места. Здесь можно только лечь.');return;}stanceFrom={eye:stance.eye,height:stance.height,radius:stance.radius,speed:stance.speed};stanceElapsed=0;posture=next;sprintHeld=false;updatePostureUI();notify(next==='stand'?'Поднимаешься на ноги.':next==='crouch'?'Плавно приседаешь.':'Опускаешься на землю.');}
 function updateStaminaUI(force=false){const value=Math.max(0,Math.min(100,Math.round(stamina)));if(!force&&value===lastStaminaShown)return;lastStaminaShown=value;const fill=$('staminaFill'),label=$('staminaValue');if(fill)fill.style.width=value+'%';if(label)label.textContent=value+'%';const track=$('staminaTrack');if(track)track.setAttribute('aria-valuenow',String(value));track?.classList.toggle('low',value<=20);const sprint=$('sprint');if(sprint){sprint.classList.toggle('active',sprintHeld&&sprintBlend>.08);sprint.classList.toggle('depleted',sprintLocked);sprint.setAttribute('aria-pressed',String(sprintHeld));}}
@@ -386,6 +387,10 @@ function move(dt){
   for(const k of ['eye','height','radius','speed'])stance[k]=THREE.MathUtils.lerp(stanceFrom[k],target[k],t);
   if(stanceElapsed>=1)stanceFrom=null;
  }
+ // Smooth the analog input slightly to remove fingertip jitter without adding a delayed stop.
+ const joyBlend=1-Math.exp(-dt*24);
+ joy.x+= (joyTarget.x-joy.x)*joyBlend;
+ joy.y+= (joyTarget.y-joy.y)*joyBlend;
  let forward=0,side=0;
  if(keys.w||keys.arrowup)forward+=1;if(keys.s||keys.arrowdown)forward-=1;if(keys.a||keys.arrowleft)side-=1;if(keys.d||keys.arrowright)side+=1;
  forward+=-joy.y;side+=joy.x;const len=Math.hypot(forward,side);if(len>1){forward/=len;side/=len;}
@@ -401,7 +406,13 @@ function move(dt){
  }
  updateStaminaUI();
  const moveSpeed=stance.speed*(1+(posture==='stand'?((SPRINT_MULTIPLIER-1)*sprintBlend):0));
- const speed=moveSpeed*dt,dx=(Math.sin(yaw)*forward+Math.cos(yaw)*side)*speed,dz=(-Math.cos(yaw)*forward+Math.sin(yaw)*side)*speed;
+ // Three.js camera looks along local -Z. Use the same yaw basis for forward and right,
+ // so pushing the stick up always follows the view direction, even after turning.
+ const speed=moveSpeed*dt;
+ const forwardX=-Math.sin(yaw),forwardZ=-Math.cos(yaw);
+ const rightX=Math.cos(yaw),rightZ=-Math.sin(yaw);
+ const dx=(forwardX*forward+rightX*side)*speed;
+ const dz=(forwardZ*forward+rightZ*side)*speed;
  const nx=camera.position.x+dx,nz=camera.position.z+dz;
  if(len>.02){
   if(!collides(nx,camera.position.z)&&canOccupyAt(nx,camera.position.z))camera.position.x=nx;
@@ -425,9 +436,9 @@ function updateBodyAnimation(dt,len,activelySprinting){
  if(handAction){actionKind=handAction.kind;if(handAction.hold){handAction.weight=THREE.MathUtils.damp(handAction.weight,1,10,dt);}else{handAction.releaseElapsed+=dt;handAction.weight=1-smooth01(handAction.releaseElapsed/handAction.releaseDuration);if(handAction.releaseElapsed>=handAction.releaseDuration){handAction=null;}}
   if(handAction)actionWeight=handAction.weight;
  }
- const leftRest={x:-.34+armSpread,y:-.19,z:-.72,rx:(prone?-.72:crouch?-.12:activelySprinting?-.08:0)+swing*.42,rz:-.16+swing*.48};
- const rightRest={x:.34-armSpread,y:-.19,z:-.72,rx:(prone?-.72:crouch?-.12:activelySprinting?-.08:0)-swing*.42,rz:.16-swing*.48};
- let leftPose={x:-.26,y:-.13,z:-.79,rx:.66,rz:.12},rightPose={x:.13,y:-.12,z:-.85,rx:.78,rz:-.36};
+ const leftRest={x:-.42+armSpread,y:-.30,z:-.60,rx:(prone?-.72:crouch?-.12:activelySprinting?-.08:0)+swing*.42,rz:-.16+swing*.48};
+ const rightRest={x:.42-armSpread,y:-.30,z:-.60,rx:(prone?-.72:crouch?-.12:activelySprinting?-.08:0)-swing*.42,rz:.16-swing*.48};
+ let leftPose={x:-.30,y:-.21,z:-.72,rx:.66,rz:.12},rightPose={x:.25,y:-.20,z:-.75,rx:.78,rz:-.36};
  if(actionKind==='peek'){leftPose={x:-.42,y:-.08,z:-.78,rx:.48,rz:-.34};rightPose={x:.3,y:-.12,z:-.76,rx:.28,rz:-.12};}
  if(actionKind==='inspect'){leftPose={x:-.27,y:-.15,z:-.82,rx:.42,rz:.15};rightPose={x:.19,y:-.15,z:-.91,rx:.54,rz:-.22};}
  for(const [arm,rest,pose] of [[leftArm,leftRest,leftPose],[rightArm,rightRest,rightPose]]){
@@ -437,8 +448,11 @@ function updateBodyAnimation(dt,len,activelySprinting){
   arm.rotation.x=THREE.MathUtils.damp(arm.rotation.x,THREE.MathUtils.lerp(rest.rx,pose.rx,actionWeight),9,dt);
   arm.rotation.z=THREE.MathUtils.damp(arm.rotation.z,THREE.MathUtils.lerp(rest.rz,pose.rz,actionWeight),9,dt);
  }
- bodyRig.position.y=THREE.MathUtils.damp(bodyRig.position.y,prone?.12:crouch?.055:0,7,dt);
- legsRig.visible=prone||crouch||activelySprinting||!grounded;
+ bodyRig.position.set(camera.position.x,camera.position.y,camera.position.z);bodyRig.rotation.set(0,yaw,0,'YXZ');
+ bodyParts.position.y=THREE.MathUtils.damp(bodyParts.position.y,prone?.12:crouch?.055:0,7,dt);
+ armsRig.visible=actionWeight>.08||activelySprinting||crouch||prone;
+ torso.visible=pitch<-.18||prone||crouch;
+ legsRig.visible=prone||crouch||activelySprinting||!grounded||pitch<-.22;
  const legSwing=moving?Math.sin(bob+Math.PI*.5)*(activelySprinting?.38:prone?.08:crouch?.2:.23):0;
  leftLeg.rotation.x=THREE.MathUtils.damp(leftLeg.rotation.x,legSwing+(prone?-.12:0),8,dt);rightLeg.rotation.x=THREE.MathUtils.damp(rightLeg.rotation.x,-legSwing+(prone?-.12:0),8,dt);
  leftLeg.rotation.z=THREE.MathUtils.damp(leftLeg.rotation.z,prone?-.12:0,8,dt);rightLeg.rotation.z=THREE.MathUtils.damp(rightLeg.rotation.z,prone?.12:0,8,dt);
@@ -449,12 +463,12 @@ function animate(t){requestAnimationFrame(animate);const dt=Math.min(.04,(t-last
   const current=d.motion==='slide'?obj.position.z:obj.rotation.y,delta=d.target-current;const fast=(d.speed||0)>8,stiffness=fast?62:31,damping=fast?11.8:9.2;let velocity=Number(d.velocity)||0;velocity+=delta*stiffness*dt;velocity*=Math.exp(-damping*dt);let next=current+velocity*dt;if(Math.abs(delta)<.0015&&Math.abs(velocity)<.009){next=d.target;velocity=0;}else if(delta*(d.target-next)<0){next=d.target;velocity=0;}if(d.motion==='slide')obj.position.z=next;else obj.rotation.y=next;d.velocity=velocity;const fraction=currentMotionFraction(obj);d.open=fraction>=.99;d.ajar=fraction>.02&&!d.open;
  }
  if(heldObject){const flap=heldObject.getObjectByName('Записка: сгибаемая часть');if(flap&&flap.userData.foldTarget!==undefined)flap.rotation.x=THREE.MathUtils.damp(flap.rotation.x,flap.userData.foldTarget,10,dt);}
- if(peekState){const p=peekState;p.elapsed+=dt;const k=smooth01(p.elapsed/p.duration);camera.position.x=THREE.MathUtils.lerp(p.fromX,p.toX,k);camera.position.z=THREE.MathUtils.lerp(p.fromZ,p.toZ,k);const viewYaw=p.phase==='hold'?yaw:THREE.MathUtils.lerp(p.fromYaw,p.toYaw,k);const roll=THREE.MathUtils.lerp(p.fromRoll,p.toRoll,k);camera.rotation.set(0,viewYaw,roll,'YXZ');if(p.elapsed>=p.duration){if(p.phase==='in'){p.phase='hold';p.elapsed=0;p.fromX=p.toX;p.fromZ=p.toZ;p.fromYaw=p.toYaw;p.fromRoll=p.toRoll;camera.position.x=p.toX;camera.position.z=p.toZ;yaw=p.toYaw;camera.rotation.set(0,yaw,p.toRoll,'YXZ');}else if(p.phase==='out'){camera.position.x=p.toX;camera.position.z=p.toZ;camera.rotation.set(0,yaw,0,'YXZ');peekState=null;$('peekExit').style.display='none';}}}
+ if(peekState){const p=peekState;p.elapsed+=dt;const k=smooth01(p.elapsed/p.duration);camera.position.x=THREE.MathUtils.lerp(p.fromX,p.toX,k);camera.position.z=THREE.MathUtils.lerp(p.fromZ,p.toZ,k);const viewYaw=p.phase==='hold'?yaw:THREE.MathUtils.lerp(p.fromYaw,p.toYaw,k);const roll=THREE.MathUtils.lerp(p.fromRoll,p.toRoll,k);const viewPitch=p.phase==='hold'?pitch:THREE.MathUtils.lerp(p.fromPitch,p.toPitch,k);camera.rotation.set(viewPitch,viewYaw,roll,'YXZ');if(p.elapsed>=p.duration){if(p.phase==='in'){p.phase='hold';p.elapsed=0;p.fromX=p.toX;p.fromZ=p.toZ;p.fromYaw=p.toYaw;p.fromRoll=p.toRoll;camera.position.x=p.toX;camera.position.z=p.toZ;yaw=p.toYaw;camera.rotation.set(pitch,yaw,p.toRoll,'YXZ');}else if(p.phase==='out'){camera.position.x=p.toX;camera.position.z=p.toZ;camera.rotation.set(pitch,yaw,0,'YXZ');peekState=null;$('peekExit').style.display='none';}}}
  const p=rain.geometry.attributes.position;for(let i=0;i<rainCount;i++){p.array[i*3+1]-=dt*7;if(p.array[i*3+1]<0){p.array[i*3+1]=18;p.array[i*3]=(Math.random()-.5)*42;p.array[i*3+2]=(Math.random()-.5)*48;}}p.needsUpdate=true;cableCore.intensity=.65+Math.sin(t*.018)*.35;
  if(started&&!modalOpen)updateTarget();renderer.render(scene,camera);
 }
 requestAnimationFrame(animate);
-function look(dx){yaw-=dx*.0042;camera.rotation.set(0,yaw,0,'YXZ');}
+function look(dx=0,dy=0){yaw-=dx*.0042;pitch=THREE.MathUtils.clamp(pitch-dy*.0042,-1.05,.8);const roll=peekState?.phase==='hold'?camera.rotation.z:0;camera.rotation.set(pitch,yaw,roll,'YXZ');}
 function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.setSize(innerWidth,innerHeight);}
 addEventListener('resize',resize);
 const introFootText=document.querySelector('#intro .foot').textContent;
@@ -462,14 +476,14 @@ function resetWorld(){
  activeTarget=null;peekState=null;handAction=null;$('peekExit').style.display='none';$('physicalFeedback').classList.remove('visible');$('prompt').style.opacity='0';inventory.splice(0);medkits=0;energyItems=0;health=100;stamina=100;sprintLocked=false;sprintHeld=false;sprintBlend=0;staminaRecoveryDelay=0;
  for(const obj of Object.values(pickupObjects))obj.visible=true;
  for(const obj of motionObjects){obj.userData.open=false;obj.userData.ajar=false;obj.userData.targetFraction=0;obj.userData.target=obj.userData.closedValue??0;obj.userData.speed=7;obj.userData.velocity=0;obj.userData.manualHold=0;if(obj.userData.motion==='slide')obj.position.z=obj.userData.closedValue??-.4;else obj.rotation.y=obj.userData.closedValue??0;}
- posture='stand';stanceFrom=null;stanceElapsed=1;Object.assign(stance,postures.stand);jumpHeight=0;jumpVelocity=0;grounded=true;camera.position.set(0,postures.stand.eye,10.5);yaw=0;look(0);joy={x:0,y:0};nubReset();keys={};updatePostureUI();updateHealthUI(true);updateStaminaUI(true);updateInventoryUI();save();
+ posture='stand';stanceFrom=null;stanceElapsed=1;Object.assign(stance,postures.stand);jumpHeight=0;jumpVelocity=0;grounded=true;camera.position.set(0,postures.stand.eye,10.5);yaw=0;pitch=0;look(0,0);joy={x:0,y:0};joyTarget={x:0,y:0};nubReset();keys={};updatePostureUI();updateHealthUI(true);updateStaminaUI(true);updateInventoryUI();save();
 }
 function nubReset(){const nub=$('nub');if(nub)nub.style.transform='translate(0,0)';}
 function beginNewGame(){resetWorld();started=true;modalOpen=false;document.querySelector('#intro .foot').textContent=introFootText;$('confirmNew').style.display='none';$('pause').style.display='none';$('intro').style.display='none';$('menuStatus').textContent='';notify('Проходная комплекса «Север-7». Осмотрись. Двери и предметы можно исследовать.');}
-function openMainMenu(){if(!started)return;stopSprint();joy={x:0,y:0};nubReset();save();modalOpen=true;$('pause').style.display='flex';$('menuStatus').textContent='';}
+function openMainMenu(){if(!started)return;stopSprint();joy={x:0,y:0};joyTarget={x:0,y:0};nubReset();save();modalOpen=true;$('pause').style.display='flex';$('menuStatus').textContent='';}
 function closeMainMenu(){ $('pause').style.display='none';modalOpen=false;}
 function continueAuto(){const data=readStored('tishinaAutoV1')||autosaved;if(!data){$('titleStatus').textContent='АВТОСОХРАНЕНИЕ НЕ НАЙДЕНО';return;}applySnapshot(data);started=true;modalOpen=false;$('intro').style.display='none';$('downed').style.display='none';save();notify('Продолжаем с последней автосохранённой позиции.');}
-function exitGame(){save();started=false;stopSprint();joy={x:0,y:0};nubReset();modalOpen=true;$('pause').style.display='none';$('intro').style.display='flex';document.querySelector('#intro .foot').textContent='ИГРА ОСТАНОВЛЕНА · В БРАУЗЕРЕ МОЖНО ЗАКРЫТЬ ВКЛАДКУ ВРУЧНУЮ';if(document.fullscreenElement)document.exitFullscreen?.().catch(()=>{});}
+function exitGame(){save();started=false;stopSprint();joy={x:0,y:0};joyTarget={x:0,y:0};nubReset();modalOpen=true;$('pause').style.display='none';$('intro').style.display='flex';document.querySelector('#intro .foot').textContent='ИГРА ОСТАНОВЛЕНА · В БРАУЗЕРЕ МОЖНО ЗАКРЫТЬ ВКЛАДКУ ВРУЧНУЮ';if(document.fullscreenElement)document.exitFullscreen?.().catch(()=>{});}
 $('start').onclick=beginNewGame;$('continueTitle').onclick=continueAuto;$('titleLoad').onclick=()=>{if(!loadManual()){$('titleStatus').textContent='Сначала сохраните игру в главном меню.';}};
 $('use').onclick=interact;$('closeInspect').onclick=closeInspect;
 $('choiceTake').onclick=()=>{if(pendingItemId)beginItemExamine(pendingItemId);};$('choiceLeave').onclick=closeItemChoice;
@@ -482,12 +496,29 @@ const itemStage=$('itemStage');itemStage.addEventListener('pointerdown',e=>{if(!
 $('bag').onclick=()=>{$('inventory').style.display='flex';modalOpen=true;updateInventoryUI();};$('closeBag').onclick=()=>{$('inventory').style.display='none';modalOpen=false;};
 $('useMedkit').onclick=useMedkit;$('useEnergy').onclick=useEnergy;
 $('openMenu').onclick=openMainMenu;$('closeMenu').onclick=closeMainMenu;$('continueGame').onclick=closeMainMenu;$('saveGame').onclick=saveManual;$('loadGame').onclick=()=>loadManual();$('newGame').onclick=()=>{$('confirmNew').style.display='flex';};$('confirmNewNo').onclick=()=>{$('confirmNew').style.display='none';};$('confirmNewYes').onclick=beginNewGame;$('exitGame').onclick=exitGame;
-$('jump').onclick=jump;$('crouch').onclick=()=>setPosture(posture==='crouch'?'stand':'crouch');$('prone').onclick=()=>setPosture(posture==='prone'?'stand':'prone');$('recover').onclick=()=>{health=65;stamina=70;sprintLocked=false;sprintHeld=false;posture='stand';stanceFrom=null;stanceElapsed=1;Object.assign(stance,postures.stand);jumpHeight=0;jumpVelocity=0;grounded=true;camera.position.set(0,1.68,10.5);yaw=0;look(0);$('downed').style.display='none';modalOpen=false;updatePostureUI();updateStaminaUI(true);updateHealthUI(true);save();notify('Ты пришёл в себя у проходной. Будь осторожнее.');};updatePostureUI();updateStaminaUI(true);updateHealthUI(true);updateInventoryUI();
+$('jump').onclick=jump;$('crouch').onclick=()=>setPosture(posture==='crouch'?'stand':'crouch');$('prone').onclick=()=>setPosture(posture==='prone'?'stand':'prone');$('recover').onclick=()=>{health=65;stamina=70;sprintLocked=false;sprintHeld=false;posture='stand';stanceFrom=null;stanceElapsed=1;Object.assign(stance,postures.stand);jumpHeight=0;jumpVelocity=0;grounded=true;camera.position.set(0,1.68,10.5);yaw=0;pitch=0;look(0,0);$('downed').style.display='none';modalOpen=false;updatePostureUI();updateStaminaUI(true);updateHealthUI(true);save();notify('Ты пришёл в себя у проходной. Будь осторожнее.');};updatePostureUI();updateStaminaUI(true);updateHealthUI(true);updateInventoryUI();
 const sprintButton=$('sprint');sprintButton.addEventListener('pointerdown',e=>{e.preventDefault();sprintButton.setPointerCapture(e.pointerId);startSprint();});sprintButton.addEventListener('pointerup',e=>{e.preventDefault();stopSprint();});sprintButton.addEventListener('pointercancel',stopSprint);sprintButton.addEventListener('lostpointercapture',stopSprint);sprintButton.addEventListener('contextmenu',e=>e.preventDefault());
 $('fullscreen').onclick=async()=>{try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen();else await document.exitFullscreen();}catch{notify('Открой игру через «На экран Домой» для более полного режима.');}};
-const stick=$('stick'),nub=$('nub');function setJoy(e){const r=stick.getBoundingClientRect(),dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2),len=Math.hypot(dx,dy),max=38,k=Math.min(1,max/(len||1));joy.x=dx*k/max;joy.y=dy*k/max;nub.style.transform=`translate(${joy.x*max}px,${joy.y*max}px)`;}function resetJoy(){joy={x:0,y:0};nub.style.transform='translate(0,0)';}
-stick.addEventListener('pointerdown',e=>{stick.setPointerCapture(e.pointerId);setJoy(e);});stick.addEventListener('pointermove',e=>{if(stick.hasPointerCapture(e.pointerId))setJoy(e);});stick.addEventListener('pointerup',resetJoy);stick.addEventListener('pointercancel',resetJoy);
-canvas.addEventListener('pointerdown',e=>{if(e.clientX<innerWidth*.4&&e.clientY>innerHeight*.58)return;drag={x:e.clientX,y:e.clientY};});canvas.addEventListener('pointermove',e=>{if(drag&&!modalOpen&&(!peekState||peekState.phase==='hold')){look(e.clientX-drag.x);drag={x:e.clientX,y:e.clientY};}});canvas.addEventListener('pointerup',()=>drag=null);canvas.addEventListener('pointercancel',()=>drag=null);
+const stick=$('stick'),nub=$('nub');let stickPointerId=null;
+function setJoy(e){
+ const r=stick.getBoundingClientRect();
+ const dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2);
+ const radius=Math.max(1,Math.min(r.width,r.height)*.39),distance=Math.hypot(dx,dy);
+ const clampScale=distance>radius?radius/distance:1;
+ const px=dx*clampScale,py=dy*clampScale,clampedDistance=Math.hypot(px,py);
+ const amount=Math.min(1,clampedDistance/radius),deadZone=.12;
+ const strength=amount<=deadZone?0:(amount-deadZone)/(1-deadZone);
+ const divisor=clampedDistance||1;
+ joyTarget.x=(px/divisor)*strength;
+ joyTarget.y=(py/divisor)*strength;
+ nub.style.transform=`translate(${px}px,${py}px)`;
+}
+function resetJoy(){stickPointerId=null;joy={x:0,y:0};joyTarget={x:0,y:0};nub.style.transform='translate(0,0)';}
+stick.addEventListener('pointerdown',e=>{e.preventDefault();stickPointerId=e.pointerId;try{stick.setPointerCapture(e.pointerId);}catch{}setJoy(e);});
+stick.addEventListener('pointermove',e=>{if(stickPointerId===e.pointerId){e.preventDefault();setJoy(e);}});
+stick.addEventListener('pointerup',e=>{if(stickPointerId===e.pointerId)resetJoy();});
+stick.addEventListener('pointercancel',resetJoy);stick.addEventListener('lostpointercapture',resetJoy);
+canvas.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'&&e.clientX<innerWidth*.42&&e.clientY>innerHeight*.52)return;if(modalOpen)return;drag={x:e.clientX,y:e.clientY,id:e.pointerId};try{canvas.setPointerCapture(e.pointerId);}catch{}});canvas.addEventListener('pointermove',e=>{if(drag&&drag.id===e.pointerId&&!modalOpen&&(!peekState||peekState.phase==='hold')){const dx=e.clientX-drag.x,dy=e.clientY-drag.y;look(dx,dy);drag={x:e.clientX,y:e.clientY,id:e.pointerId};}});const stopLook=e=>{if(drag&&drag.id===e.pointerId)drag=null;};canvas.addEventListener('pointerup',stopLook);canvas.addEventListener('pointercancel',stopLook);canvas.addEventListener('lostpointercapture',stopLook);
 addEventListener('keydown',e=>{const key=e.key.toLowerCase();if(key==='escape'){if(peekState){endPeek();return;}if($('itemExamine').style.display==='block')finishHeldItem(false);else if($('itemChoice').style.display==='flex')closeItemChoice();else if($('motionPanel').style.display==='flex')closeMotionPanel();else if($('confirmNew').style.display==='flex')$('confirmNew').style.display='none';else if(started&&!modalOpen)openMainMenu();else if(modalOpen&&$('pause').style.display==='flex')closeMainMenu();else if(modalOpen&&$('inventory').style.display==='flex'){$('inventory').style.display='none';modalOpen=false;}else if(modalOpen&&$('inspect').style.display==='flex')closeInspect();return;}if(e.code==='ShiftLeft'||e.code==='ShiftRight'){startSprint();return;}if(e.code==='Space'){e.preventDefault();jump();return;}if(key==='c'){setPosture(posture==='crouch'?'stand':'crouch');return;}if(key==='z'){setPosture(posture==='prone'?'stand':'prone');return;}keys[key]=true;if(key==='e')interact();});addEventListener('keyup',e=>{if(e.code==='ShiftLeft'||e.code==='ShiftRight'){stopSprint();return;}keys[e.key.toLowerCase()]=false;});
 addEventListener('blur',()=>{stopSprint();if(started)save();});document.addEventListener('visibilitychange',()=>{if(document.hidden){stopSprint();if(started)save();}});addEventListener('pagehide',()=>{if(started)save();});setInterval(()=>{if(started&&!modalOpen)save();},12000);
 if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js').catch(()=>{}));
