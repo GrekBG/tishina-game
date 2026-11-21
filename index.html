@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="ТИШИНА">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>ТИШИНА — Север-7 · версия 0.2.7</title>
+<title>ТИШИНА — Север-7 · версия 0.2.9</title>
 <style>
 :root{color-scheme:dark;--panel:rgba(13,18,17,.94);--line:rgba(205,215,207,.22);--ink:#e2e7df;--muted:#9ca79e}
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#171d1c;color:var(--ink);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;touch-action:none;overscroll-behavior:none}
@@ -47,6 +47,50 @@
 #inventory .panel{width:min(540px,100%)}
 @media(max-height:500px) and (orientation:landscape){#motionPanel .panel{padding:13px 16px}#motionPanel .panel h2{font-size:20px;margin:4px 0 6px}#motionPanel .panel p{font-size:10px;line-height:1.35;margin:4px 0}#motionPanel .motionActions{gap:5px;margin-top:7px}#motionPanel .motionActions .btn{height:32px;font-size:7px}#motionPanel .foot{font-size:7px;margin-top:6px}#motionPanel .foot{font-size:8px;margin-top:8px}#itemHud{bottom:8px;padding:9px 12px}#itemHud p{font-size:10px;line-height:1.35;margin:4px 0 7px;max-height:13vh}#itemHud h2{font-size:17px;margin:3px 0 5px}#itemStage{inset:2% 0 38%}.itemActions .btn{height:35px}.inventoryGrid{gap:4px}.inventoryCell{min-height:48px;padding:5px;font-size:9px}}
 
+
+/* 0.2.9 — compact touch layout and unobstructed interaction panel */
+#controls{left:12px;right:12px;bottom:calc(9px + env(safe-area-inset-bottom));align-items:flex-end;gap:10px}
+#leftControls{display:flex;align-items:flex-end;gap:7px;pointer-events:auto}
+#postureControls{display:flex;flex-direction:column;gap:6px;align-items:center}
+#stick{width:92px;height:92px;flex:0 0 92px}
+#nub{width:38px;height:38px;left:26px;top:26px}
+#actions{display:flex;align-items:flex-end;gap:7px;pointer-events:auto}
+.btn.iconBtn{display:grid;place-items:center;width:45px;height:45px;min-width:45px;padding:0;border-radius:50%;background:rgba(18,26,22,.78);border:1px solid #d5ded466;color:#e2e7df}
+.btn.iconBtn svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.btn.iconBtn:active{transform:scale(.95)}
+.btn.iconBtn.active{background:#d2dfcf;color:#172019;border-color:#e0e9dc}
+.btn.iconBtn.primary{background:#d0d8cd;color:#17201b;border-color:#d0d8cd}
+.btn.sprintBtn{width:54px;height:54px;min-width:54px;background:rgba(31,43,35,.9);border-color:#cbd7c288}
+.btn.sprintBtn svg{width:27px;height:27px}
+#prompt{bottom:calc(110px + env(safe-area-inset-bottom));font-size:10px;padding:7px 10px;max-width:min(70vw,360px);overflow:hidden;text-overflow:ellipsis}
+#motionPanel{z-index:14;align-items:flex-end;justify-content:center;padding:10px 10px calc(76px + env(safe-area-inset-bottom));background:transparent;backdrop-filter:none;pointer-events:none}
+#motionPanel .panel{pointer-events:auto;width:min(292px,calc(100vw - 24px));max-width:292px;max-height:42vh;overflow:auto;padding:12px 13px 13px;border-radius:9px;background:rgba(13,19,16,.94);border:1px solid #b5c2b044;box-shadow:0 8px 30px #0009}
+#motionPanel .eyebrow,#motionPanel #motionDescription,#motionPanel .foot{display:none}
+#motionPanel .panel h2{font-size:14px;letter-spacing:.1em;margin:0 34px 9px 0}
+#motionPanel .panel .closeX{right:8px;top:7px;width:28px;height:28px;font-size:18px}
+#motionPanel .motionActions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin:0}
+#motionPanel .motionActions .btn{height:35px;min-width:0;padding:0 3px;font-size:8px;letter-spacing:0;border-radius:5px}
+#motionPanel .motionActions #motionHoldOpen,#motionPanel .motionActions #motionHoldClose{font-size:8px;letter-spacing:0;touch-action:none;user-select:none;-webkit-user-select:none}
+#itemChoice .panel{width:min(360px,calc(100vw - 28px));padding:16px 18px;border-radius:10px}
+#itemChoice .panel h2{font-size:19px;margin:6px 0 7px}
+#itemChoice .panel p{font-size:11px;line-height:1.4;margin:4px 0}
+#itemChoice .menuActions{grid-template-columns:1fr 1fr;gap:7px;margin-top:10px}
+#itemChoice .menuActions .wide{height:38px;margin:0;padding:0 6px;font-size:8px;min-width:0}
+#top .stats{font-size:9px}
+@media(max-width:740px) and (orientation:landscape){
+ #controls{left:8px;right:8px;bottom:calc(6px + env(safe-area-inset-bottom));gap:6px}
+ #leftControls{gap:5px}#stick{width:82px;height:82px;flex-basis:82px}#nub{left:22px;top:22px}
+ #postureControls{gap:5px}#actions{gap:5px}
+ .btn.iconBtn{width:40px;height:40px;min-width:40px}
+ .btn.iconBtn svg{width:20px;height:20px}
+ .btn.sprintBtn{width:48px;height:48px;min-width:48px}
+ .btn.sprintBtn svg{width:24px;height:24px}
+ #motionPanel{padding-bottom:calc(62px + env(safe-area-inset-bottom))}
+ #motionPanel .panel{width:min(270px,calc(100vw - 20px));padding:10px}
+ #motionPanel .motionActions .btn{height:32px;font-size:7px}
+}
+@media(max-width:390px) and (orientation:landscape){#actions{gap:3px}.btn.iconBtn{width:36px;height:36px;min-width:36px}.btn.sprintBtn{width:43px;height:43px;min-width:43px}#stick{width:76px;height:76px;flex-basis:76px}#nub{left:19px;top:19px}}
+
 </style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.187.0/build/three.module.js"}}</script>
 </head>
@@ -54,12 +98,27 @@
 <canvas id="scene"></canvas><div id="shade"></div><div id="damageFx"></div>
 <div id="top"><div><div class="brand">ТИШИНА</div><div class="sub">СЕВЕР-7 · ПРОМЫШЛЕННЫЙ КОМПЛЕКС</div><button class="menuButton" id="openMenu">Ⅱ МЕНЮ</button></div><div class="stats">2034 · ДЕНЬ 01<br>ПОГОДА: ПАСМУРНО<br><span id="objective">ОБЪЕКТ: ПРОХОДНАЯ</span><br><span id="postureStatus">ПОЗА: СТОЯ</span><div class="statusBars"><div class="barHead"><span>ЗДОРОВЬЕ</span><b id="healthValue">100%</b></div><div class="barTrack healthTrack" id="healthTrack" role="progressbar" aria-label="Здоровье" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><div id="healthFill"></div></div><div class="barHead"><span>ВЫНОСЛИВОСТЬ</span><b id="staminaValue">100%</b></div><div class="barTrack staminaTrack" id="staminaTrack" role="progressbar" aria-label="Выносливость" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><div id="staminaFill"></div></div></div></div></div>
 <div id="crosshair">+</div><div id="prompt"></div><div id="message"></div><div id="physicalFeedback" aria-live="polite"></div><button id="peekExit" class="btn">ВЕРНУТЬСЯ ЗА УКРЫТИЕ</button>
-<div id="controls"><div id="stick"><div id="nub"></div></div><div id="actions"><button class="btn compact" id="sprint" aria-label="Удерживать для бега" title="Удерживать для бега" aria-pressed="false">БЕГ</button><button class="btn compact" id="jump" aria-label="Прыжок" title="Прыжок">ПРЫЖ</button><button class="btn compact" id="crouch" aria-label="Присесть" title="Присесть / встать" aria-pressed="false">ПРИС</button><button class="btn compact" id="prone" aria-label="Лечь" title="Лечь / встать" aria-pressed="false">ЛЁЖ</button><button class="btn" id="bag">СУМКА</button><button class="btn" id="fullscreen">⛶</button><button class="btn primary" id="use">ДЕЙСТВИЕ</button></div></div>
-<div id="intro"><div class="panel"><div class="eyebrow">ИНТЕРАКТИВНЫЙ ПРОТОТИП · 0.2.7</div><h1>ТИШИНА</h1><div class="eyebrow">ПОСЛЕ КАТАСТРОФЫ МИР НЕ ИСЧЕЗ.</div><p class="desc">Северный промышленный регион. 2034 год.<br>Комплекс «Север-7» закрыли за три дня до эвакуации.<br>Теперь ты здесь один. Или тебе только так кажется.</p><div class="menuActions"><button class="btn primary wide" id="continueTitle" disabled>ПРОДОЛЖИТЬ</button><button class="btn wide" id="start">НОВАЯ ИГРА</button><button class="btn wide menuSecondary" id="titleLoad" disabled>ЗАГРУЗИТЬ СОХРАНЕНИЕ</button></div><div class="menuStatus" id="titleStatus"></div><div class="foot">СТИК — ДВИЖЕНИЕ · ПРАВАЯ ЧАСТЬ — ОБЗОР · БЕГ / ПРЫЖОК / ПРИСЕДАНИЕ / ЛЁЖА</div></div></div>
+<div id="controls">
+ <div id="leftControls">
+  <div id="stick" aria-label="Движение"><div id="nub"></div></div>
+  <div id="postureControls">
+   <button class="btn iconBtn" id="crouch" aria-label="Присесть / встать" title="Присесть / встать" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="15.8" cy="4.2" r="2"/><path d="M13.8 7.3 11 10.2l-4.1 1.3M11 10.2l3.2 2.4 2.8-.1M9.1 11.5l-1.3 4.2 4.3 1.4 2.2 3M7.8 15.7l-3.4 3.2M14.3 12.5l-.8 4.2 4.8 1.7"/></svg></button>
+   <button class="btn iconBtn" id="prone" aria-label="Лечь / встать" title="Лечь / встать" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="2"/><path d="M7 13h6l3-2 3 1M10 13l-2.5 4M14 13l3.5 4M18 12l3 2"/></svg></button>
+  </div>
+ </div>
+ <div id="actions">
+  <button class="btn iconBtn" id="bag" aria-label="Инвентарь" title="Инвентарь"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l1.4 12H3.6L5 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2M9 13h6"/></svg></button>
+  <button class="btn iconBtn" id="jump" aria-label="Прыжок" title="Прыжок"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20V5M6 11l6-6 6 6M5 20h14"/></svg></button>
+  <button class="btn iconBtn" id="fullscreen" aria-label="Полный экран" title="Полный экран"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4H4v4M16 4h4v4M4 16v4h4M20 16v4h-4"/></svg></button>
+  <button class="btn primary iconBtn" id="use" aria-label="Действие" title="Действие"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 12V6.5a1.5 1.5 0 0 1 3 0V11 5.8a1.5 1.5 0 0 1 3 0V11 7.2a1.5 1.5 0 0 1 3 0v5.1l1.1-1.2a1.7 1.7 0 0 1 2.8 1.6l-1.7 5A3.5 3.5 0 0 1 15.9 20h-4.2a4 4 0 0 1-3.1-1.5L5.4 14a1.8 1.8 0 0 1 2.6-2.4L10 14"/></svg></button>
+  <button class="btn iconBtn sprintBtn" id="sprint" aria-label="Удерживать для бега" title="Удерживать для бега" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="15.5" cy="4.2" r="2"/><path d="m12.8 7.2-3.1 4.1 4.4 2.1 2.7-2.7 3.5 1.4M9.7 11.3l-3.8.2M13.8 13.4 11 18.8l-4.2 1.5M14 13.5l3.1 5.4 3 .6"/></svg></button>
+ </div>
+</div>
+<div id="intro"><div class="panel"><div class="eyebrow">ИНТЕРАКТИВНЫЙ ПРОТОТИП · 0.2.8</div><h1>ТИШИНА</h1><div class="eyebrow">ПОСЛЕ КАТАСТРОФЫ МИР НЕ ИСЧЕЗ.</div><p class="desc">Северный промышленный регион. 2034 год.<br>Комплекс «Север-7» закрыли за три дня до эвакуации.<br>Теперь ты здесь один. Или тебе только так кажется.</p><div class="menuActions"><button class="btn primary wide" id="continueTitle" disabled>ПРОДОЛЖИТЬ</button><button class="btn wide" id="start">НОВАЯ ИГРА</button><button class="btn wide menuSecondary" id="titleLoad" disabled>ЗАГРУЗИТЬ СОХРАНЕНИЕ</button></div><div class="menuStatus" id="titleStatus"></div><div class="foot">ЛЕВЫЙ СТИК — ДВИЖЕНИЕ · ПРАВАЯ ЧАСТЬ — ОБЗОР ВВЕРХ / ВНИЗ / ПО СТОРОНАМ</div></div></div>
 <div id="rotate"><div class="panel"><div class="symbol">↻</div><h2>ПОВЕРНИТЕ УСТРОЙСТВО</h2><p>«ТИШИНА» рассчитана на горизонтальный экран.</p></div></div>
 <div id="inspect"><div class="panel"><button class="closeX" id="closeInspect" aria-label="Закрыть">×</button><div class="eyebrow" id="inspectType">ОСМОТР</div><h2 id="inspectTitle">Предмет</h2><p id="inspectText"></p><div class="foot" id="inspectFoot">ОСМОТРЕННЫЙ ОБЪЕКТ СОХРАНЁН В ЖУРНАЛЕ</div></div></div>
 <div id="itemChoice"><div class="panel"><div class="eyebrow" id="choiceType">НАЙДЕННЫЙ ПРЕДМЕТ</div><h2 id="choiceTitle">Предмет</h2><p id="choiceText">Осмотреть предмет?</p><div class="menuActions"><button class="btn primary wide" id="choiceTake">ВЗЯТЬ В РУКИ</button><button class="btn wide" id="choiceLeave">ОСТАВИТЬ НА МЕСТЕ</button></div></div></div>
-<div id="motionPanel"><div class="panel"><button class="closeX" id="motionClosePanel" aria-label="Закрыть">×</button><div class="eyebrow">ФИЗИЧЕСКОЕ ВЗАИМОДЕЙСТВИЕ</div><h2 id="motionTitle">МЕХАНИЗМ</h2><p id="motionDescription">Выбери, как взаимодействовать с объектом.</p><div class="motionActions"><button class="btn" id="motionAjar">ПРИОТКРЫТЬ · ТИХО</button><button class="btn" id="motionPeek">ЗАГЛЯНУТЬ В ЩЕЛЬ</button><button class="btn primary" id="motionSlowOpen">ТИХО ОТКРЫТЬ</button><button class="btn" id="motionFastOpen">БЫСТРО ОТКРЫТЬ</button><button class="btn" id="motionSlowClose">ТИХО ЗАКРЫТЬ</button><button class="btn" id="motionFastClose">БЫСТРО ЗАКРЫТЬ</button><button class="btn primary" id="motionHoldOpen">УДЕРЖИВАТЬ · ОТКРЫВАТЬ</button><button class="btn" id="motionHoldClose">УДЕРЖИВАТЬ · ЗАКРЫВАТЬ</button></div><div class="foot">ПРИОТКРОЙ ДВЕРЬ И НАЖМИ «ЗАГЛЯНУТЬ В ЩЕЛЬ». ПРИ ПОЛНОМ ОТКРЫТИИ МОЖНО ВОЙТИ В ПРОЁМ.</div></div></div>
+<div id="motionPanel"><div class="panel"><button class="closeX" id="motionClosePanel" aria-label="Закрыть">×</button><div class="eyebrow">ВЗАИМОДЕЙСТВИЕ</div><h2 id="motionTitle">МЕХАНИЗМ</h2><p id="motionDescription">Выбери действие.</p><div class="motionActions"><button class="btn" id="motionAjar">ЩЕЛЬ</button><button class="btn" id="motionPeek">ЗАГЛЯНУТЬ</button><button class="btn primary" id="motionSlowOpen">ТИХО ОТКР.</button><button class="btn" id="motionFastOpen">РЕЗКО ОТКР.</button><button class="btn" id="motionSlowClose">ТИХО ЗАКР.</button><button class="btn" id="motionFastClose">РЕЗКО ЗАКР.</button><button class="btn primary" id="motionHoldOpen">ДЕРЖАТЬ +</button><button class="btn" id="motionHoldClose">ДЕРЖАТЬ −</button></div><div class="foot">УДЕРЖИВАЙ — ДЛЯ ТОЧНОГО ПОЛОЖЕНИЯ.</div></div></div>
 <div id="itemExamine"><div id="itemStage"></div><div id="itemStageHint">ПЕРЕТАСКИВАЙ ПРЕДМЕТ ПАЛЬЦЕМ, ЧТОБЫ ПОВЕРНУТЬ</div><div id="itemHud"><div class="itemTop"><div class="itemMeta" id="heldType">ОСМОТР ПРЕДМЕТА</div><div class="itemMeta" id="heldWeight"></div></div><h2 id="heldTitle">Предмет</h2><p id="heldDescription"></p><div id="itemSpecialActions" class="itemSpecialActions" style="display:none"></div><div class="itemActions"><button class="btn primary" id="takeToInventory">ЗАБРАТЬ С СОБОЙ</button><button class="btn" id="putBack">ПОЛОЖИТЬ НА МЕСТО</button></div></div></div>
 <div id="inventory"><div class="panel"><button class="closeX" id="closeBag">×</button><div class="eyebrow">ЛИЧНЫЕ ЗАПИСИ И СНАРЯЖЕНИЕ</div><h2>ИНВЕНТАРЬ</h2><div class="inventorySection"><h3>НАЙДЕННЫЕ ЗАПИСИ</h3><div id="inventoryWeight">ВЕС: 0 / 8 КГ · ЯЧЕЙКИ: 0 / 8</div><div id="items" class="inventoryGrid">Пока пусто</div></div><div class="inventorySection"><h3>РАСХОДНИКИ</h3><div class="supplyRow"><span>Аптечка · <b id="medkitCount">0</b></span><button class="btn" id="useMedkit">ИСПОЛЬЗОВАТЬ</button></div><div class="supplyRow"><span>Энергетик · <b id="energyCount">0</b></span><button class="btn" id="useEnergy">ИСПОЛЬЗОВАТЬ</button></div></div><div id="hintline">Сохранения хранятся на этом устройстве.</div></div></div>
 <div id="pause"><div class="panel"><button class="closeX" id="closeMenu">×</button><div class="eyebrow">СЕВЕР-7 · ПАУЗА</div><h2>ГЛАВНОЕ МЕНЮ</h2><p>Прогресс можно сохранить на устройстве и продолжить позже.</p><div class="menuActions"><button class="btn primary wide" id="continueGame">ПРОДОЛЖИТЬ</button><button class="btn wide" id="saveGame">СОХРАНИТЬ ИГРУ</button><button class="btn wide" id="loadGame">ЗАГРУЗИТЬ ИГРУ</button><button class="btn wide" id="newGame">НОВАЯ ИГРА</button><button class="btn wide menuSecondary" id="exitGame">ВЫЙТИ ИЗ ИГРЫ</button></div><div class="menuStatus" id="menuStatus"></div></div></div>
