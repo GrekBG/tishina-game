@@ -1,13 +1,13 @@
 {
-  "name": "ТИШИНА — интерактивный прототип",
+  "name": "ТИШИНА — промышленный комплекс Север-7",
   "short_name": "ТИШИНА",
-  "description": "Мрачное приключение в заброшенном северном регионе. Прототип 0.1.",
+  "description": "Кинематографичное приключение в заброшенном промышленном комплексе. Версия 0.2.7.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "landscape",
-  "background_color": "#101412",
-  "theme_color": "#101412",
+  "background_color": "#151a19",
+  "theme_color": "#151a19",
   "icons": [
     {
       "src": "icon-192.png",

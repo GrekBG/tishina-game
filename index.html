@@ -2,143 +2,68 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<meta name="theme-color" content="#101412">
-<title>ТИШИНА — прототип 0.1</title>
-<style>
-:root{color-scheme:dark}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#101412;font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#e5e8e2;touch-action:none}
-#game{position:fixed;inset:0;width:100%;height:100%;display:block;background:#111}
-#vignette{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 38%,rgba(0,0,0,.62) 100%)}
-#top{position:fixed;top:env(safe-area-inset-top,10px);left:14px;right:14px;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;text-shadow:0 2px 8px #000}
-.brand{font-size:12px;letter-spacing:.24em;font-weight:800;color:#d9ded4}.sub{font-size:10px;letter-spacing:.12em;color:#a6afa5;margin-top:3px}
-#stats{font-size:11px;text-align:right;color:#d0d6cc;line-height:1.7}
-#prompt{position:fixed;left:50%;bottom:calc(116px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);font-size:12px;color:#f0f0e7;background:#101512c9;border:1px solid #87918466;border-radius:20px;padding:8px 13px;white-space:nowrap;opacity:0;transition:opacity .2s;pointer-events:none}
-#hint{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);font-size:10px;color:#d5dbd0;opacity:.65;pointer-events:none}
-#controls{position:fixed;bottom:calc(16px + env(safe-area-inset-bottom,0px));left:14px;right:14px;display:flex;justify-content:space-between;align-items:end}
-#stick{width:116px;height:116px;border:1px solid #d8e0d355;border-radius:50%;background:#17201b88;position:relative;touch-action:none}
-#nub{position:absolute;width:44px;height:44px;border-radius:50%;background:#bfc8bb55;border:1px solid #e0e6dc88;left:35px;top:35px}
-#actions{display:flex;gap:9px;align-items:end}
-.action{border:1px solid #d8e0d355;background:#17201bba;color:#e5e8e2;border-radius:50%;width:62px;height:62px;font-size:11px;font-weight:700;letter-spacing:.04em;touch-action:none}
-.action.small{width:48px;height:48px;font-size:10px}
-#message{position:fixed;left:50%;top:18%;transform:translateX(-50%);max-width:82%;text-align:center;background:#101512df;border:1px solid #87918455;padding:12px 16px;border-radius:10px;font-size:13px;line-height:1.45;opacity:0;transition:opacity .3s;pointer-events:none}
-#intro{position:fixed;inset:0;background:linear-gradient(180deg,#0c100fef,#0c100fe8),radial-gradient(ellipse,#34413a,#0c100f);display:flex;align-items:center;justify-content:center;padding:28px;text-align:center}
-.panel{max-width:440px}.title{font-size:clamp(34px,9vw,58px);font-weight:900;letter-spacing:.22em;margin:0 0 8px}.tag{font-size:10px;letter-spacing:.22em;color:#aeb8aa}.desc{font-size:14px;line-height:1.65;color:#c4cbc0;margin:24px 0}.start{background:#d8dfd2;color:#141915;border:0;border-radius:5px;padding:14px 28px;font-weight:800;letter-spacing:.12em;font-size:12px}
-#inventory{position:fixed;inset:0;background:#080c0bea;display:none;align-items:center;justify-content:center;padding:24px}
-.invbox{width:min(420px,100%);border:1px solid #78847766;background:#151c17;padding:22px;border-radius:10px}
-.invbox h2{font-size:17px;letter-spacing:.12em;margin:0 0 18px}.slot{padding:12px;border-bottom:1px solid #ffffff18;font-size:13px;color:#cbd2c6}.close{margin-top:18px;width:100%;padding:12px;background:#cbd4c6;color:#172019;border:0;border-radius:5px;font-weight:700}
-@media(min-width:800px){#controls{max-width:900px;left:50%;right:auto;width:calc(100% - 40px);transform:translateX(-50%)}}
-</style>
-
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta name="theme-color" content="#101412">
+<meta name="theme-color" content="#151a19">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="ТИШИНА">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="icon" type="image/png" href="icon-192.png">
-<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js").catch(()=>{}));}</script>
+<title>ТИШИНА — Север-7 · версия 0.2.7</title>
+<style>
+:root{color-scheme:dark;--panel:rgba(13,18,17,.94);--line:rgba(205,215,207,.22);--ink:#e2e7df;--muted:#9ca79e}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#171d1c;color:var(--ink);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;touch-action:none;overscroll-behavior:none}
+#scene{position:fixed;inset:0;width:100%;height:100%;display:block;outline:0}#shade{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 48%,rgba(0,0,0,.42) 100%);z-index:2}
+#top{position:fixed;z-index:4;top:env(safe-area-inset-top,10px);left:16px;right:16px;display:flex;justify-content:space-between;align-items:flex-start;text-shadow:0 2px 8px #000;pointer-events:none}.brand{font-weight:850;font-size:12px;letter-spacing:.28em}.sub{font-size:9px;letter-spacing:.15em;color:#aeb8ae;margin-top:4px}.stats{text-align:right;font-size:10px;line-height:1.6;color:#c4cdc4}.menuButton{pointer-events:auto;margin-top:9px;height:32px;padding:0 11px;border:1px solid #d5ded455;background:#17201ddc;color:var(--ink);border-radius:4px;font-size:9px;font-weight:800;letter-spacing:.1em}
+#crosshair{position:fixed;z-index:3;left:50%;top:50%;transform:translate(-50%,-50%);font-size:22px;font-weight:200;color:#e5e9e2aa;pointer-events:none}#prompt{position:fixed;z-index:5;left:50%;bottom:calc(112px + env(safe-area-inset-bottom));transform:translateX(-50%);padding:9px 14px;border:1px solid var(--line);border-radius:4px;background:#111816d9;font-size:11px;letter-spacing:.06em;white-space:nowrap;opacity:0;transition:opacity .15s;pointer-events:none}
+#controls{position:fixed;z-index:5;left:16px;right:16px;bottom:calc(15px + env(safe-area-inset-bottom));display:flex;justify-content:space-between;align-items:end;pointer-events:none}#stick{width:116px;height:116px;border:1px solid #e0e7dd55;background:#18211c88;border-radius:50%;position:relative;pointer-events:auto;touch-action:none}#nub{position:absolute;width:44px;height:44px;left:35px;top:35px;border-radius:50%;background:#c8d2c355;border:1px solid #e5ebdf88}#actions{display:flex;gap:6px;align-items:end;pointer-events:auto}.btn{color:var(--ink);background:#17201ddc;border:1px solid #d5ded455;border-radius:5px;min-width:58px;height:56px;padding:0 12px;font-size:10px;font-weight:750;letter-spacing:.05em;touch-action:manipulation}.btn.primary{background:#d0d8cd;color:#17201b;border-color:#d0d8cd}.btn.round{width:56px;min-width:56px;border-radius:50%;padding:0}.btn:active{filter:brightness(1.25)}.btn:disabled{opacity:.35;filter:none}.btn.active{background:#d2dfcf;color:#172019;border-color:#e0e9dc;box-shadow:0 0 14px #c4d8be55}.btn.depleted{opacity:.55}.barHead{display:flex;justify-content:flex-end;gap:8px;align-items:center;margin-top:4px;font-size:8px;letter-spacing:.1em;color:#b7c0b7}.barHead b{font-size:9px;color:#e1e7df}.barTrack{width:116px;height:6px;margin:3px 0 0 auto;background:#dce5dc40;border:1px solid #e2e8dc33;border-radius:5px;overflow:hidden}.barTrack>div{width:100%;height:100%;transition:width .12s linear}.healthTrack>div{background:#b96e66}.staminaTrack>div{background:#cbd9c4}.barTrack.low>div{filter:brightness(1.3);box-shadow:0 0 7px currentColor}.healthTrack.low{border-color:#df796d88}.statusBars{margin-top:3px}
+#damageFx{position:fixed;z-index:3;inset:0;pointer-events:none;opacity:0;transition:opacity .18s;background:radial-gradient(ellipse at center,transparent 28%,rgba(125,18,15,.56) 100%)}
+#message{position:fixed;z-index:6;top:17%;left:50%;transform:translateX(-50%);max-width:min(88%,480px);padding:10px 14px;background:#101715e8;border:1px solid var(--line);border-radius:4px;text-align:center;font-size:12px;opacity:0;pointer-events:none;transition:opacity .2s}
+#inspect,#inventory,#intro,#rotate,#pause,#confirmNew,#downed,#itemChoice,#motionPanel{position:fixed;z-index:10;inset:0;display:none;align-items:center;justify-content:center;padding:22px;background:rgba(5,9,8,.82);backdrop-filter:blur(7px)}.panel{position:relative;width:min(480px,100%);padding:24px;background:linear-gradient(145deg,#202925,#111715);border:1px solid #9da99a44;box-shadow:0 18px 70px #0009}.eyebrow{font-size:9px;letter-spacing:.2em;color:#9ca99d}.panel h1,.panel h2{margin:9px 0 12px;font-size:clamp(24px,5vw,36px);letter-spacing:.12em}.panel p{font-size:13px;line-height:1.7;color:#c1c9c0;white-space:pre-line}.panel .closeX{position:absolute;right:12px;top:10px;width:38px;height:38px;border:1px solid var(--line);background:transparent;color:var(--ink);font-size:22px}.panel .foot{margin-top:20px;color:#8e9a90;font-size:10px;letter-spacing:.1em}.panel .wide{width:100%;margin-top:18px;height:46px}
+#intro{display:flex;background:linear-gradient(180deg,#111816f2,#111816e8),radial-gradient(ellipse,#39443d,#111816)}#intro .panel{text-align:center;background:transparent;border:0;box-shadow:none;max-width:560px}#intro h1{font-size:clamp(42px,11vw,74px);letter-spacing:.25em;margin:12px 0}#intro .desc{margin:22px auto;max-width:440px}#rotate{z-index:20;background:#111816;display:none;text-align:center}#rotate .panel{background:transparent;border:0;box-shadow:none}#rotate .symbol{font-size:46px;margin-bottom:12px}
+#inventory .panel,#pause .panel,#confirmNew .panel{max-height:84vh;overflow:auto}#downed{z-index:15}#downed .panel{text-align:center}#items{font-size:12px;line-height:2;color:#c6cec5}#hintline{font-size:10px;color:#9ca79d;margin-top:12px}.menuActions{display:grid;grid-template-columns:1fr;gap:8px;margin-top:16px}.menuActions .wide{margin:0}.menuStatus{min-height:18px;margin-top:12px;color:#aeb8ae;font-size:10px;text-align:center;letter-spacing:.08em}.supplyRow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #ffffff18;font-size:12px}.supplyRow button{height:34px;min-width:112px}.supplyRow button:disabled{opacity:.35}.inventorySection{margin-top:18px}.inventorySection h3{font-size:10px;letter-spacing:.15em;color:#9ca99d}.menuSecondary{background:#222c27!important;color:#dbe2d9!important;border-color:#76827655!important}
+@media(orientation:portrait){#rotate{display:flex}#intro{display:none}}
+@media(max-width:740px) and (orientation:landscape){#controls{left:10px;right:10px;bottom:calc(8px + env(safe-area-inset-bottom));}#stick{width:92px;height:92px}#nub{left:23px;top:23px}.btn{min-width:46px;height:48px;padding:0 7px;font-size:9px}.btn.compact{min-width:43px;padding:0 5px}#actions{gap:4px}}
+@media(min-width:900px){#controls{max-width:1000px;left:50%;right:auto;width:calc(100% - 40px);transform:translateX(-50%)}#stick{width:100px;height:100px}#nub{left:28px;top:28px}}
+@media(max-height:500px) and (orientation:landscape){#intro .panel{padding:4px 16px}#intro h1{font-size:clamp(30px,7vw,44px);margin:3px 0;letter-spacing:.2em}#intro .desc{font-size:11px;line-height:1.4;margin:7px auto}#intro .eyebrow{font-size:8px}#intro .foot{margin-top:8px;font-size:8px}.menuActions{gap:5px;margin-top:8px}#intro .menuActions .wide{height:35px;min-height:35px;font-size:9px}#pause .panel,#confirmNew .panel,#inventory .panel{padding:15px}#pause .panel h2,#confirmNew .panel h2,#inventory .panel h2{font-size:22px;margin:4px 0 7px}#pause .panel p,#confirmNew .panel p{font-size:11px;line-height:1.4;margin:4px 0}#pause .menuActions,#confirmNew .menuActions{margin-top:8px;gap:5px}#pause .menuActions .wide,#confirmNew .menuActions .wide{height:35px;min-height:35px;font-size:9px}#pause .menuStatus{margin-top:3px}.inventorySection{margin-top:10px}.inventorySection h3{margin:4px 0}.supplyRow{padding:5px 0}.supplyRow button{height:30px;min-width:100px}#hintline{margin-top:6px}}
+
+#motionPanel{z-index:14}#motionPanel .panel{max-width:560px}#motionPanel .motionActions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:16px}#motionPanel .motionActions .btn{height:44px}#motionPanel .motionActions .wide{grid-column:1/-1;margin-top:0}
+#physicalFeedback{position:fixed;z-index:8;left:50%;bottom:22%;transform:translate(-50%,8px);padding:9px 14px;background:rgba(9,14,12,.78);border:1px solid #b7c3b044;color:#e1e8df;font-size:9px;letter-spacing:.16em;text-align:center;max-width:min(85vw,420px);opacity:0;transition:opacity .16s,transform .16s;pointer-events:none;text-shadow:0 1px 4px #000}#physicalFeedback.visible{opacity:1;transform:translate(-50%,0)}#physicalFeedback:before{content:"";display:inline-block;width:6px;height:6px;margin-right:9px;background:#a9b99c;border-radius:50%;box-shadow:0 0 10px #b8d0a9;vertical-align:1px}#peekExit{display:none;position:fixed;z-index:9;left:50%;bottom:12%;transform:translateX(-50%);height:42px;padding:0 18px;background:#18211de8;border:1px solid #c5d1bf88;color:#f0f3ee;font-size:10px;letter-spacing:.12em;box-shadow:0 6px 24px #0008}#motionPanel .motionActions #motionHoldOpen,#motionPanel .motionActions #motionHoldClose{font-size:9px;letter-spacing:.06em;touch-action:none;user-select:none;-webkit-user-select:none}
+#itemChoice{z-index:14}#itemChoice .panel{text-align:center;max-width:420px}
+#itemExamine{z-index:13;display:none;position:fixed;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(5,9,8,.14),rgba(5,9,8,.08) 48%,rgba(5,9,8,.72));}
+#itemStage{position:absolute;inset:8% 0 34%;pointer-events:auto;touch-action:none;cursor:grab}
+#itemStage:active{cursor:grabbing}
+#itemHud{position:absolute;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%);width:min(520px,calc(100% - 28px));padding:16px 18px;background:rgba(12,17,15,.94);border:1px solid #c5d0c044;box-shadow:0 12px 42px #0009;pointer-events:auto}
+#itemHud .itemTop{display:flex;justify-content:space-between;align-items:center;gap:12px}
+#itemHud h2{font-size:clamp(18px,3vw,25px);margin:5px 0 8px;letter-spacing:.08em}
+#itemHud p{font-size:12px;line-height:1.55;color:#c3ccc2;margin:6px 0 12px;max-height:18vh;overflow:auto;white-space:pre-line}
+.itemSpecialActions{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:0 0 10px}.itemSpecialActions .btn{height:34px;min-width:108px}.radioTune{font-size:10px;letter-spacing:.12em;color:#d4ddcf;padding:0 5px}.itemActions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.itemActions .btn{height:44px}.itemMeta{font-size:9px;letter-spacing:.12em;color:#9eaa9f}
+#itemStageHint{position:absolute;top:12%;left:50%;transform:translateX(-50%);font-size:10px;letter-spacing:.16em;color:#e0e7de;text-shadow:0 2px 8px #000;text-align:center;pointer-events:none}
+#inventoryWeight{font-size:10px;color:#aeb8ae;letter-spacing:.1em;margin:8px 0 12px}
+.inventoryGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
+.inventoryCell{min-height:64px;padding:8px 6px;border:1px solid #b9c6b52b;background:#ffffff08;display:flex;flex-direction:column;justify-content:space-between;gap:5px;font-size:10px;color:#d5ddd3}
+.inventoryCell .cellIcon{font-size:18px}.inventoryCell .cellName{line-height:1.25}.inventoryCell.empty{border-style:dashed;opacity:.35}
+#inventory .panel{width:min(540px,100%)}
+@media(max-height:500px) and (orientation:landscape){#motionPanel .panel{padding:13px 16px}#motionPanel .panel h2{font-size:20px;margin:4px 0 6px}#motionPanel .panel p{font-size:10px;line-height:1.35;margin:4px 0}#motionPanel .motionActions{gap:5px;margin-top:7px}#motionPanel .motionActions .btn{height:32px;font-size:7px}#motionPanel .foot{font-size:7px;margin-top:6px}#motionPanel .foot{font-size:8px;margin-top:8px}#itemHud{bottom:8px;padding:9px 12px}#itemHud p{font-size:10px;line-height:1.35;margin:4px 0 7px;max-height:13vh}#itemHud h2{font-size:17px;margin:3px 0 5px}#itemStage{inset:2% 0 38%}.itemActions .btn{height:35px}.inventoryGrid{gap:4px}.inventoryCell{min-height:48px;padding:5px;font-size:9px}}
+
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.187.0/build/three.module.js"}}</script>
 </head>
 <body>
-<canvas id="game"></canvas><div id="vignette"></div>
-<div id="top"><div><div class="brand">ТИШИНА</div><div class="sub">ПРОТОТИП 0.1 · СЕВЕРНЫЙ РЕГИОН</div></div><div id="stats">ДЕНЬ 01 · 07:42<br>СОСТОЯНИЕ: СТАБИЛЬНО<br><span id="found">НАЙДЕНО: 0 / 3</span></div></div>
-<div id="hint">+</div><div id="prompt"></div><div id="message"></div>
-<div id="controls"><div id="stick"><div id="nub"></div></div><div id="actions"><button class="action small" id="bag">СУМКА</button><button class="action" id="use">ОСМОТР</button></div></div>
-<div id="inventory"><div class="invbox"><h2>СОДЕРЖИМОЕ РЮКЗАКА</h2><div class="slot" id="items">Пока пусто</div><button class="close" id="close">ЗАКРЫТЬ</button></div></div>
-<div id="intro"><div class="panel"><div class="tag">АВТОРСКИЙ ПРОТОТИП · ВЕРСИЯ 0.1</div><h1 class="title">ТИШИНА</h1><div class="tag">ПОСЛЕ КАТАСТРОФЫ МИР НЕ ИСЧЕЗ.</div><p class="desc">Северный промышленный регион. 2034 год.<br>Ты возвращаешься туда, откуда все давно уехали.<br><br>Исследуй улицу, найди три оставленных предмета и прислушивайся к тому, что осталось вокруг.</p><button class="start" id="start">ВОЙТИ В РЕГИОН</button><p class="tag" style="margin-top:18px">ПЕРВАЯ СБОРКА · УПРАВЛЕНИЕ НА СЕНСОРНОМ ЭКРАНЕ</p></div></div>
-<script>
-(()=>{
-const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
-let W=0,H=0,zbuf=[],started=false,inventory=[],found=0,noticeTimer=0;
-const map=[
-"111111111111111111111111",
-"100000000000000000000001",
-"100000000000000000000001",
-"100011100000000000000001",
-"100010100000000000000001",
-"100010100000000000000001",
-"100000000000000000000001",
-"100000000000000000000001",
-"100000000000000000000001",
-"100000000000000000000001",
-"100000000000000000000001",
-"100000000000000000000001",
-"100000000000000000000001",
-"100000000000000000000001",
-"100000000000000000000001",
-"100000000000000000000001",
-"100000000000000000000001",
-"111111111111111111111111"
-];
-const objects=[
-{x:7.5,y:5.5,name:"Старая рация",desc:"Корпус треснул. На задней крышке маркером написано: «Канал 04. Не отвечать после 22:00».",taken:false},
-{x:13.5,y:9.5,name:"Промышленный пропуск",desc:"Пропуск на объект «Север-7». Дата выдачи — за три дня до официальной эвакуации.",taken:false},
-{x:18.5,y:4.5,name:"Фотография",desc:"На снимке — группа людей у проходной. На обороте короткая надпись: «Они знали заранее».",taken:false}
-];
-let player={x:3.5,y:9.5,a:0.05},keys={},joy={x:0,y:0},drag=null,last=0,walk=0;
-function resize(){W=canvas.width=innerWidth*devicePixelRatio;H=canvas.height=innerHeight*devicePixelRatio;ctx.setTransform(1,0,0,1,0,0)}
-addEventListener('resize',resize);resize();
-function wall(x,y){let mx=Math.floor(x),my=Math.floor(y);return !map[my]||map[my][mx]!=='0'}
-function cast(){
-const fov=Math.PI/3,cols=Math.ceil(W/2),step=W/cols;zbuf=new Array(cols);
-for(let i=0;i<cols;i++){
-let angle=player.a-fov/2+(i/cols)*fov,dist=0,hit=0,side=0;
-while(dist<24&&!hit){dist+=.035;let px=player.x+Math.cos(angle)*dist,py=player.y+Math.sin(angle)*dist;if(wall(px,py)){hit=1;side=(Math.abs((px-Math.floor(px))-.5)>Math.abs((py-Math.floor(py))-.5))?1:0}}
-let corrected=dist*Math.cos(angle-player.a);zbuf[i]=corrected;
-let h=Math.min(H,H/(corrected+.001)),top=H/2-h/2;
-let shade=Math.max(.12,1-corrected/17)*(side?.72:1);
-let c=Math.floor(73*shade),g=Math.floor(83*shade),b=Math.floor(76*shade);
-ctx.fillStyle=`rgb(${c},${g},${b})`;ctx.fillRect(i*step,top,step+1,h);
-ctx.fillStyle=`rgba(10,14,12,${Math.min(.8,corrected/23)})`;ctx.fillRect(i*step,top,step+1,h);
-}
-}
-function render(){
-if(!started)return;
-ctx.fillStyle='#87918a';ctx.fillRect(0,0,W,H/2);
-let grad=ctx.createLinearGradient(0,H*.25,0,H);grad.addColorStop(0,'#58625c');grad.addColorStop(.5,'#303a34');grad.addColorStop(1,'#151b17');ctx.fillStyle=grad;ctx.fillRect(0,H/2,W,H/2);
-cast();
-const fov=Math.PI/3;
-objects.forEach(o=>{
-if(o.taken)return;let dx=o.x-player.x,dy=o.y-player.y,dist=Math.hypot(dx,dy),ang=Math.atan2(dy,dx)-player.a;while(ang<-Math.PI)ang+=Math.PI*2;while(ang>Math.PI)ang-=Math.PI*2;
-if(Math.abs(ang)>fov*.7||dist<.2)return;
-let sx=(.5+ang/fov)*W,sz=Math.min(H*.32,H/(dist*1.2)),col=Math.max(0,Math.min(zbuf.length-1,Math.floor(sx/(W/zbuf.length))));
-if(dist>zbuf[col]+.4)return;
-let sy=H/2+sz*.1;
-ctx.fillStyle='#252a25';ctx.fillRect(sx-sz*.16,sy-sz*.18,sz*.32,sz*.34);
-ctx.fillStyle=o.name==='Фотография'?'#c0bca6':'#858d80';ctx.fillRect(sx-sz*.12,sy-sz*.14,sz*.24,sz*.23);
-ctx.fillStyle='#d7d9c9';ctx.fillRect(sx-2*devicePixelRatio,sy-sz*.2,4*devicePixelRatio,4*devicePixelRatio);
-});
- // subtle rain streaks
-ctx.strokeStyle='rgba(210,220,213,.12)';ctx.lineWidth=devicePixel(1);
-for(let i=0;i<90;i++){let x=(i*97+performance.now()*.025)%W,y=(i*173+performance.now()*.12)%H;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-3*devicePixel(1),y+10*devicePixel(1));ctx.stroke()}
-}
-function devicePixel(v){return v*devicePixelRatio}
-function notify(t){let m=document.getElementById('message');m.textContent=t;m.style.opacity=1;clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>m.style.opacity=0,3600)}
-function nearest(){let best=null,d=2.2;objects.forEach(o=>{if(o.taken)return;let q=Math.hypot(o.x-player.x,o.y-player.y);if(q<d){d=q;best=o}});return best}
-function interact(){let o=nearest();if(!o){notify("Ничего интересного рядом. Осмотрись внимательнее.");return}o.taken=true;inventory.push(o.name);found++;document.getElementById('found').textContent=`НАЙДЕНО: ${found} / 3`;notify(o.name+" — "+o.desc);if(found===3)setTimeout(()=>notify("Все три находки собраны. Но почему пропуск выдан до эвакуации? Продолжение следует…"),900)}
-function move(dt){
-let forward=-(joy.y||0),strafe=joy.x||0;
-if(keys.w||keys.ArrowUp)forward=1;if(keys.s||keys.ArrowDown)forward=-1;if(keys.a||keys.ArrowLeft)strafe=-1;if(keys.d||keys.ArrowRight)strafe=1;
-let speed=2.0*dt,dx=(Math.cos(player.a)*forward-Math.sin(player.a)*strafe)*speed,dy=(Math.sin(player.a)*forward+Math.cos(player.a)*strafe)*speed;
-if(!wall(player.x+dx,player.y))player.x+=dx;if(!wall(player.x,player.y+dy))player.y+=dy;
-}
-function loop(t){let dt=Math.min(.04,(t-last)/1000||0);last=t;if(started){move(dt);render();let o=nearest(),p=document.getElementById('prompt');p.textContent=o?"ОСМОТРЕТЬ: "+o.name:"";p.style.opacity=o?1:0}requestAnimationFrame(loop)}
-requestAnimationFrame(loop);
-document.getElementById('start').onclick=()=>{started=true;document.getElementById('intro').style.display='none';notify("Ты на старой улице. Впереди — посёлок. Найди оставленные вещи.")};
-document.getElementById('use').onclick=interact;
-document.getElementById('bag').onclick=()=>{document.getElementById('items').textContent=inventory.length?inventory.join(' · '):'Пока пусто';document.getElementById('inventory').style.display='flex'};
-document.getElementById('close').onclick=()=>document.getElementById('inventory').style.display='none';
-const stick=document.getElementById('stick'),nub=document.getElementById('nub');
-function joySet(e){let r=stick.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,dx=e.clientX-cx,dy=e.clientY-cy,len=Math.hypot(dx,dy),max=39,scale=Math.min(1,max/(len||1));joy.x=dx*scale/max;joy.y=dy*scale/max;nub.style.transform=`translate(${joy.x*max}px,${joy.y*max}px)`}
-stick.addEventListener('pointerdown',e=>{stick.setPointerCapture(e.pointerId);joySet(e)});
-stick.addEventListener('pointermove',e=>{if(e.buttons)joySet(e)});
-function resetJoy(){joy={x:0,y:0};nub.style.transform='translate(0,0)'}
-stick.addEventListener('pointerup',resetJoy);stick.addEventListener('pointercancel',resetJoy);
-canvas.addEventListener('pointerdown',e=>{if(e.clientX<innerWidth*.42&&e.clientY>innerHeight*.55)return;drag={x:e.clientX,y:e.clientY}});
-canvas.addEventListener('pointermove',e=>{if(drag){let dx=e.clientX-drag.x;player.a+=dx*.004;drag={x:e.clientX,y:e.clientY}}});
-canvas.addEventListener('pointerup',()=>drag=null);canvas.addEventListener('pointercancel',()=>drag=null);
-addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.key==='e'||e.key===' ')interact()});
-addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
-})();
-</script>
+<canvas id="scene"></canvas><div id="shade"></div><div id="damageFx"></div>
+<div id="top"><div><div class="brand">ТИШИНА</div><div class="sub">СЕВЕР-7 · ПРОМЫШЛЕННЫЙ КОМПЛЕКС</div><button class="menuButton" id="openMenu">Ⅱ МЕНЮ</button></div><div class="stats">2034 · ДЕНЬ 01<br>ПОГОДА: ПАСМУРНО<br><span id="objective">ОБЪЕКТ: ПРОХОДНАЯ</span><br><span id="postureStatus">ПОЗА: СТОЯ</span><div class="statusBars"><div class="barHead"><span>ЗДОРОВЬЕ</span><b id="healthValue">100%</b></div><div class="barTrack healthTrack" id="healthTrack" role="progressbar" aria-label="Здоровье" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><div id="healthFill"></div></div><div class="barHead"><span>ВЫНОСЛИВОСТЬ</span><b id="staminaValue">100%</b></div><div class="barTrack staminaTrack" id="staminaTrack" role="progressbar" aria-label="Выносливость" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><div id="staminaFill"></div></div></div></div></div>
+<div id="crosshair">+</div><div id="prompt"></div><div id="message"></div><div id="physicalFeedback" aria-live="polite"></div><button id="peekExit" class="btn">ВЕРНУТЬСЯ ЗА УКРЫТИЕ</button>
+<div id="controls"><div id="stick"><div id="nub"></div></div><div id="actions"><button class="btn compact" id="sprint" aria-label="Удерживать для бега" title="Удерживать для бега" aria-pressed="false">БЕГ</button><button class="btn compact" id="jump" aria-label="Прыжок" title="Прыжок">ПРЫЖ</button><button class="btn compact" id="crouch" aria-label="Присесть" title="Присесть / встать" aria-pressed="false">ПРИС</button><button class="btn compact" id="prone" aria-label="Лечь" title="Лечь / встать" aria-pressed="false">ЛЁЖ</button><button class="btn" id="bag">СУМКА</button><button class="btn" id="fullscreen">⛶</button><button class="btn primary" id="use">ДЕЙСТВИЕ</button></div></div>
+<div id="intro"><div class="panel"><div class="eyebrow">ИНТЕРАКТИВНЫЙ ПРОТОТИП · 0.2.7</div><h1>ТИШИНА</h1><div class="eyebrow">ПОСЛЕ КАТАСТРОФЫ МИР НЕ ИСЧЕЗ.</div><p class="desc">Северный промышленный регион. 2034 год.<br>Комплекс «Север-7» закрыли за три дня до эвакуации.<br>Теперь ты здесь один. Или тебе только так кажется.</p><div class="menuActions"><button class="btn primary wide" id="continueTitle" disabled>ПРОДОЛЖИТЬ</button><button class="btn wide" id="start">НОВАЯ ИГРА</button><button class="btn wide menuSecondary" id="titleLoad" disabled>ЗАГРУЗИТЬ СОХРАНЕНИЕ</button></div><div class="menuStatus" id="titleStatus"></div><div class="foot">СТИК — ДВИЖЕНИЕ · ПРАВАЯ ЧАСТЬ — ОБЗОР · БЕГ / ПРЫЖОК / ПРИСЕДАНИЕ / ЛЁЖА</div></div></div>
+<div id="rotate"><div class="panel"><div class="symbol">↻</div><h2>ПОВЕРНИТЕ УСТРОЙСТВО</h2><p>«ТИШИНА» рассчитана на горизонтальный экран.</p></div></div>
+<div id="inspect"><div class="panel"><button class="closeX" id="closeInspect" aria-label="Закрыть">×</button><div class="eyebrow" id="inspectType">ОСМОТР</div><h2 id="inspectTitle">Предмет</h2><p id="inspectText"></p><div class="foot" id="inspectFoot">ОСМОТРЕННЫЙ ОБЪЕКТ СОХРАНЁН В ЖУРНАЛЕ</div></div></div>
+<div id="itemChoice"><div class="panel"><div class="eyebrow" id="choiceType">НАЙДЕННЫЙ ПРЕДМЕТ</div><h2 id="choiceTitle">Предмет</h2><p id="choiceText">Осмотреть предмет?</p><div class="menuActions"><button class="btn primary wide" id="choiceTake">ВЗЯТЬ В РУКИ</button><button class="btn wide" id="choiceLeave">ОСТАВИТЬ НА МЕСТЕ</button></div></div></div>
+<div id="motionPanel"><div class="panel"><button class="closeX" id="motionClosePanel" aria-label="Закрыть">×</button><div class="eyebrow">ФИЗИЧЕСКОЕ ВЗАИМОДЕЙСТВИЕ</div><h2 id="motionTitle">МЕХАНИЗМ</h2><p id="motionDescription">Выбери, как взаимодействовать с объектом.</p><div class="motionActions"><button class="btn" id="motionAjar">ПРИОТКРЫТЬ · ТИХО</button><button class="btn" id="motionPeek">ЗАГЛЯНУТЬ В ЩЕЛЬ</button><button class="btn primary" id="motionSlowOpen">ТИХО ОТКРЫТЬ</button><button class="btn" id="motionFastOpen">БЫСТРО ОТКРЫТЬ</button><button class="btn" id="motionSlowClose">ТИХО ЗАКРЫТЬ</button><button class="btn" id="motionFastClose">БЫСТРО ЗАКРЫТЬ</button><button class="btn primary" id="motionHoldOpen">УДЕРЖИВАТЬ · ОТКРЫВАТЬ</button><button class="btn" id="motionHoldClose">УДЕРЖИВАТЬ · ЗАКРЫВАТЬ</button></div><div class="foot">ПРИОТКРОЙ ДВЕРЬ И НАЖМИ «ЗАГЛЯНУТЬ В ЩЕЛЬ». ПРИ ПОЛНОМ ОТКРЫТИИ МОЖНО ВОЙТИ В ПРОЁМ.</div></div></div>
+<div id="itemExamine"><div id="itemStage"></div><div id="itemStageHint">ПЕРЕТАСКИВАЙ ПРЕДМЕТ ПАЛЬЦЕМ, ЧТОБЫ ПОВЕРНУТЬ</div><div id="itemHud"><div class="itemTop"><div class="itemMeta" id="heldType">ОСМОТР ПРЕДМЕТА</div><div class="itemMeta" id="heldWeight"></div></div><h2 id="heldTitle">Предмет</h2><p id="heldDescription"></p><div id="itemSpecialActions" class="itemSpecialActions" style="display:none"></div><div class="itemActions"><button class="btn primary" id="takeToInventory">ЗАБРАТЬ С СОБОЙ</button><button class="btn" id="putBack">ПОЛОЖИТЬ НА МЕСТО</button></div></div></div>
+<div id="inventory"><div class="panel"><button class="closeX" id="closeBag">×</button><div class="eyebrow">ЛИЧНЫЕ ЗАПИСИ И СНАРЯЖЕНИЕ</div><h2>ИНВЕНТАРЬ</h2><div class="inventorySection"><h3>НАЙДЕННЫЕ ЗАПИСИ</h3><div id="inventoryWeight">ВЕС: 0 / 8 КГ · ЯЧЕЙКИ: 0 / 8</div><div id="items" class="inventoryGrid">Пока пусто</div></div><div class="inventorySection"><h3>РАСХОДНИКИ</h3><div class="supplyRow"><span>Аптечка · <b id="medkitCount">0</b></span><button class="btn" id="useMedkit">ИСПОЛЬЗОВАТЬ</button></div><div class="supplyRow"><span>Энергетик · <b id="energyCount">0</b></span><button class="btn" id="useEnergy">ИСПОЛЬЗОВАТЬ</button></div></div><div id="hintline">Сохранения хранятся на этом устройстве.</div></div></div>
+<div id="pause"><div class="panel"><button class="closeX" id="closeMenu">×</button><div class="eyebrow">СЕВЕР-7 · ПАУЗА</div><h2>ГЛАВНОЕ МЕНЮ</h2><p>Прогресс можно сохранить на устройстве и продолжить позже.</p><div class="menuActions"><button class="btn primary wide" id="continueGame">ПРОДОЛЖИТЬ</button><button class="btn wide" id="saveGame">СОХРАНИТЬ ИГРУ</button><button class="btn wide" id="loadGame">ЗАГРУЗИТЬ ИГРУ</button><button class="btn wide" id="newGame">НОВАЯ ИГРА</button><button class="btn wide menuSecondary" id="exitGame">ВЫЙТИ ИЗ ИГРЫ</button></div><div class="menuStatus" id="menuStatus"></div></div></div>
+<div id="confirmNew"><div class="panel"><div class="eyebrow">ПОДТВЕРЖДЕНИЕ</div><h2>НАЧАТЬ ЗАНОВО?</h2><p>Текущий прогресс останется в последнем сохранении, но несохранённые изменения будут потеряны.</p><div class="menuActions"><button class="btn primary wide" id="confirmNewYes">НАЧАТЬ НОВУЮ ИГРУ</button><button class="btn wide" id="confirmNewNo">ОТМЕНА</button></div></div></div>
+<div id="downed"><div class="panel"><div class="eyebrow">СОСТОЯНИЕ: КРИТИЧЕСКОЕ</div><h2>ТЫ ПОТЕРЯЛ СОЗНАНИЕ</h2><p>Тебя нашли у проходной. Удалось прийти в себя, но здоровье восстановилось не полностью.</p><button class="btn primary wide" id="recover">ВЕРНУТЬСЯ К ПРОХОДНОЙ</button></div></div>
+<script type="module" src="./src/main.js"></script>
 </body></html>
