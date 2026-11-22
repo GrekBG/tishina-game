@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="ТИШИНА">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>ТИШИНА — Север-7 · версия 0.2.9</title>
+<title>ТИШИНА — Север-7 · версия 0.3.2</title>
 <style>
 :root{color-scheme:dark;--panel:rgba(13,18,17,.94);--line:rgba(205,215,207,.22);--ink:#e2e7df;--muted:#9ca79e}
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#171d1c;color:var(--ink);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;touch-action:none;overscroll-behavior:none}
@@ -91,12 +91,118 @@
 }
 @media(max-width:390px) and (orientation:landscape){#actions{gap:3px}.btn.iconBtn{width:36px;height:36px;min-width:36px}.btn.sprintBtn{width:43px;height:43px;min-width:43px}#stick{width:76px;height:76px;flex-basis:76px}#nub{left:19px;top:19px}}
 
+/* TISHINA 0.3.2 — industrial editorial interface system */
+:root{
+  --panel:rgba(12,17,16,.95);
+  --line:rgba(210,218,202,.24);
+  --ink:#e8e7dc;
+  --muted:#a2aaa0;
+  --accent:#d0b27a;
+  --accent-soft:#e3cfaa;
+  --steel:#8caaa3;
+  --deep:#111715;
+  --ui-mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --ui-display:'Oswald','Arial Narrow',Impact,sans-serif;
+  --ui-body:'IBM Plex Sans',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+}
+html,body,button{font-family:var(--ui-body)}
+body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;font-feature-settings:'kern','liga','tnum';}
+#top{left:clamp(12px,2.2vw,28px);right:clamp(12px,2.2vw,28px);top:calc(env(safe-area-inset-top,0px) + 12px);}
+#top .brand{font-family:var(--ui-display);font-size:17px;line-height:1;letter-spacing:.38em;font-weight:600;color:#f0eee4;text-shadow:0 2px 12px #000,0 0 22px #c8d7c022;}
+#top .sub{font-family:var(--ui-mono);font-size:9px;letter-spacing:.17em;color:#bdc4b9;margin-top:6px;text-transform:uppercase;}
+#top .stats{font-family:var(--ui-mono);font-size:9px;line-height:1.8;letter-spacing:.08em;color:#d6d9ce;text-shadow:0 2px 8px #000;}
+#objective{display:inline-block;margin-top:5px;padding:4px 8px 4px 9px;border-left:2px solid var(--accent);background:linear-gradient(90deg,rgba(190,157,100,.19),rgba(190,157,100,0));color:#eee4ce;letter-spacing:.08em;max-width:min(54vw,360px);}
+#worldDate,#worldClock{color:#f1e6d1;font-weight:600;}
+#worldWeather{color:#b8c9c3;}
+.menuButton{font-family:var(--ui-mono);height:30px;padding:0 12px;border:1px solid #d5ded45e;background:rgba(13,19,17,.78);color:#e8e7dc;border-radius:2px;font-size:9px;letter-spacing:.13em;backdrop-filter:blur(8px);transition:background .18s,border-color .18s,transform .18s;}
+.menuButton:active{background:rgba(208,178,122,.2);border-color:var(--accent);transform:translateY(1px);}
+#crosshair{font-family:var(--ui-mono);font-size:17px;color:rgba(229,225,207,.8);text-shadow:0 0 8px #000,0 0 12px #c6d4c055;}
+#prompt{font-family:var(--ui-mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:#eee7d6;background:rgba(10,15,14,.88);border:1px solid rgba(208,178,122,.45);border-left:2px solid var(--accent);border-radius:2px;box-shadow:0 8px 26px #0006;backdrop-filter:blur(8px);}
+#message{font-family:var(--ui-body);font-size:12px;line-height:1.55;letter-spacing:.025em;color:#f1eee2;background:rgba(10,15,14,.94);border:1px solid #c4b38d55;border-left:2px solid var(--accent);border-radius:2px;box-shadow:0 12px 40px #0008;backdrop-filter:blur(10px);}
+#physicalFeedback{font-family:var(--ui-mono);font-size:9px;letter-spacing:.17em;color:#eee8d8;background:rgba(8,13,12,.9);border-color:#d0b27a55;border-radius:2px;box-shadow:0 8px 28px #0008;}
+#physicalFeedback:before{background:var(--accent);box-shadow:0 0 10px #d0b27a99;}
+#peekExit{font-family:var(--ui-mono);font-size:9px;letter-spacing:.12em;border-radius:2px;border-color:#d0b27a88;background:rgba(13,19,17,.94);}
+.panel{font-family:var(--ui-body);border:1px solid rgba(203,213,198,.29);border-radius:2px;background:linear-gradient(145deg,rgba(31,39,34,.98),rgba(10,15,14,.985) 78%);box-shadow:0 28px 90px #000b,0 0 0 1px #0008;overflow:hidden;}
+.panel:before{content:"";position:absolute;inset:8px;border:1px solid rgba(208,178,122,.105);pointer-events:none;z-index:0;}
+.panel>*{position:relative;z-index:1;}
+.panel .eyebrow{font-family:var(--ui-mono);font-size:9px;font-weight:500;letter-spacing:.2em;color:var(--accent-soft);text-transform:uppercase;}
+.panel h1,.panel h2{font-family:var(--ui-display);font-weight:500;line-height:1.03;letter-spacing:.085em;color:#f0eee3;text-wrap:balance;text-shadow:0 3px 18px #0008;}
+.panel h2{font-size:clamp(25px,5vw,34px);}
+.panel p{font-family:var(--ui-body);font-size:13px;font-weight:400;line-height:1.75;letter-spacing:.012em;color:#cbd1c5;}
+.panel .foot{font-family:var(--ui-mono);font-size:9px;line-height:1.6;letter-spacing:.13em;color:#9ca89c;text-transform:uppercase;}
+.panel .closeX{font-family:var(--ui-body);font-weight:300;color:#d9dfd3;border-color:#d5ded444;background:#101714;border-radius:2px;}
+.btn{font-family:var(--ui-mono);font-size:9px;font-weight:500;letter-spacing:.13em;text-transform:uppercase;color:#e5e7dc;background:linear-gradient(180deg,rgba(34,43,37,.96),rgba(17,24,21,.96));border:1px solid rgba(201,213,198,.32);border-radius:2px;box-shadow:inset 0 1px #ffffff0a,0 4px 16px #0002;transition:filter .16s,border-color .16s,background .16s,transform .16s;}
+.btn:hover{border-color:rgba(208,178,122,.72);filter:brightness(1.12);}
+.btn:active{transform:translateY(1px) scale(.985);filter:brightness(1.22);}
+.btn.primary{background:linear-gradient(180deg,#e0cfaa,#b99a65);border-color:#e4d2ae;color:#171b17;text-shadow:0 1px #fff5;box-shadow:inset 0 1px #fff8,0 4px 18px #0005;}
+.btn.primary:hover{filter:brightness(1.08);}
+.btn.menuSecondary{color:#d5d8cc!important;background:linear-gradient(180deg,#27312a,#1a211d)!important;border-color:#9da99555!important;}
+.btn:disabled{filter:grayscale(.5);opacity:.38;}
+#intro{background:radial-gradient(ellipse at 50% 38%,rgba(78,92,79,.48),rgba(16,23,20,.91) 58%,#080c0b 100%);}
+#intro:after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.19;background:repeating-linear-gradient(0deg,transparent 0 3px,rgba(224,226,206,.055) 4px,transparent 5px),linear-gradient(90deg,transparent 0 49.9%,rgba(208,178,122,.13) 50%,transparent 50.1%);}
+#intro .panel{max-width:620px;padding:clamp(22px,5vw,44px);background:linear-gradient(155deg,rgba(26,35,30,.76),rgba(10,15,13,.5));border:1px solid rgba(211,218,198,.16);box-shadow:0 26px 100px #0005;}
+#intro h1{font-family:var(--ui-display);font-size:clamp(54px,13vw,92px);font-weight:500;letter-spacing:.26em;line-height:.98;margin:16px 0 18px;padding-left:.26em;color:#e3d7bb;background:linear-gradient(180deg,#f4f0df 0%,#cbbb96 62%,#8b927f 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;text-shadow:none;filter:drop-shadow(0 8px 24px #000b);}
+#intro .desc{font-family:var(--ui-body);font-size:14px;line-height:1.9;letter-spacing:.02em;color:#d4d9cd;max-width:460px;margin:24px auto 28px;text-wrap:pretty;}
+#intro .eyebrow{font-family:var(--ui-mono);font-size:9px;letter-spacing:.22em;color:#cdb98f;}
+#intro .menuActions{max-width:330px;margin:0 auto;gap:9px;}
+#intro .menuActions .wide{height:47px;}
+#intro .foot{margin-top:24px;color:#9ca89b;}
+#rotate .symbol{color:var(--accent);}
+#inspectText{max-width:66ch;}
+#inspectFoot{border-top:1px solid #ffffff17;padding-top:12px;}
+#inventoryWeight,#hintline,.itemMeta,.radioTune{font-family:var(--ui-mono);font-size:9px;letter-spacing:.1em;color:#b3bcae;}
+.inventorySection h3{font-family:var(--ui-mono);font-size:9px;font-weight:500;letter-spacing:.19em;color:var(--accent-soft);}
+.inventoryCell{border-color:#b7c4b32e;border-radius:2px;background:linear-gradient(145deg,#ffffff0b,#ffffff03);font-family:var(--ui-body);font-size:10px;line-height:1.35;transition:border-color .16s,background .16s;}
+.inventoryCell:not(.empty){border-left:2px solid #b99a65;}
+.inventoryCell .cellIcon{font-size:17px;filter:grayscale(.15);}
+.inventoryCell .cellName{font-weight:500;color:#e0e3d8;}
+.supplyRow{font-family:var(--ui-body);border-color:#ffffff18;color:#d5dace;}
+#itemHud{border:1px solid rgba(205,215,198,.32);border-top:2px solid var(--accent);border-radius:2px;background:linear-gradient(150deg,rgba(25,33,28,.97),rgba(8,13,11,.98));box-shadow:0 18px 52px #000b;}
+#itemHud h2{font-family:var(--ui-display);font-weight:500;letter-spacing:.08em;color:#f0eee3;}
+#itemHud p{font-family:var(--ui-body);font-size:12px;line-height:1.65;color:#cbd2c6;}
+#itemStageHint{font-family:var(--ui-mono);font-size:9px;letter-spacing:.16em;color:#e1d7bf;}
+#motionPanel .panel{border-top:2px solid var(--accent);}
+#motionPanel .panel h2{font-family:var(--ui-display);font-weight:500;}
+#motionPanel .motionActions .btn{font-size:8px;letter-spacing:.09em;}
+#downed .panel{text-align:center;border-top:2px solid #a65b4c;}
+#downed .eyebrow{color:#d78e7c;}
+#downed h2{color:#e6c4b5;}
+.barHead{font-family:var(--ui-mono);font-size:8px;letter-spacing:.13em;}
+.barHead b{font-family:var(--ui-mono);font-size:9px;color:#f1e7d4;}
+.barTrack{height:5px;border-radius:1px;border-color:#e2e8dc22;background:#dce5dc30;}
+#controls .iconBtn{backdrop-filter:blur(7px);box-shadow:0 5px 18px #0006,inset 0 1px #ffffff0b;}
+#controls .iconBtn.primary{background:linear-gradient(180deg,#e0cfaa,#b99a65);color:#171b17;border-color:#e4d2ae;}
+#controls .sprintBtn{background:rgba(22,31,25,.92);border-color:#cdb98f88;}
+#controls .iconBtn.active{background:#d4c39f;color:#172019;border-color:#eee0bc;}
+@media(max-width:740px) and (orientation:landscape){
+  #top .brand{font-size:14px;}
+  #top .sub{font-size:7px;letter-spacing:.13em;}
+  #top .stats{font-size:7px;line-height:1.58;}
+  #objective{padding:3px 6px;font-size:7px;max-width:48vw;}
+  #prompt{font-size:8px;letter-spacing:.06em;}
+  #intro .panel{padding:15px 20px;}
+  #intro h1{font-size:clamp(38px,9vw,58px);margin:8px 0 7px;}
+  #intro .desc{font-size:11px;line-height:1.55;margin:9px auto 11px;}
+  #intro .eyebrow{font-size:7px;}
+  #intro .foot{font-size:7px;margin-top:10px;}
+  #intro .menuActions{gap:5px;}
+  #intro .menuActions .wide{height:34px;min-height:34px;font-size:8px;}
+  .panel p{font-size:11px;line-height:1.5;}
+  .panel .eyebrow,.panel .foot{font-size:7px;}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important;}
+}
+
 </style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.187.0/build/three.module.js"}}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
 <canvas id="scene"></canvas><div id="shade"></div><div id="damageFx"></div>
-<div id="top"><div><div class="brand">ТИШИНА</div><div class="sub">СЕВЕР-7 · ПРОМЫШЛЕННЫЙ КОМПЛЕКС</div><button class="menuButton" id="openMenu">Ⅱ МЕНЮ</button></div><div class="stats">2034 · ДЕНЬ 01<br>ПОГОДА: ПАСМУРНО<br><span id="objective">ОБЪЕКТ: ПРОХОДНАЯ</span><br><span id="postureStatus">ПОЗА: СТОЯ</span><div class="statusBars"><div class="barHead"><span>ЗДОРОВЬЕ</span><b id="healthValue">100%</b></div><div class="barTrack healthTrack" id="healthTrack" role="progressbar" aria-label="Здоровье" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><div id="healthFill"></div></div><div class="barHead"><span>ВЫНОСЛИВОСТЬ</span><b id="staminaValue">100%</b></div><div class="barTrack staminaTrack" id="staminaTrack" role="progressbar" aria-label="Выносливость" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><div id="staminaFill"></div></div></div></div></div>
+<div id="top"><div><div class="brand">ТИШИНА</div><div class="sub">СЕВЕР-7 · ПРОМЫШЛЕННЫЙ КОМПЛЕКС</div><button class="menuButton" id="openMenu">Ⅱ МЕНЮ</button></div><div class="stats"><span id="worldDate">2034 · ДЕНЬ 01</span> · <span id="worldClock">07:50</span><br><span id="worldWeather">ОБЛАЧНО · УМЕРЕННЫЙ ВЕТЕР 5.4 м/с</span><br><span id="objective">ОБЪЕКТ: ПРОХОДНАЯ</span><br><span id="postureStatus">ПОЗА: СТОЯ</span><div class="statusBars"><div class="barHead"><span>ЗДОРОВЬЕ</span><b id="healthValue">100%</b></div><div class="barTrack healthTrack" id="healthTrack" role="progressbar" aria-label="Здоровье" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><div id="healthFill"></div></div><div class="barHead"><span>ВЫНОСЛИВОСТЬ</span><b id="staminaValue">100%</b></div><div class="barTrack staminaTrack" id="staminaTrack" role="progressbar" aria-label="Выносливость" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><div id="staminaFill"></div></div></div></div></div>
 <div id="crosshair">+</div><div id="prompt"></div><div id="message"></div><div id="physicalFeedback" aria-live="polite"></div><button id="peekExit" class="btn">ВЕРНУТЬСЯ ЗА УКРЫТИЕ</button>
 <div id="controls">
  <div id="leftControls">
@@ -114,7 +220,7 @@
   <button class="btn iconBtn sprintBtn" id="sprint" aria-label="Удерживать для бега" title="Удерживать для бега" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="15.5" cy="4.2" r="2"/><path d="m12.8 7.2-3.1 4.1 4.4 2.1 2.7-2.7 3.5 1.4M9.7 11.3l-3.8.2M13.8 13.4 11 18.8l-4.2 1.5M14 13.5l3.1 5.4 3 .6"/></svg></button>
  </div>
 </div>
-<div id="intro"><div class="panel"><div class="eyebrow">ИНТЕРАКТИВНЫЙ ПРОТОТИП · 0.2.8</div><h1>ТИШИНА</h1><div class="eyebrow">ПОСЛЕ КАТАСТРОФЫ МИР НЕ ИСЧЕЗ.</div><p class="desc">Северный промышленный регион. 2034 год.<br>Комплекс «Север-7» закрыли за три дня до эвакуации.<br>Теперь ты здесь один. Или тебе только так кажется.</p><div class="menuActions"><button class="btn primary wide" id="continueTitle" disabled>ПРОДОЛЖИТЬ</button><button class="btn wide" id="start">НОВАЯ ИГРА</button><button class="btn wide menuSecondary" id="titleLoad" disabled>ЗАГРУЗИТЬ СОХРАНЕНИЕ</button></div><div class="menuStatus" id="titleStatus"></div><div class="foot">ЛЕВЫЙ СТИК — ДВИЖЕНИЕ · ПРАВАЯ ЧАСТЬ — ОБЗОР ВВЕРХ / ВНИЗ / ПО СТОРОНАМ</div></div></div>
+<div id="intro"><div class="panel"><div class="eyebrow">ГРАФИКА И ИНТЕРФЕЙС · 0.3.2</div><h1>ТИШИНА</h1><div class="eyebrow">ПОСЛЕ КАТАСТРОФЫ МИР НЕ ИСЧЕЗ.</div><p class="desc">Северный промышленный регион. 18 ноября 2034 года.<br>Комплекс «Север-7» эвакуирован четыре дня назад.<br>На аварийной частоте снова появился сигнал.</p><div class="menuActions"><button class="btn primary wide" id="continueTitle" disabled>ПРОДОЛЖИТЬ</button><button class="btn wide" id="start">НОВАЯ ИГРА</button><button class="btn wide menuSecondary" id="titleLoad" disabled>ЗАГРУЗИТЬ СОХРАНЕНИЕ</button></div><div class="menuStatus" id="titleStatus"></div><div class="foot">ЛЕВЫЙ СТИК — ДВИЖЕНИЕ · ПРАВАЯ ЧАСТЬ — ОБЗОР ВВЕРХ / ВНИЗ / ПО СТОРОНАМ</div></div></div>
 <div id="rotate"><div class="panel"><div class="symbol">↻</div><h2>ПОВЕРНИТЕ УСТРОЙСТВО</h2><p>«ТИШИНА» рассчитана на горизонтальный экран.</p></div></div>
 <div id="inspect"><div class="panel"><button class="closeX" id="closeInspect" aria-label="Закрыть">×</button><div class="eyebrow" id="inspectType">ОСМОТР</div><h2 id="inspectTitle">Предмет</h2><p id="inspectText"></p><div class="foot" id="inspectFoot">ОСМОТРЕННЫЙ ОБЪЕКТ СОХРАНЁН В ЖУРНАЛЕ</div></div></div>
 <div id="itemChoice"><div class="panel"><div class="eyebrow" id="choiceType">НАЙДЕННЫЙ ПРЕДМЕТ</div><h2 id="choiceTitle">Предмет</h2><p id="choiceText">Осмотреть предмет?</p><div class="menuActions"><button class="btn primary wide" id="choiceTake">ВЗЯТЬ В РУКИ</button><button class="btn wide" id="choiceLeave">ОСТАВИТЬ НА МЕСТЕ</button></div></div></div>
