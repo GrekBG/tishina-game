@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tishina-0-3-4-fix-mobile-start';
+const CACHE_NAME = 'tishina-0-3-4-mobile-hd-stable';
 const APP_SHELL = [
   './',
   './index.html',

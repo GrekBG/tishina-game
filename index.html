@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="ТИШИНА">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>ТИШИНА — Север-7 · версия 0.3.3</title>
+<title>ТИШИНА — Север-7 · версия 0.3.4</title>
 <style>
 :root{color-scheme:dark;--panel:rgba(13,18,17,.94);--line:rgba(205,215,207,.22);--ink:#e2e7df;--muted:#9ca79e}
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#171d1c;color:var(--ink);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;touch-action:none;overscroll-behavior:none}
@@ -194,6 +194,40 @@ body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;font-f
   *,*::before,*::after{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important;}
 }
 
+
+/* TISHINA 0.3.4 — mobile viewport and start-menu fit */
+html,body{min-height:100%;min-height:100dvh;}
+#scene{width:100vw;height:100vh;height:100dvh;}
+#intro{inset:0;width:100vw;min-height:100vh;min-height:100dvh;height:100vh;height:100dvh;padding:calc(env(safe-area-inset-top,0px) + 8px) max(12px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 8px) max(12px,env(safe-area-inset-left,0px));overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
+#intro .panel{width:min(620px,100%);max-width:620px;max-height:calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px) - 16px);margin:auto;padding:clamp(14px,3.5vh,32px) clamp(16px,4vw,36px);overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;}
+#intro h1{font-size:clamp(38px,10vw,76px);line-height:.98;margin:clamp(6px,1.8vh,16px) 0;letter-spacing:.20em;padding-left:.20em;}
+#intro .desc{font-size:clamp(11px,1.9vh,14px);line-height:1.55;margin:clamp(8px,2vh,18px) auto;}
+#intro .menuActions{width:min(360px,100%);margin:clamp(8px,2vh,16px) auto 0;gap:8px;}
+#intro .menuActions .wide{height:44px;min-height:44px;margin:0;font-size:9px;}
+#intro .foot{margin-top:clamp(8px,2vh,18px);font-size:clamp(7px,1.2vh,9px);line-height:1.45;overflow-wrap:anywhere;}
+#intro .menuStatus{margin-top:5px;min-height:0;}
+#rotate{min-height:100vh;min-height:100dvh;padding:20px;}
+@media (orientation:landscape) and (max-height:600px){
+ #intro{padding-top:max(4px,env(safe-area-inset-top,0px));padding-bottom:max(4px,env(safe-area-inset-bottom,0px));}
+ #intro .panel{padding:clamp(8px,2.2vh,16px) clamp(18px,4vw,34px);}
+ #intro h1{font-size:clamp(30px,7.8vh,54px);margin:4px 0 6px;letter-spacing:.18em;}
+ #intro .eyebrow{font-size:7px;line-height:1.3;}
+ #intro .desc{font-size:clamp(9px,2.65vh,11px);line-height:1.38;margin:5px auto 7px;}
+ #intro .menuActions{max-width:340px;margin-top:6px;gap:5px;}
+ #intro .menuActions .wide{height:clamp(32px,8.8vh,39px);min-height:32px;font-size:8px;}
+ #intro .menuStatus{min-height:12px;margin-top:4px;font-size:8px;}
+ #intro .foot{font-size:6.5px;margin-top:5px;line-height:1.25;}
+}
+@media (max-height:360px) and (orientation:landscape){
+ #intro .panel{padding:5px 14px;}
+ #intro h1{font-size:30px;margin:2px 0 3px;}
+ #intro .desc{margin:3px auto 4px;font-size:9px;}
+ #intro .menuActions{margin-top:4px;gap:4px;}
+ #intro .menuActions .wide{height:29px;min-height:29px;}
+ #intro .foot{display:none;}
+}
+@media (orientation:portrait){#intro{display:none;}}
+
 </style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.187.0/build/three.module.js"}}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -221,7 +255,7 @@ body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;font-f
   <button class="btn iconBtn sprintBtn" id="sprint" aria-label="Удерживать для бега" title="Удерживать для бега" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="15.5" cy="4.2" r="2"/><path d="m12.8 7.2-3.1 4.1 4.4 2.1 2.7-2.7 3.5 1.4M9.7 11.3l-3.8.2M13.8 13.4 11 18.8l-4.2 1.5M14 13.5l3.1 5.4 3 .6"/></svg></button>
  </div>
 </div>
-<div id="intro"><div class="panel"><div class="eyebrow">ГРАФИКА И УПРАВЛЕНИЕ · 0.3.3</div><h1>ТИШИНА</h1><div class="eyebrow">ПОСЛЕ КАТАСТРОФЫ МИР НЕ ИСЧЕЗ.</div><p class="desc">Северный промышленный регион. 18 ноября 2034 года.<br>Комплекс «Север-7» эвакуирован четыре дня назад.<br>На аварийной частоте снова появился сигнал.</p><div class="menuActions"><button class="btn primary wide" id="continueTitle" disabled>ПРОДОЛЖИТЬ</button><button class="btn wide" id="start">НОВАЯ ИГРА</button><button class="btn wide menuSecondary" id="titleLoad" disabled>ЗАГРУЗИТЬ СОХРАНЕНИЕ</button></div><div class="menuStatus" id="titleStatus"></div><div class="foot">ЛЕВЫЙ СТИК — ДВИЖЕНИЕ · ПРАВАЯ ЧАСТЬ — ОБЗОР ВВЕРХ / ВНИЗ / ПО СТОРОНАМ</div></div></div>
+<div id="intro"><div class="panel"><div class="eyebrow">ГРАФИКА И УПРАВЛЕНИЕ · 0.3.4</div><h1>ТИШИНА</h1><div class="eyebrow">ПОСЛЕ КАТАСТРОФЫ МИР НЕ ИСЧЕЗ.</div><p class="desc">Северный промышленный регион. 18 ноября 2034 года.<br>Комплекс «Север-7» эвакуирован четыре дня назад.<br>На аварийной частоте снова появился сигнал.</p><div class="menuActions"><button class="btn primary wide" id="continueTitle" disabled>ПРОДОЛЖИТЬ</button><button class="btn wide" id="start">НОВАЯ ИГРА</button><button class="btn wide menuSecondary" id="titleLoad" disabled>ЗАГРУЗИТЬ СОХРАНЕНИЕ</button></div><div class="menuStatus" id="titleStatus"></div><div class="foot">ЛЕВЫЙ СТИК — ДВИЖЕНИЕ · ПРАВАЯ ЧАСТЬ — ОБЗОР ВВЕРХ / ВНИЗ / ПО СТОРОНАМ</div></div></div>
 <div id="rotate"><div class="panel"><div class="symbol">↻</div><h2>ПОВЕРНИТЕ УСТРОЙСТВО</h2><p>«ТИШИНА» рассчитана на горизонтальный экран.</p></div></div>
 <div id="inspect"><div class="panel"><button class="closeX" id="closeInspect" aria-label="Закрыть">×</button><div class="eyebrow" id="inspectType">ОСМОТР</div><h2 id="inspectTitle">Предмет</h2><p id="inspectText"></p><div class="foot" id="inspectFoot">ОСМОТРЕННЫЙ ОБЪЕКТ СОХРАНЁН В ЖУРНАЛЕ</div></div></div>
 <div id="itemChoice"><div class="panel"><div class="eyebrow" id="choiceType">НАЙДЕННЫЙ ПРЕДМЕТ</div><h2 id="choiceTitle">Предмет</h2><p id="choiceText">Выбери действие.</p><div class="menuActions itemChoiceActions"><button class="btn primary wide" id="choiceInspect">ОСМОТРЕТЬ ПРЕДМЕТ</button><button class="btn wide" id="choiceInventory">В ИНВЕНТАРЬ</button><button class="btn wide" id="choiceLeave">ОСТАВИТЬ НА МЕСТЕ</button></div></div></div>
@@ -231,5 +265,48 @@ body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;font-f
 <div id="pause"><div class="panel"><button class="closeX" id="closeMenu">×</button><div class="eyebrow">СЕВЕР-7 · ПАУЗА</div><h2>ГЛАВНОЕ МЕНЮ</h2><p>Прогресс можно сохранить на устройстве и продолжить позже.</p><div class="menuActions"><button class="btn primary wide" id="continueGame">ПРОДОЛЖИТЬ</button><button class="btn wide" id="saveGame">СОХРАНИТЬ ИГРУ</button><button class="btn wide" id="loadGame">ЗАГРУЗИТЬ ИГРУ</button><button class="btn wide" id="newGame">НОВАЯ ИГРА</button><button class="btn wide menuSecondary" id="exitGame">ВЫЙТИ ИЗ ИГРЫ</button></div><div class="menuStatus" id="menuStatus"></div></div></div>
 <div id="confirmNew"><div class="panel"><div class="eyebrow">ПОДТВЕРЖДЕНИЕ</div><h2>НАЧАТЬ ЗАНОВО?</h2><p>Текущий прогресс останется в последнем сохранении, но несохранённые изменения будут потеряны.</p><div class="menuActions"><button class="btn primary wide" id="confirmNewYes">НАЧАТЬ НОВУЮ ИГРУ</button><button class="btn wide" id="confirmNewNo">ОТМЕНА</button></div></div></div>
 <div id="downed"><div class="panel"><div class="eyebrow">СОСТОЯНИЕ: КРИТИЧЕСКОЕ</div><h2>ТЫ ПОТЕРЯЛ СОЗНАНИЕ</h2><p>Тебя нашли у проходной. Удалось прийти в себя, но здоровье восстановилось не полностью.</p><button class="btn primary wide" id="recover">ВЕРНУТЬСЯ К ПРОХОДНОЙ</button></div></div>
+<script>
+(() => {
+  let moduleReady = false;
+  let queuedStart = false;
+  const statusNode = () => document.getElementById('titleStatus');
+  const setStatus = (message, isError = false) => {
+    const node = statusNode();
+    if (!node) return;
+    node.textContent = message;
+    node.style.color = isError ? '#e2a094' : '';
+    node.setAttribute('role', isError ? 'alert' : 'status');
+  };
+  const shortError = value => String(value || 'Неизвестная ошибка').split('\n')[0].slice(0, 150);
+  window.addEventListener('error', event => {
+    const message = event.message || event.error?.message || 'Не удалось загрузить игровой модуль';
+    setStatus('ОШИБКА ЗАПУСКА: ' + shortError(message), true);
+  });
+  window.addEventListener('unhandledrejection', event => {
+    setStatus('ОШИБКА ЗАПУСКА: ' + shortError(event.reason?.message || event.reason), true);
+  });
+  document.getElementById('start')?.addEventListener('click', event => {
+    if (moduleReady) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    queuedStart = true;
+    setStatus('ИГРА ЕЩЁ ЗАГРУЖАЕТСЯ. НАЧАЛО БУДЕТ ВЫПОЛНЕНО АВТОМАТИЧЕСКИ…');
+  }, true);
+  window.__TISHINA_BOOT__ = {
+    setStatus,
+    ready() {
+      moduleReady = true;
+      if (queuedStart) {
+        queuedStart = false;
+        setStatus('ЗАПУСК НОВОЙ ИГРЫ…');
+        setTimeout(() => document.getElementById('start')?.click(), 0);
+      } else if (statusNode()?.textContent === 'ЗАГРУЗКА ИГРЫ…') {
+        setStatus('');
+      }
+    }
+  };
+  if (statusNode()) setStatus('ЗАГРУЗКА ИГРЫ…');
+})();
+</script>
 <script type="module" src="./src/main.js"></script>
 </body></html>
