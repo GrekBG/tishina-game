@@ -1,4 +1,4 @@
-// TISHINA 0.3.2 — high-detail procedural PBR materials.
+// TISHINA 0.3.3 — 1024px procedural PBR material library.
 // Generates tileable albedo, normal and roughness maps locally; no texture downloads.
 export function installPbrSurfaces(THREE, surfaces, options = {}) {
   const quality = options.quality || 'ultra';
@@ -15,7 +15,10 @@ export function installPbrSurfaces(THREE, surfaces, options = {}) {
     floorMat:     { baseRoughness: 0.86, metalness: 0.12, repeat: 4.2, hero: true,  normalStrength: 2.30, pattern: 'asphalt', bumpScale: 0.014 },
     wood:         { baseRoughness: 0.92, metalness: 0.02, repeat: 2.5, hero: false, normalStrength: 1.75, pattern: 'wood', bumpScale: 0.012 },
     paper:        { baseRoughness: 0.99, metalness: 0.00, repeat: 1.8, hero: false, normalStrength: 1.35, pattern: 'paper', bumpScale: 0.004 },
-    yellow:       { baseRoughness: 0.84, metalness: 0.16, repeat: 2.2, hero: false, normalStrength: 1.25, pattern: 'paint', bumpScale: 0.005 }
+    yellow:       { baseRoughness: 0.90, metalness: 0.03, repeat: 2.2, hero: false, normalStrength: 1.25, pattern: 'paint', bumpScale: 0.005 },
+    gravel:       { baseRoughness: 0.99, metalness: 0.00, repeat: 5.8, hero: true,  normalStrength: 2.55, pattern: 'gravel', bumpScale: 0.025 },
+    earth:        { baseRoughness: 0.99, metalness: 0.00, repeat: 3.8, hero: true,  normalStrength: 2.35, pattern: 'earth', bumpScale: 0.022 },
+    driveConcrete:{ baseRoughness: 0.97, metalness: 0.00, repeat: 4.1, hero: true,  normalStrength: 2.20, pattern: 'concrete', bumpScale: 0.018 }
   };
 
   const random = seed => {
@@ -106,6 +109,21 @@ export function installPbrSurfaces(THREE, surfaces, options = {}) {
         ctx.fillStyle = `rgba(14,24,24,${0.025 + rand() * 0.06})`;
         ctx.beginPath(); ctx.ellipse(x, y, 10 + rand() * 52, 3 + rand() * 13, rand() * Math.PI, 0, Math.PI * 2); ctx.fill();
       }
+    } else if (kind === 'gravel' || kind === 'earth') {
+      const count = kind === 'gravel' ? 9200 : 4200;
+      for (let i = 0; i < count; i++) {
+        const x = rand() * size, y = rand() * size;
+        const r = kind === 'gravel' ? 0.5 + rand() * 5.2 : 1.2 + rand() * 12;
+        const light = rand() > 0.54;
+        const alpha = kind === 'gravel' ? 0.035 + rand() * 0.17 : 0.025 + rand() * 0.12;
+        ctx.fillStyle = light ? `rgba(205,202,184,${alpha})` : `rgba(24,27,24,${alpha})`;
+        ctx.beginPath();ctx.ellipse(x,y,r*(0.55+rand()*0.8),r*(0.45+rand()*0.55),rand()*Math.PI,0,Math.PI*2);ctx.fill();
+      }
+      for (let i = 0; i < (kind === 'gravel' ? 75 : 45); i++) {
+        const x = rand() * size, y = rand() * size;
+        ctx.strokeStyle = `rgba(30,32,27,${0.05 + rand() * 0.09})`;ctx.lineWidth=0.5+rand()*2;
+        ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+(rand()-.5)*90,y+(rand()-.5)*70);ctx.stroke();
+      }
     } else if (kind === 'wood') {
       for (let i = 0; i < 90; i++) {
         const y = rand() * size, bend = rand() * 18;
@@ -153,6 +171,8 @@ export function installPbrSurfaces(THREE, surfaces, options = {}) {
         if (kind === 'wood') h += Math.sin(y * 0.16 + n1 * 5) * 0.045;
         if (kind === 'asphalt') h += (n3 > 0.79 ? 0.09 : 0) - (n3 < 0.13 ? 0.045 : 0);
         if (kind === 'rust') h += (n2 > 0.75 ? 0.08 : 0) - (n2 < 0.20 ? 0.035 : 0);
+        if (kind === 'gravel') h += (n3 > 0.77 ? 0.11 : 0) - (n3 < 0.16 ? 0.035 : 0);
+        if (kind === 'earth') h += (n2 > 0.80 ? 0.07 : 0) - (n2 < 0.15 ? 0.04 : 0);
         h = Math.max(0.08, Math.min(0.92, h));
         heights[i] = h;
 
@@ -168,7 +188,8 @@ export function installPbrSurfaces(THREE, surfaces, options = {}) {
         color[ci + 2] = Math.max(0, Math.min(255, base[2] * shade));
         color[ci + 3] = 255;
         let r = config.baseRoughness + (n2 - 0.5) * 0.18 + (n3 - 0.5) * 0.10;
-        if (kind === 'asphalt' && n3 > 0.84) r -= 0.24;
+        if (kind === 'asphalt' && n3 > 0.84) r -= 0.08;
+        if (kind === 'gravel' || kind === 'earth') r = Math.max(r, 0.94);
         if (kind === 'metal' && n1 > 0.78) r += 0.12;
         r = Math.max(0.28, Math.min(1, r));
         const rv = Math.round(r * 255);
@@ -221,15 +242,16 @@ export function installPbrSurfaces(THREE, surfaces, options = {}) {
   for (const [name, config] of Object.entries(configs)) {
     const material = surfaces[name];
     if (!material) continue;
-    let resolution = quality === 'ultra' && config.hero ? 1024 : 512;
+    const resolution = 1024;
     let maps;
     try {
       maps = buildMaps(name, material, config, resolution);
     } catch (error) {
-      if (resolution <= 512) throw error;
-      console.warn(`[ТИШИНА] Не удалось создать ${resolution}px текстуры для ${name}; используется 512px.`, error);
-      resolution = 512;
-      maps = buildMaps(name, material, config, resolution);
+      // The source grunge map for each primary surface is also 1024px; keep it if a secondary PBR map cannot be allocated.
+      console.warn(`[ТИШИНА] Не удалось собрать полный PBR-набор 1024px для ${name}; сохранена базовая 1024px-карта.`, error);
+      report.materials.push(name);
+      report.resolutions[name] = 1024;
+      continue;
     }
     for (const oldMap of [material.map, material.normalMap, material.roughnessMap, material.bumpMap]) {
       if (oldMap?.dispose) oldMap.dispose();

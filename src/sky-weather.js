@@ -1,4 +1,4 @@
-// TISHINA 0.3.1 — procedural sky, sun/moon cycle and wind-driven clouds.
+// TISHINA 0.3.1 — procedural sky, sun/moon cycle and wind-driven clouds; exposure tuned in 0.3.3.
 // No external textures or network requests. Kept intentionally lightweight for mobile GPUs.
 export function installSkyWeather({ THREE, scene, camera, sun, hemisphereLight, renderer, onHud = () => {} }) {
   const CONFIG = {
@@ -225,21 +225,21 @@ export function installSkyWeather({ THREE, scene, camera, sun, hemisphereLight, 
     lightTarget.y = 0;
     sun.target.position.copy(lightTarget);
     sun.position.copy(lightTarget).addScaledVector(sunDirection, 90);
-    sun.intensity = 1.45 * dayAmount * cloudDim;
+    sun.intensity = 1.72 * dayAmount * cloudDim;
     sun.castShadow = sunElevation > 0.08 && wind.coverage < 0.88;
     moonLight.target.position.copy(lightTarget);
     moonLight.position.copy(lightTarget).addScaledVector(moonDirection, 70);
-    moonLight.intensity = 0.20 * nightAmount * (1 - wind.coverage * 0.72);
+    moonLight.intensity = 0.34 * nightAmount * (1 - wind.coverage * 0.58);
 
     hemisphereLight.color.copy(nightHemi).lerp(dayHemi, dayAmount);
     hemisphereLight.groundColor.copy(groundNight).lerp(groundDay, dayAmount);
-    hemisphereLight.intensity = 0.48 + dayAmount * 0.44;
-    renderer.toneMappingExposure = 0.80 + dayAmount * 0.24;
+    hemisphereLight.intensity = 0.70 + dayAmount * 0.58;
+    renderer.toneMappingExposure = 0.94 + dayAmount * 0.22;
     if (scene.fog) {
       currentFog.copy(nightFog).lerp(daylightFog, dayAmount);
       currentFog.lerp(overcastFog, wind.coverage * 0.22);
       scene.fog.color.copy(currentFog);
-      scene.fog.density = 0.014 + wind.coverage * 0.005 + nightAmount * 0.002;
+      scene.fog.density = 0.010 + wind.coverage * 0.003 + nightAmount * 0.001;
     }
 
     hudTimer += safeDt;
