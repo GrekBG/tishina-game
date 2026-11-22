@@ -560,7 +560,7 @@ function animate(t){requestAnimationFrame(animate);const dt=Math.min(.04,(t-last
 }
 requestAnimationFrame(animate);
 function look(dx=0,dy=0){yaw-=dx*.0042;pitch=THREE.MathUtils.clamp(pitch-dy*.0042,-1.05,.8);const roll=peekState?.phase==='hold'?camera.rotation.z:0;camera.rotation.set(pitch,yaw,roll,'YXZ');}
-function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.setSize(innerWidth,innerHeight);}
+function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(devicePixelRatio,(matchMedia('(pointer: coarse)').matches||Math.min(innerWidth,innerHeight)<700)?1.2:1.5));renderer.setSize(innerWidth,innerHeight);}
 addEventListener('resize',resize);
 const introFootText=document.querySelector('#intro .foot').textContent;
 function resetWorld(){
