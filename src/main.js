@@ -68,6 +68,59 @@ const gravelMat = mat(0x65645a,.99,.0), earthMat = mat(0x4e5148,.99,.0), driveCo
 // Shared hangar steel materials (also used by the main scene, not only the yard module).
 const steel = metal.clone(); steel.color.setHex(0x303a37); steel.roughness = 0.72; steel.metalness = 0.72;
 const darkSteel = darkConcrete.clone(); darkSteel.color.setHex(0x202927); darkSteel.roughness = 0.82; darkSteel.metalness = 0.58;
+
+// Weathered olive textile used by the fabric-covered service hangar.
+function makeFabricTexture(base = '#687164', seed = 17) {
+ const size = 1024, canvas = document.createElement('canvas');
+ canvas.width = canvas.height = size;
+ const ctx = canvas.getContext('2d', { alpha: false });
+ ctx.fillStyle = base; ctx.fillRect(0, 0, size, size);
+ let state = seed >>> 0;
+ const random = () => { state = (state * 1664525 + 1013904223) >>> 0; return state / 4294967296; };
+ // Subtle woven threads and irregular weathering, all generated locally at 1024px.
+ for (let x = 0; x < size; x += 4) {
+  const alpha = 0.012 + random() * 0.018;
+  ctx.fillStyle = `rgba(218,220,202,${alpha})`;
+  ctx.fillRect(x, 0, 1, size);
+ }
+ for (let y = 0; y < size; y += 4) {
+  const alpha = 0.008 + random() * 0.014;
+  ctx.fillStyle = `rgba(20,25,21,${alpha})`;
+  ctx.fillRect(0, y, size, 1);
+ }
+ for (let i = 0; i < 10500; i++) {
+  const alpha = 0.012 + random() * 0.075;
+  const light = random() > 0.56;
+  ctx.fillStyle = light ? `rgba(205,205,184,${alpha})` : `rgba(19,25,20,${alpha})`;
+  ctx.fillRect(random() * size, random() * size, 1 + random() * 8, 1 + random() * 5);
+ }
+ // Long, faint rain and dirt streaks.
+ for (let i = 0; i < 46; i++) {
+  const x = random() * size, y = random() * size, h = 45 + random() * 260;
+  const gradient = ctx.createLinearGradient(x, y, x + (random() - .5) * 9, y + h);
+  gradient.addColorStop(0, 'rgba(24,28,22,0)');
+  gradient.addColorStop(.45, `rgba(24,28,22,${.035 + random() * .045})`);
+  gradient.addColorStop(1, 'rgba(24,28,22,0)');
+  ctx.strokeStyle = gradient; ctx.lineWidth = 1 + random() * 4;
+  ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + (random() - .5) * 9, y + h); ctx.stroke();
+ }
+ const texture = new THREE.CanvasTexture(canvas);
+ texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+ texture.repeat.set(2, 2);
+ texture.colorSpace = THREE.SRGBColorSpace;
+ texture.generateMipmaps = true;
+ texture.minFilter = THREE.LinearMipmapLinearFilter;
+ texture.magFilter = THREE.LinearFilter;
+ texture.anisotropy = Math.min(isMobileDevice ? 4 : 8, renderer.capabilities.getMaxAnisotropy());
+ return texture;
+}
+const hangarFabric = new THREE.MeshStandardMaterial({
+ color: 0x778071, map: makeFabricTexture('#777d6e', 71),
+ roughness: 0.985, metalness: 0.015, side: THREE.DoubleSide
+});
+const hangarRoofFabric = hangarFabric.clone();
+hangarRoofFabric.color.setHex(0x858779);
+const fabricSeam = new THREE.MeshStandardMaterial({ color: 0x444b40, roughness: 0.98, metalness: 0.02 });
 const pbrBuild = installPbrSurfaces(THREE, { concrete, darkConcrete, plaster, dirtyWhite, metal, rust, floorMat, wood, paper, yellow, gravel:gravelMat, earth:earthMat, driveConcrete:driveConcreteMat }, {
  renderer, quality: 'ultra', maxAnisotropy: isMobileDevice ? 4 : 8, rowsPerYield: isMobileDevice ? 12 : 24
 }).catch(error => { console.error('[ТИШИНА] HD PBR generation failed; keeping base 1024px maps.', error); });
@@ -112,68 +165,108 @@ for(let i=0;i<6;i++){
  const chimney= new THREE.Mesh(new THREE.CylinderGeometry(.55,.72,17,8),rust);chimney.position.set(x+2,8,-31);scene.add(chimney);
 }
 // Exterior warehouse shell, with a central entrance opening.
-wall('Фасад левый',-6.2,4,-1,5.6,8,.7,concrete);
-wall('Фасад правый',6.2,4,-1,5.6,8,.7,concrete);
-wall('Фасад верх',0,7.4,-1,6.8,1.2,.7,concrete);
+wall('Тентовый фасад слева',-6.2,4,-1,5.6,8,.7,hangarFabric);
+wall('Тентовый фасад справа',6.2,4,-1,5.6,8,.7,hangarFabric);
+wall('Тентовый фронтон над входом',0,7.4,-1,6.8,1.2,.7,hangarFabric);
 // A real window opening is cut into the left exterior wall: lower/upper masonry and side piers leave a clear aperture.
-wall('Наружная стена слева — низ',-9.3,.45,-10,.7,.9,18,concrete);
-wall('Наружная стена слева — верх',-9.3,5.25,-10,.7,5.5,18,concrete);
-wall('Наружная стена слева — до окна',-9.3,1.7,-6.45,.7,1.6,10.9,concrete);
-wall('Наружная стена слева — после окна',-9.3,1.7,-16.55,.7,1.6,4.9,concrete);
-wall('Правая наружная стена',9.3,4,-10,.7,8,18,concrete);
-wall('Задняя наружная стена',0,4,-19,19,8,.7,concrete);
+wall('Тентовая боковая стена слева — цоколь',-9.3,.45,-10,.7,.9,18,hangarFabric);
+wall('Тентовая боковая стена слева',-9.3,5.25,-10,.7,5.5,18,hangarFabric);
+wall('Тентовая нижняя панель слева до окна',-9.3,1.7,-6.45,.7,1.6,10.9,hangarFabric);
+wall('Тентовая нижняя панель слева после окна',-9.3,1.7,-16.55,.7,1.6,4.9,hangarFabric);
+wall('Тентовая боковая стена справа',9.3,4,-10,.7,8,18,hangarFabric);
+wall('Тентовая задняя стена ангара',0,4,-19,19,8,.7,hangarFabric);
 
-// 0.3.3 — complete two-pitch industrial hangar roof with sealed gables, corrugated sheets and trusses.
-const roofMetal=metal.clone();roofMetal.side=THREE.DoubleSide;roofMetal.roughness=.82;roofMetal.metalness=.52;
-function roofQuad(name,points,material){
- const geometry=new THREE.BufferGeometry();
- const positions=points.flat();geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
- geometry.setAttribute('uv',new THREE.Float32BufferAttribute([0,0,1,0,1,1,0,1],2));
- geometry.setIndex([0,1,2,0,2,3]);geometry.computeVertexNormals();
- const mesh=new THREE.Mesh(geometry,material);mesh.name=name;mesh.castShadow=true;mesh.receiveShadow=true;scene.add(mesh);return mesh;
+// 0.4.3 — fabric-covered frame hangar, inspired by long-span expedition shelters.
+function roofQuad(name, points, material) {
+ const geometry = new THREE.BufferGeometry();
+ geometry.setAttribute('position', new THREE.Float32BufferAttribute(points.flat(), 3));
+ geometry.setAttribute('uv', new THREE.Float32BufferAttribute([0,0,1,0,1,1,0,1], 2));
+ geometry.setIndex([0,1,2,0,2,3]); geometry.computeVertexNormals();
+ const mesh = new THREE.Mesh(geometry, material);
+ mesh.name = name; mesh.castShadow = true; mesh.receiveShadow = true; scene.add(mesh); return mesh;
 }
-function roofTriangle(name,points,material){
- const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(points.flat(),3));geometry.setAttribute('uv',new THREE.Float32BufferAttribute([0,0,.5,1,1,0],2));geometry.setIndex([0,1,2]);geometry.computeVertexNormals();
- const mesh=new THREE.Mesh(geometry,material);mesh.name=name;mesh.material=material;mesh.castShadow=true;mesh.receiveShadow=true;scene.add(mesh);return mesh;
+function roofTriangle(name, points, material) {
+ const geometry = new THREE.BufferGeometry();
+ geometry.setAttribute('position', new THREE.Float32BufferAttribute(points.flat(), 3));
+ geometry.setAttribute('uv', new THREE.Float32BufferAttribute([0,0,.5,1,1,0], 2));
+ geometry.setIndex([0,1,2]); geometry.computeVertexNormals();
+ const mesh = new THREE.Mesh(geometry, material);
+ mesh.name = name; mesh.material = material; mesh.castShadow = true; mesh.receiveShadow = true; scene.add(mesh); return mesh;
 }
-const roofZ0=-19.55,roofZ1=-.48,roofMid=(roofZ0+roofZ1)/2;
-const gableMat=darkSteel.clone();gableMat.side=THREE.DoubleSide;gableMat.roughness=.94;gableMat.metalness=.04;
-roofQuad('Кровля ангара — левый скат',[[-9.85,8.08,roofZ0],[0,9.82,roofZ0],[0,9.82,roofZ1],[-9.85,8.08,roofZ1]],roofMetal);
-roofQuad('Кровля ангара — правый скат',[[0,9.82,roofZ0],[9.85,8.08,roofZ0],[9.85,8.08,roofZ1],[0,9.82,roofZ1]],roofMetal);
-for(const z of [roofZ0+.12,roofZ1-.12]){
- roofTriangle('Фронтон ангара — закрытая треугольная вставка',[[-9.35,8.0,z],[0,9.78,z],[9.35,8.0,z]],gableMat);
+function beamBetween(name, a, b, thickness, material, parent = scene) {
+ const va = new THREE.Vector3(...a), vb = new THREE.Vector3(...b);
+ const direction = new THREE.Vector3().subVectors(vb, va), length = direction.length();
+ const mesh = new THREE.Mesh(new THREE.BoxGeometry(thickness, length, thickness), material);
+ mesh.name = name; mesh.position.copy(va).add(vb).multiplyScalar(.5);
+ mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), direction.normalize());
+ mesh.castShadow = true; mesh.receiveShadow = true; parent.add(mesh); return mesh;
 }
-function beamBetween(name,a,b,thickness,material){
- const va=new THREE.Vector3(...a),vb=new THREE.Vector3(...b),direction=new THREE.Vector3().subVectors(vb,va),length=direction.length();
- const mesh=new THREE.Mesh(new THREE.BoxGeometry(thickness,length,thickness),material);mesh.name=name;mesh.position.copy(va).add(vb).multiplyScalar(.5);mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),direction.normalize());mesh.castShadow=true;mesh.receiveShadow=true;scene.add(mesh);return mesh;
+const roofZ0 = -19.55, roofZ1 = -.48, roofMid = (roofZ0 + roofZ1) / 2;
+const roofCross = [
+ [-9.85,8.08],[-8.25,8.58],[-6.10,9.08],[-3.45,9.55],
+ [0,9.82],[3.45,9.55],[6.10,9.08],[8.25,8.58],[9.85,8.08]
+];
+// Slightly bowed panels make the tent profile read as stretched fabric, not a hard concrete gable.
+for (let i = 0; i < roofCross.length - 1; i++) {
+ const a = roofCross[i], b = roofCross[i + 1];
+ roofQuad('Полотно кровли ангара — сегмент ' + (i + 1),
+  [[a[0],a[1],roofZ0],[b[0],b[1],roofZ0],[b[0],b[1],roofZ1],[a[0],a[1],roofZ1]],hangarRoofFabric);
 }
-for(const z of [-2.2,-6.3,-10.4,-14.5,-18.4]){
- beamBetween('Стропило фермы — левое',[-9.25,7.94,z],[0,9.62,z],.16,darkSteel);
- beamBetween('Стропило фермы — правое',[0,9.62,z],[9.25,7.94,z],.16,darkSteel);
- box(scene,'Затяжка кровельной фермы',[18.55,.16,.16],[0,7.98,z],darkSteel);
- beamBetween('Раскос фермы — левый',[-4.65,8.79,z],[0,7.98,z],.105,steel);
- beamBetween('Раскос фермы — правый',[0,7.98,z],[4.65,8.79,z],.105,steel);
- beamBetween('Подвес конька',[0,9.62,z],[0,8.12,z],.10,steel);
+for (const z of [roofZ0 + .08, roofZ1 - .08]) {
+ roofTriangle('Тентовый торцевой фронтон',
+  [[-9.85,8.08,z],[0,9.82,z],[9.85,8.08,z]],hangarRoofFabric);
 }
-// Raised longitudinal ribs catch grazing light and make the corrugated metal roof read at a distance.
-for(let x=-9.25;x<=9.25;x+=.62){
- const left=x<0,ax=Math.abs(x),y=8.08+(1.74*(1-ax/9.85));
- const rib=box(scene,'Ребро профнастила крыши',[.055,.06,19.0],[x,y,roofMid],steel,{cast:false});
- rib.rotation.z=left?.175:-.175;
+// Complete portal ribs: uprights, all roof chords, tie beams and ridge hangers.
+const portalZs = [-1.15,-4.75,-8.35,-11.95,-15.55,-19.15];
+for (const z of portalZs) {
+ beamBetween('Каркас ангара — стойка левая',[-9.22,.10,z],[-9.22,8.04,z],.13,darkSteel);
+ for (let i = 0; i < roofCross.length - 1; i++) {
+  const a = roofCross[i], b = roofCross[i + 1];
+  beamBetween('Каркас ангара — дуга кровли',
+   [a[0]*.935,a[1]-.04,z],[b[0]*.935,b[1]-.04,z],.105,steel);
+ }
+ beamBetween('Каркас ангара — стойка правая',[9.22,.10,z],[9.22,8.04,z],.13,darkSteel);
+ beamBetween('Каркас ангара — поперечная затяжка',[-9.2,6.95,z],[9.2,6.95,z],.11,darkSteel);
+ beamBetween('Каркас ангара — подвес конька',[0,9.68,z],[0,6.98,z],.085,steel);
+ for (const side of [-1,1]) {
+  beamBetween('Каркас ангара — боковой раскос',[side*9.2,6.95,z],[side*5.1,8.95,z],.075,steel);
+ }
 }
-// Gable joints and eave trims close the roof envelope at the building ends.
-for(const z of [roofZ0,roofZ1]){
- beamBetween('Торцевой карниз — левый',[-9.85,8.08,z],[0,9.82,z],.14,steel);
- beamBetween('Торцевой карниз — правый',[0,9.82,z],[9.85,8.08,z],.14,steel);
+// Longitudinal welded seams and dark reinforcement strips on the tarp.
+for (const [x,y] of roofCross) {
+ beamBetween('Продольный шов тентовой кровли',[x,y+.035,roofZ0],[x,y+.035,roofZ1],.035,fabricSeam);
 }
-beamBetween('Коньковая накладка',[0,9.86,roofZ0],[0,9.86,roofZ1],.18,steel);
+for (const side of [-1,1]) {
+ for (const y of [1.15,3.55,6.15]) {
+  beamBetween('Продольная лента бокового тента',[side*9.34,y,roofZ0],[side*9.34,y,roofZ1],.045,fabricSeam);
+ }
+ for (const z of [-2.1,-5.4,-8.7,-12,-15.3,-18.6]) {
+  beamBetween('Вертикальная усилительная лента тента',[side*9.34,.14,z],[side*9.34,7.85,z],.075,fabricSeam);
+  beamBetween('Натяжной ремень тента',[side*9.34,4.65,z],[side*10.22,.12,z+.42],.045,darkSteel);
+  box(scene,'Анкер крепления тента',[.24,.09,.22],[side*10.22,.045,z+.42],darkSteel,{cast:false});
+ }
+}
+// Front roller shutter and its guides; the personnel door remains accessible beside it.
+const shutterMetal = new THREE.MeshStandardMaterial({color:0x777c75,roughness:.88,metalness:.38,side:THREE.DoubleSide});
+box(scene,'Промышленные ворота ангара — полотно',[5.55,5.05,.16],[5.55,2.62,-.57],shutterMetal);
+for (let y=.18; y<5.05; y+=.22) {
+ box(scene,'Профильная ламель рулонных ворот',[5.48,.035,.035],[5.55,y,-.675],steel,{cast:false});
+}
+for (const x of [2.82,8.28]) box(scene,'Направляющая рулонных ворот',[.13,5.35,.20],[x,2.72,-.60],darkSteel);
+box(scene,'Короб рулонных ворот',[5.75,.34,.28],[5.55,5.27,-.59],darkSteel);
+for (const x of [3.02,8.08]) {
+ box(scene,'Жёлтая метка ворот',[.035,4.65,.025],[x,.35,-.72],yellow,{cast:false});
+}
+// Canvas reinforcement patches on the front gable and a low steel kick strip.
+for (const x of [-8.2,-5.1,-3.0,0,3.0,5.1,8.2]) {
+ box(scene,'Накладка усиления тента на фасаде',[.08,5.8,.045],[x,3.2,-.57],fabricSeam,{cast:false});
+}
+box(scene,'Защитная полоса нижней кромки тента',[18.3,.22,.10],[0,.22,-.55],darkSteel,{cast:false});
 floor('Пол первого этажа',0,-10,18.5,18,floorMat,0);
-// Broken windows and concrete lintels on the front elevation.
-for(const x of [-7.8,-4.9,4.9,7.8]){
- const win=box(scene,'Разбитое окно',[1.45,1.55,.12],[x,5.35,-.59],glass,{cast:false});
- box(scene,'Подоконник',[1.8,.16,.42],[x,4.48,-.48],darkConcrete);
- box(scene,'Перемычка',[1.8,.18,.42],[x,6.22,-.48],darkConcrete);
- box(scene,'Осколок стекла',[.04,1.1,.05],[x+.25,5.3,-.45],glass,{cast:false});
+// Sewn reinforcement fields on the front membrane; no fake masonry windows.
+for (const x of [-7.8,-4.9]) {
+ box(scene,'Прямоугольная усилительная заплата тента',[1.72,1.58,.055],[x,5.25,-.62],hangarRoofFabric,{cast:false});
+ for (const y of [4.48,6.02]) box(scene,'Шов заплаты тента',[1.62,.035,.025],[x,y,-.66],fabricSeam,{cast:false});
 }
 // Entry vestibule and corridors.
 wall('Тамбур левая',-2.2,2.1,-3.5,.25,4.2,4.5,plaster);
@@ -210,16 +303,20 @@ function makeDoor(label,x,z,hingeSide=1,kind='door'){
  const width=kind==='cabinet'?.72:label==='Входная дверь'?2.8:1.25,height=kind==='cabinet'?1.65:2.75,thick=.12;
  const leaf=box(pivot,label,[width,height,thick],[hingeSide*width/2,height/2,0],kind==='cabinet'?wood:metal);
  box(pivot,'Ручка',[.06,.18,.07],[hingeSide*width*.82,height*.48,-.1],yellow);
- addInteract(leaf,label,kind==='cabinet'?'Старая дверца шкафа. Петли ещё держатся.':'Краска облупилась. Механизм давно не смазывали.','ДВЕРЬ',()=>openMotionPanel(pivot));
+ addInteract(leaf,label,kind==='cabinet'?'Старая дверца шкафа. Петли ещё держатся.':'Обычная дверь с тяжёлыми петлями. Нажми взаимодействие, чтобы открыть или закрыть её.','ДВЕРЬ',()=>toggleDoorMotion(pivot));
  registerHingedMotion(pivot,{kind:'door',label,description:kind==='cabinet'?'Петли сухие, внутри шкафа может что-то лежать.':'Старая дверь на тяжёлых петлях. Можно открыть её бесшумно, резко или оставить узкую щель.',openAngle:hingeSide*Math.PI*.47,blocksPassage:kind==='door'});pivot.userData.leaf=leaf;return pivot;
 }
 const entryDoor=makeDoor('Входная дверь',-.65,-1.02,1);
 
 // Seal the overly wide rectangular facade opening around the real entrance door.
-wall('Фасад — заполнение слева от входа',-2.025,3.4,-1.0,2.75,6.8,.72,concrete);
-wall('Фасад — заполнение справа от входа',2.775,3.4,-1.0,1.25,6.8,.72,concrete);
-wall('Фасад — перемычка над входной дверью',.75,4.775,-1.0,2.8,4.05,.72,concrete);
+wall('Тент — заполнение слева от входа',-2.025,3.4,-1.0,2.75,6.8,.72,hangarFabric);
+wall('Тент — заполнение справа от входа',2.775,3.4,-1.0,1.25,6.8,.72,hangarFabric);
+wall('Тент — перемычка над входной дверью',.75,4.775,-1.0,2.8,4.05,.72,hangarFabric);
 const officeDoor=makeDoor('Дверь кабинета',-.6,-8.12,1);
+// Close the oversized gaps left beside the office door; leave only the actual 1.25 m doorway.
+wall('Офисная перегородка — левый простенок двери',-1.45,2.1,-8.1,1.70,4.2,.22,plaster);
+wall('Офисная перегородка — правый простенок двери',1.475,2.1,-8.1,1.65,4.2,.22,plaster);
+wall('Офисная перегородка — перемычка над дверью',.025,3.475,-8.1,1.25,1.45,.28,plaster);
 // The office window has a genuine opening in the masonry and a hinged glass sash.
 function makeOpenableWindow(){
  const frameX=-8.91,centerY=1.7,centerZ=-13.0;
@@ -459,6 +556,12 @@ function loadManual(){const data=readStored('tishinaManualSaveV1');if(!data){$('
 function itemRoot(id){return pickupObjects[id]||null;}
 function canCarry(id){const item=itemCatalog[id];if(!item)return false;const slotCount=inventory.length+medkits+energyItems;return slotCount<INVENTORY_MAX_SLOTS&&inventoryWeight()+item.weight<=INVENTORY_MAX_WEIGHT;}
 function openMotionPanel(obj){if(!obj?.userData?.motionKind)return;activeMotion=obj;const data=obj.userData;$('motionTitle').textContent=data.motionLabel||'МЕХАНИЗМ';$('motionDescription').textContent='Выбери действие.';$('motionPanel').style.display='flex';modalOpen=true;activeTarget=null;$('prompt').style.opacity='0';}
+function toggleDoorMotion(obj){
+ if(!obj?.userData?.motionKind)return;
+ const data=obj.userData, isOpen=currentMotionFraction(obj)>=.5;
+ const name=data.motionLabel||'ДВЕРЬ';
+ applyMotion(obj,isOpen?0:1,data.slowSpeed||1.65,isOpen?`${name}: закрывается.`:`${name}: открывается.`);
+}
 function applyMotion(obj,fraction,speed,message){if(!obj)return;const d=obj.userData;d.manualHold=0;fraction=THREE.MathUtils.clamp(fraction,0,1);d.targetFraction=fraction;d.target=d.closedValue+(d.openedValue-d.closedValue)*fraction;d.open=fraction>=.99;d.ajar=fraction>.02&&!d.open;d.speed=speed;beginHandAction(d.motionKind==='drawer'?'slide':'pull',false);physicalSound(speed>8?'impact':d.motionKind==='drawer'?'slide':'creak',speed>8?1:.7);showPhysicalFeedback(message);save();}
 function closeMotionPanel(){if(activeMotion?.userData.manualHold)stopManualMotion();activeMotion=null;$('motionPanel').style.display='none';modalOpen=false;}
 function doMotionAction(action){if(!activeMotion)return;const d=activeMotion.userData;const name=d.motionLabel||'Механизм';if(action==='ajar')applyMotion(activeMotion,.16,d.slowSpeed||1.8,`${name}: оставлена узкая щель.`);else if(action==='slowOpen')applyMotion(activeMotion,1,d.slowSpeed||1.8,`${name}: медленно открывается.`);else if(action==='fastOpen')applyMotion(activeMotion,1,d.fastSpeed||13,`${name}: резко открывается.`);else if(action==='slowClose')applyMotion(activeMotion,0,d.slowSpeed||1.8,`${name}: медленно закрывается.`);else if(action==='fastClose')applyMotion(activeMotion,0,d.fastSpeed||13,`${name}: быстро закрывается.`);closeMotionPanel();}
@@ -499,7 +602,7 @@ function closeInspect(){$('inspect').style.display='none';modalOpen=false;}
 function interact(){if(peekState){endPeek();return;}if(modalOpen)return;if(!activeTarget){notify('Ничего интересного в поле зрения.');return;}const d=activeTarget.userData.interaction;if(d.action){d.action();}else openInspect(d);}
 const raycaster=new THREE.Raycaster();
 function isEffectivelyVisible(obj){for(let node=obj;node;node=node.parent){if(!node.visible)return false;}return true;}
-function updateTarget(){raycaster.setFromCamera(new THREE.Vector2(0,0),camera);const hits=raycaster.intersectObjects(interactables,false).filter(h=>h.distance<3.7&&isEffectivelyVisible(h.object));activeTarget=hits.length?hits[0].object:null;$('prompt').textContent=activeTarget?`◉ ${activeTarget.userData.interaction.title}`:'';$('prompt').style.opacity=activeTarget?'1':'0';}
+function updateTarget(){raycaster.setFromCamera(new THREE.Vector2(0,0),camera);const hits=raycaster.intersectObjects(interactables,false).filter(h=>h.distance<3.7&&isEffectivelyVisible(h.object));activeTarget=hits.length?hits[0].object:null;const interaction=activeTarget?.userData.interaction;$('prompt').textContent=interaction?(interaction.type==='ДВЕРЬ'?`◉ ${interaction.title} · ОТКРЫТЬ / ЗАКРЫТЬ`:`◉ ${interaction.title}`):'';$('prompt').style.opacity=activeTarget?'1':'0';}
 function lowZoneAt(x,z,radius=0){return lowClearanceZones.find(zone=>x+radius>zone.minX&&x-radius<zone.maxX&&z+radius>zone.minZ&&z-radius<zone.maxZ)||null;}
 function canFitAt(x,z,mode=posture){const zone=lowZoneAt(x,z,postures[mode].radius);return !zone||postures[mode].height<=zone.clearance;}
 function canOccupyAt(x,z){const zone=lowZoneAt(x,z,stance.radius);return !zone||stance.height<=zone.clearance;}
