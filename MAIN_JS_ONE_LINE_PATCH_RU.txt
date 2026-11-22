@@ -1,0 +1,11 @@
+ТИШИНА — подключение локального ангара
+
+В текущем src/main.js найдите ровно эту строку:
+
+const HANGAR_GLB_URL = 'https://cdn.3dassets.dev/assets/17354/v1/model.glb';
+
+Замените её ровно на:
+
+const HANGAR_GLB_URL = new URL('../hangar.glb', import.meta.url).href;
+
+Другие строки main.js не меняйте. Локальный hangar.glb должен лежать в КОРНЕ репозитория рядом с index.html и service-worker.js.

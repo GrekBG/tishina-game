@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tishina-0-4-6-uaz-upright-night-visibility';
+const CACHE_NAME = 'tishina-0-4-9-detailed-closed-hangar';
 const APP_SHELL = [
   './',
   './index.html',
@@ -11,6 +11,7 @@ const APP_SHELL = [
   './uaz.dae',
   './uaz-body.webp',
   './uaz-details.webp',
+  './hangar.glb',
   './icon-192.png',
   './icon-512.png'
 ];
@@ -58,8 +59,7 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // JavaScript is network-first so a second GitHub commit can replace modules
-  // even when this worker was installed by the first (root-files) commit.
+  // JavaScript is network-first so a repository update can replace modules immediately.
   const isJavaScript = request.destination === 'script' || /\.m?js$/i.test(url.pathname);
   if (isJavaScript) {
     event.respondWith(
@@ -78,7 +78,7 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Other static assets are cache-first. A missing JS module is never replaced by HTML.
+  // Other static assets, including the local detailed hangar, are cache-first.
   event.respondWith(
     caches.match(request).then(cached => {
       if (cached) return cached;
