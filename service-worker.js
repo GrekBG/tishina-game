@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tishina-0-4-5-uaz-dae-one-tap-pickup';
+const CACHE_NAME = 'tishina-0-4-6-uaz-upright-night-visibility';
 const APP_SHELL = [
   './',
   './index.html',
@@ -8,9 +8,6 @@ const APP_SHELL = [
   './src/world-expansion.js',
   './src/story.js',
   './src/sky-weather.js',
-  './assets/uaz/uaz.dae',
-  './assets/uaz/uaz-body.webp',
-  './assets/uaz/uaz-details.webp',
   './uaz.dae',
   './uaz-body.webp',
   './uaz-details.webp',
