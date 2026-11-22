@@ -1,4 +1,8 @@
 import * as THREE from 'three';
+import { installPbrSurfaces } from './pbr-surfaces.js';
+import { installWorldExpansion } from './world-expansion.js';
+import { createStoryController } from './story.js';
+import { installSkyWeather } from './sky-weather.js';
 
 const $ = (id) => document.getElementById(id);
 const canvas = $('scene');
@@ -13,16 +17,18 @@ renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
 renderer.setSize(innerWidth, innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.12;
+renderer.toneMappingExposure = 1.04;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-scene.add(new THREE.HemisphereLight(0xd9e1e1, 0x343b35, 1.55));
-const sun = new THREE.DirectionalLight(0xe3e8e4, 2.0);
+const hemisphereLight = new THREE.HemisphereLight(0xc5d0cb, 0x242d29, 0.92);
+scene.add(hemisphereLight);
+const sun = new THREE.DirectionalLight(0xd6ded9, 1.45);
 sun.position.set(-12, 20, 9); sun.castShadow = true;
 sun.shadow.mapSize.set(1024, 1024);
 sun.shadow.camera.left = -22; sun.shadow.camera.right = 22; sun.shadow.camera.top = 22; sun.shadow.camera.bottom = -22;
 sun.shadow.bias = -0.00025; scene.add(sun);
+const skyWeather = installSkyWeather({ THREE, scene, camera, sun, hemisphereLight, renderer, onHud: ({ date, clock, weather }) => { const dateEl = $('worldDate'); const timeEl = $('worldClock'); const weatherEl = $('worldWeather'); if (dateEl) dateEl.textContent = date; if (timeEl) timeEl.textContent = clock; if (weatherEl) weatherEl.textContent = weather; } });
 
 function grungeTexture(base, seed=1){
  const c=document.createElement('canvas');c.width=c.height=256;const g=c.getContext('2d');g.fillStyle=base;g.fillRect(0,0,256,256);
@@ -34,6 +40,7 @@ function grungeTexture(base, seed=1){
 const concreteMap=grungeTexture('#777d77',7), plasterMap=grungeTexture('#999b90',13), floorMap=grungeTexture('#535b55',23);
 const mat = (color, roughness=0.92, metalness=0) => new THREE.MeshStandardMaterial({ color, roughness, metalness });
 const concrete = mat(0x747a75), darkConcrete = mat(0x444b47), plaster = mat(0x888d85), dirtyWhite = mat(0x9a9b8f), metal = mat(0x414b49,.72,.72), rust = mat(0x704b37,.94,.22), glass = new THREE.MeshStandardMaterial({color:0x738b8a,roughness:.18,metalness:.35,transparent:true,opacity:.32}), floorMat = mat(0x555d57), wood = mat(0x554b3e), paper = mat(0xb7b39e), yellow = mat(0x9b8b55,.85,.2);
+installPbrSurfaces(THREE, { concrete, darkConcrete, plaster, dirtyWhite, metal, rust, floorMat, wood, paper, yellow }, { renderer, quality: 'ultra' });
 const colliders=[]; const interactables=[]; const inventory=[]; const motionObjects=[]; const pickupObjects={};
 let pendingItemId=null,heldItemId=null,heldObject=null,heldSourceRoot=null,heldPointer=null,activeMotion=null;let heldFlipped=false,heldNoteOpen=false,heldRadioPowered=false,heldRadioChannel=4;const INVENTORY_MAX_SLOTS=8,INVENTORY_MAX_WEIGHT=8;
 function readStored(key){try{return JSON.parse(localStorage.getItem(key)||'null');}catch{return null;}}
@@ -54,16 +61,17 @@ const STANCE_TRANSITION_SECONDS=.38, SPRINT_MULTIPLIER=1.68, STAMINA_DRAIN=17, S
 const HEALTH_MAX=100,HEALTH_HAZARD_DAMAGE=9,HEALTH_HAZARD_INTERVAL=.72;
 const lowClearanceZones=[{minX:-1.15,maxX:1.15,minZ:-10.65,maxZ:-9.9,clearance:.68,label:'Обрушившаяся балка'}];
 concrete.map=concreteMap; plaster.map=plasterMap; floorMat.map=floorMap;
+const forecourtMat=floorMat.clone();forecourtMat.color.setHex(0x353e3a);forecourtMat.roughness=.55;forecourtMat.metalness=.14;
 
 function box(parent, name, size, pos, material, opts={}) {
- const mesh=new THREE.Mesh(new THREE.BoxGeometry(...size),material); mesh.name=name; mesh.position.set(...pos); mesh.castShadow=opts.cast!==false; mesh.receiveShadow=true; parent.add(mesh); return mesh;
+ const mesh=new THREE.Mesh(new THREE.BoxGeometry(...size),material); mesh.name=name; mesh.position.set(...pos); mesh.castShadow=opts.cast!==false; mesh.receiveShadow=true; parent.add(mesh); if(opts.solid){const bounds=new THREE.Box3().setFromObject(mesh);colliders.push({minX:bounds.min.x,maxX:bounds.max.x,minY:bounds.min.y,maxY:bounds.max.y,minZ:bounds.min.z,maxZ:bounds.max.z});} return mesh;
 }
 function wall(name,x,y,z,w,h,d,material=concrete, collide=true){const m=box(scene,name,[w,h,d],[x,y,z],material);if(collide)colliders.push({minX:x-w/2,maxX:x+w/2,minY:y-h/2,maxY:y+h/2,minZ:z-d/2,maxZ:z+d/2});return m;}
 function floor(name,x,z,w,d,material=floorMat,y=0){return box(scene,name,[w,.18,d],[x,y,z],material,{cast:false});}
 function addInteract(obj, title, description, type='ОСМОТР', action=null){obj.userData.interaction={title,description,type,action};interactables.push(obj);return obj;}
 
 // Rain-darkened forecourt and approach.
-floor('Мокрый асфальт',0,8,42,35,mat(0x454d49,.34,.18),-.12);
+floor('Мокрый асфальт',0,17,96,88,forecourtMat,-.12);
 for(let i=0;i<9;i++){
  const puddle=new THREE.Mesh(new THREE.CircleGeometry(1.1+(i%3)*.45,24),new THREE.MeshStandardMaterial({color:0x596764,roughness:.18,metalness:.3,transparent:true,opacity:.42}));puddle.rotation.x=-Math.PI/2;puddle.position.set(-13+i*3.4,-.018,8+(i%2)*5);puddle.scale.y=.45;scene.add(puddle);
 }
@@ -117,7 +125,7 @@ function makeDoor(label,x,z,hingeSide=1,kind='door'){
  const leaf=box(pivot,label,[width,height,thick],[hingeSide*width/2,height/2,0],kind==='cabinet'?wood:metal);
  box(pivot,'Ручка',[.06,.18,.07],[hingeSide*width*.82,height*.48,-.1],yellow);
  addInteract(leaf,label,kind==='cabinet'?'Старая дверца шкафа. Петли ещё держатся.':'Краска облупилась. Механизм давно не смазывали.','ДВЕРЬ',()=>openMotionPanel(pivot));
- registerHingedMotion(pivot,{kind:'door',label,description:kind==='cabinet'?'Петли сухие, внутри шкафа может что-то лежать.':'Старая дверь на тяжёлых петлях. Можно открыть её бесшумно, резко или оставить узкую щель.',openAngle:hingeSide*Math.PI*.47,blocksPassage:label==='Входная дверь'});pivot.userData.leaf=leaf;return pivot;
+ registerHingedMotion(pivot,{kind:'door',label,description:kind==='cabinet'?'Петли сухие, внутри шкафа может что-то лежать.':'Старая дверь на тяжёлых петлях. Можно открыть её бесшумно, резко или оставить узкую щель.',openAngle:hingeSide*Math.PI*.47,blocksPassage:kind==='door'});pivot.userData.leaf=leaf;return pivot;
 }
 const entryDoor=makeDoor('Входная дверь',-.65,-1.02,1);
 const officeDoor=makeDoor('Дверь кабинета',-.6,-8.12,1);
@@ -137,7 +145,7 @@ makeOpenableWindow();
 // Cabinet body, hinged doors, and a real sliding lower drawer.
 function makeCabinet(x,z){
  const group=new THREE.Group();group.position.set(x,0,z);scene.add(group);
- box(group,'Шкаф',[1.7,2.1,.7],[0,1.05,0],darkConcrete);
+ box(group,'Шкаф',[1.7,2.1,.7],[0,1.05,0],darkConcrete,{solid:true});
  for(const side of [-1,1]){
   const p=new THREE.Group();p.position.set(side*.82,0,-.39);p.name=`cabinet:${x}:${side}`;group.add(p);
   const leaf=box(p,'Дверца шкафа',[.78,1.98,.09],[-side*.39,1.05,0],wood);
@@ -164,8 +172,8 @@ const itemCatalog={
  energy:{name:'Энергетик',type:'НАПИТОК',weight:.35,icon:'🥫',description:'Металлическая банка энергетического напитка. Можно забрать с собой и использовать из инвентаря.'}
 };
 const deskX=-5.8,deskZ=-5.0;
-box(scene,'Стойка охраны',[3.1,1.05,.9],[deskX,.55,deskZ],wood);
-box(scene,'Столешница',[3.25,.12,1.02],[deskX,1.12,deskZ],dirtyWhite);
+box(scene,'Стойка охраны',[3.1,1.05,.9],[deskX,.55,deskZ],wood,{solid:true});
+box(scene,'Столешница',[3.25,.12,1.02],[deskX,1.12,deskZ],dirtyWhite,{solid:true});
 function makeRadio(x,y,z){const g=new THREE.Group();g.position.set(x,y,z);scene.add(g);
  const body=box(g,'Корпус рации',[.48,.28,.32],[0,0,0],mat(0x343d3c,.78,.38));
  box(g,'Передняя панель рации',[.37,.2,.025],[0,.015,-.17],mat(0x59635e,.7,.25));
@@ -203,7 +211,7 @@ function makeNote(x,y,z){const g=new THREE.Group();g.position.set(x,y,z);scene.a
  box(g,'Сгиб записки',[.012,.014,.012],[0,.012,0],mat(0x8c8878));
  const root=g;const hit=addInteract(sheet,'Служебная записка',itemCatalog.note.description,'ПРЕДМЕТ',()=>offerItem('note'));hit.userData.pickupGroup=root;root.userData.pickupId='note';pickupObjects.note=root;return root;}
 makeRadio(-6.2,1.3,-5.0);makePass(-5.25,1.205,-5.0);
-box(scene,'Рабочий стол',[2.5,.9,1.1],[1.9,.48,-12.5],wood);box(scene,'Папки',[.45,.22,.32],[1.25,1.05,-12.35],yellow);
+box(scene,'Рабочий стол',[2.5,.9,1.1],[1.9,.48,-12.5],wood,{solid:true});box(scene,'Папки',[.45,.22,.32],[1.25,1.05,-12.35],yellow);
 makePhoto(2.4,.95,-12.3);makeNote(1.1,1.05,-12.32);
 // Supplies have recognizable silhouettes and use the same hold / examine / take flow.
 const medkitGroup=new THREE.Group();medkitGroup.position.set(-4.85,1.28,-5.0);scene.add(medkitGroup);
@@ -218,7 +226,7 @@ const energyTop=new THREE.Mesh(new THREE.CylinderGeometry(.07,.07,.012,12),metal
 energyMesh.userData.pickupGroup=energyGroup;energyMesh.userData.pickupId='energy';pickupObjects.energy=energyGroup;
 addInteract(energyMesh,'Энергетик',itemCatalog.energy.description,'ПРЕДМЕТ',()=>offerItem('energy'));
 // Wall mounted electrical panel with an inspectable latch.
-const panel=box(scene,'Электрощит',[.95,1.5,.18],[3.3,2.1,-16.1],metal);
+const panel=box(scene,'Электрощит',[.95,1.5,.18],[3.3,2.1,-16.1],metal,{solid:true});
 addInteract(panel,'Электрощит','Питание отключено. На схеме отмечен резервный контур, уходящий в подвал.','ОБОРУДОВАНИЕ');
 // Damaged insulation has left a live cable in a shallow puddle. It is visible and avoidable.
 const liveWater=new THREE.Mesh(new THREE.CircleGeometry(.72,28),new THREE.MeshStandardMaterial({color:0x354a4b,roughness:.2,metalness:.28,transparent:true,opacity:.82}));liveWater.rotation.x=-Math.PI/2;liveWater.position.set(2.55,.012,-14.35);liveWater.scale.set(1.15,.72,1);scene.add(liveWater);
@@ -233,15 +241,22 @@ for(let i=0;i<7;i++){
 }
 for(let i=0;i<12;i++){
  const x=-12+(i%6)*4.7,z=5+Math.floor(i/6)*7;
- const crate=box(scene,'Ящик',[.8+(i%2)*.3,.75,.8],[x,.38,z],i%3===0?wood:darkConcrete);
+ const crate=box(scene,'Ящик',[.8+(i%2)*.3,.75,.8],[x,.38,z],i%3===0?wood:darkConcrete,{solid:true});
  if(i%3===0)addInteract(crate,'Грузовой ящик','Дерево разбухло от сырости. Внутри ничего ценного.','ОСМОТР');
 }
 for(let i=0;i<24;i++){
  const stone= new THREE.Mesh(new THREE.DodecahedronGeometry(.15+(i%4)*.07,0),darkConcrete);stone.position.set(-8+(i*1.73)%16,.02,3+(i*2.37)%15);stone.rotation.set(i,i*.7,i*.2);scene.add(stone);
 }
+// TISHINA_030_STORY_WORLD_UPGRADE
+// TISHINA_032_HD_MATERIALS_AND_TYPOGRAPHY
+const expansion = installWorldExpansion({ THREE, scene, box, floor, mat, addInteract, colliders, surfaces: { metal, darkConcrete, plaster, yellow, floorMat, rust } });
+const story = createStoryController({ onObjective: value => { const el = $('objective'); if (el) el.textContent = value; }, notify });
+panel.userData.interaction.action = () => { const data = panel.userData.interaction; story.markBreaker(); openInspect(data); };
+expansion.evacuationLog.userData.interaction.action = () => { const data = expansion.evacuationLog.userData.interaction; story.markJournal(); openInspect(data); };
+
 // Rain particles: restrained count for mobile GPUs.
 const rainCount=360, rainPositions=new Float32Array(rainCount*3);
-for(let i=0;i<rainCount;i++){rainPositions[i*3]=(Math.random()-.5)*42;rainPositions[i*3+1]=Math.random()*18;rainPositions[i*3+2]=(Math.random()-.5)*48;}
+for(let i=0;i<rainCount;i++){rainPositions[i*3]=(Math.random()-.5)*90;rainPositions[i*3+1]=Math.random()*18;rainPositions[i*3+2]=(Math.random()-.5)*88;}
 const rainGeo=new THREE.BufferGeometry();rainGeo.setAttribute('position',new THREE.BufferAttribute(rainPositions,3));
 const rain=new THREE.Points(rainGeo,new THREE.PointsMaterial({color:0xdce5e3,size:.035,transparent:true,opacity:.34}));scene.add(rain);
 
@@ -307,11 +322,11 @@ function updateInventoryUI(){
  $('items').innerHTML=cells.join('');$('inventoryWeight').textContent=`ВЕС: ${inventoryWeight().toFixed(2)} / 8 КГ · ЯЧЕЙКИ: ${inventory.length+medkits+energyItems} / 8`;
  $('medkitCount').textContent=String(medkits);$('energyCount').textContent=String(energyItems);
  $('useMedkit').disabled=medkits<=0||health>=100;$('useEnergy').disabled=energyItems<=0||stamina>=100;
- $('objective').textContent=`НАЙДЕНО: ${inventory.filter(x=>['Старая рация','Промышленный пропуск','Фотография','Служебная записка'].includes(x)).length}/4`;
+ story.refresh(inventory);
 }
 function makeSnapshot(){
  const motions=motionObjects.map(obj=>{const fraction=currentMotionFraction(obj),target=obj.userData.motion==='slide'?obj.position.z:obj.rotation.y;return {name:obj.name,open:fraction>=.99,ajar:fraction>.02&&fraction<.99,fraction,target};});
- return {version:2,savedAt:new Date().toISOString(),player:{x:camera.position.x,z:camera.position.z,yaw,pitch},health,stamina,inventory:[...inventory],medkits,energyItems,motions,collected:Object.keys(pickupObjects).filter(id=>!pickupObjects[id].visible)};
+ return {version:3,savedAt:new Date().toISOString(),player:{x:camera.position.x,z:camera.position.z,yaw,pitch},health,stamina,inventory:[...inventory],medkits,energyItems,story:story.snapshot(),sky:skyWeather.snapshot(),motions,collected:Object.keys(pickupObjects).filter(id=>!pickupObjects[id].visible)};
 }
 function storeJson(key,data){try{localStorage.setItem(key,JSON.stringify(data));return true;}catch(err){console.warn('Не удалось сохранить игру:',err);return false;}}
 function save(){const ok=storeJson('tishinaAutoV1',makeSnapshot());storeJson('tishina02', {items:inventory,health,stamina,medkits,energyItems});updateInventoryUI();const cont=$('continueTitle');if(cont&&ok)cont.disabled=false;}
@@ -320,11 +335,13 @@ function applySnapshot(data){
  inventory.splice(0,inventory.length,...(Array.isArray(data.inventory)?data.inventory.filter(x=>typeof x==='string'):Array.isArray(data.items)?data.items.filter(x=>typeof x==='string'):[]));
  medkits=Math.max(0,Math.min(20,Number(data.medkits)||0));energyItems=Math.max(0,Math.min(20,Number(data.energyItems)||0));
  health=Math.max(1,Math.min(100,Number.isFinite(Number(data.health))?Number(data.health):100));stamina=Math.max(0,Math.min(100,Number(data.stamina??100)||0));sprintLocked=stamina<STAMINA_RESTART;sprintHeld=false;sprintBlend=0;staminaRecoveryDelay=0;
- const px=Number(data.player?.x),pz=Number(data.player?.z);camera.position.set(Number.isFinite(px)?THREE.MathUtils.clamp(px,-8.4,8.4):0,postures.stand.eye,Number.isFinite(pz)?THREE.MathUtils.clamp(pz,-25,15):10.5);yaw=Number.isFinite(Number(data.player?.yaw))?Number(data.player.yaw):0;pitch=Number.isFinite(Number(data.player?.pitch))?THREE.MathUtils.clamp(Number(data.player.pitch),-1.05,.8):0;look(0,0);
+ const px=Number(data.player?.x),pz=Number(data.player?.z);camera.position.set(Number.isFinite(px)?THREE.MathUtils.clamp(px,-44,44):0,postures.stand.eye,Number.isFinite(pz)?THREE.MathUtils.clamp(pz,-25,60):10.5);yaw=Number.isFinite(Number(data.player?.yaw))?Number(data.player.yaw):0;pitch=Number.isFinite(Number(data.player?.pitch))?THREE.MathUtils.clamp(Number(data.player.pitch),-1.05,.8):0;look(0,0);
  posture='stand';stanceFrom=null;stanceElapsed=1;Object.assign(stance,postures.stand);jumpHeight=0;jumpVelocity=0;grounded=true;
+ story.restore(data.story, inventory);
+ skyWeather.restore(data.sky);
  const collected=Array.isArray(data.collected)?data.collected:[];
  for(const [id,obj] of Object.entries(pickupObjects)){
-  const legacyCollected=(id==='radio'&&inventory.includes('Старая рация'))||(id==='pass'&&inventory.includes('Промышленный пропуск'))||(id==='photo'&&inventory.includes('Фотография'));
+  const legacyCollected=(id==='radio'&&inventory.includes('Старая рация'))||(id==='pass'&&inventory.includes('Промышленный пропуск'))||(id==='photo'&&inventory.includes('Фотография'))||(id==='note'&&inventory.includes('Служебная записка'));
   obj.visible=!(collected.includes(id)||legacyCollected);
  }
  for(const state of (Array.isArray(data.motions)?data.motions:[])){
@@ -368,7 +385,7 @@ function updateTarget(){raycaster.setFromCamera(new THREE.Vector2(0,0),camera);c
 function lowZoneAt(x,z,radius=0){return lowClearanceZones.find(zone=>x+radius>zone.minX&&x-radius<zone.maxX&&z+radius>zone.minZ&&z-radius<zone.maxZ)||null;}
 function canFitAt(x,z,mode=posture){const zone=lowZoneAt(x,z,postures[mode].radius);return !zone||postures[mode].height<=zone.clearance;}
 function canOccupyAt(x,z){const zone=lowZoneAt(x,z,stance.radius);return !zone||stance.height<=zone.clearance;}
-function collides(x,z){const radius=stance.radius,feetY=Math.max(0,camera.position.y-stance.eye),headY=feetY+stance.height;for(const c of colliders){const verticalOverlap=feetY<c.maxY&&headY>c.minY;if(verticalOverlap&&x+radius>c.minX&&x-radius<c.maxX&&z+radius>c.minZ&&z-radius<c.maxZ)return true;}for(const obj of motionObjects){if(!obj.userData.blocksPassage||currentMotionFraction(obj)>=.98)continue;const leaf=obj.userData.leaf;if(!leaf)continue;const b=new THREE.Box3().setFromObject(leaf);const verticalOverlap=feetY<b.max.y&&headY>b.min.y;if(verticalOverlap&&x+radius>b.min.x&&x-radius<b.max.x&&z+radius>b.min.z&&z-radius<b.max.z)return true;}return false;}
+function collides(x,z){if(x < -46 || x > 46 || z < -25 || z > 61)return true;const radius=stance.radius,feetY=Math.max(0,camera.position.y-stance.eye),headY=feetY+stance.height;for(const c of colliders){const verticalOverlap=feetY<c.maxY&&headY>c.minY;if(verticalOverlap&&x+radius>c.minX&&x-radius<c.maxX&&z+radius>c.minZ&&z-radius<c.maxZ)return true;}for(const obj of motionObjects){if(!obj.userData.blocksPassage||currentMotionFraction(obj)>=.98)continue;const leaf=obj.userData.leaf;if(!leaf)continue;const b=new THREE.Box3().setFromObject(leaf);const verticalOverlap=feetY<b.max.y&&headY>b.min.y;if(verticalOverlap&&x+radius>b.min.x&&x-radius<b.max.x&&z+radius>b.min.z&&z-radius<b.max.z)return true;}return false;}
 function updatePostureUI(){const crouch=$('crouch'),prone=$('prone');crouch.classList.toggle('active',posture==='crouch');prone.classList.toggle('active',posture==='prone');crouch.setAttribute('aria-pressed',String(posture==='crouch'));prone.setAttribute('aria-pressed',String(posture==='prone'));$('postureStatus').textContent=`ПОЗА: ${postures[posture].label}`;}
 function setPosture(next){if(!started||modalOpen)return;if(!grounded){notify('Сначала приземлись.');return;}if(next===posture)return;const x=camera.position.x,z=camera.position.z;if(!canFitAt(x,z,next)){notify('Над головой слишком мало места. Здесь можно только лечь.');return;}stanceFrom={eye:stance.eye,height:stance.height,radius:stance.radius,speed:stance.speed};stanceElapsed=0;posture=next;sprintHeld=false;updatePostureUI();notify(next==='stand'?'Поднимаешься на ноги.':next==='crouch'?'Плавно приседаешь.':'Опускаешься на землю.');}
 function updateStaminaUI(force=false){const value=Math.max(0,Math.min(100,Math.round(stamina)));if(!force&&value===lastStaminaShown)return;lastStaminaShown=value;const fill=$('staminaFill'),label=$('staminaValue');if(fill)fill.style.width=value+'%';if(label)label.textContent=value+'%';const track=$('staminaTrack');if(track)track.setAttribute('aria-valuenow',String(value));track?.classList.toggle('low',value<=20);const sprint=$('sprint');if(sprint){sprint.classList.toggle('active',sprintHeld&&sprintBlend>.08);sprint.classList.toggle('depleted',sprintLocked);sprint.setAttribute('aria-pressed',String(sprintHeld));}}
@@ -464,7 +481,7 @@ function animate(t){requestAnimationFrame(animate);const dt=Math.min(.04,(t-last
  }
  if(heldObject){const flap=heldObject.getObjectByName('Записка: сгибаемая часть');if(flap&&flap.userData.foldTarget!==undefined)flap.rotation.x=THREE.MathUtils.damp(flap.rotation.x,flap.userData.foldTarget,10,dt);}
  if(peekState){const p=peekState;p.elapsed+=dt;const k=smooth01(p.elapsed/p.duration);camera.position.x=THREE.MathUtils.lerp(p.fromX,p.toX,k);camera.position.z=THREE.MathUtils.lerp(p.fromZ,p.toZ,k);const viewYaw=p.phase==='hold'?yaw:THREE.MathUtils.lerp(p.fromYaw,p.toYaw,k);const roll=THREE.MathUtils.lerp(p.fromRoll,p.toRoll,k);const viewPitch=p.phase==='hold'?pitch:THREE.MathUtils.lerp(p.fromPitch,p.toPitch,k);camera.rotation.set(viewPitch,viewYaw,roll,'YXZ');if(p.elapsed>=p.duration){if(p.phase==='in'){p.phase='hold';p.elapsed=0;p.fromX=p.toX;p.fromZ=p.toZ;p.fromYaw=p.toYaw;p.fromRoll=p.toRoll;camera.position.x=p.toX;camera.position.z=p.toZ;yaw=p.toYaw;camera.rotation.set(pitch,yaw,p.toRoll,'YXZ');}else if(p.phase==='out'){camera.position.x=p.toX;camera.position.z=p.toZ;camera.rotation.set(pitch,yaw,0,'YXZ');peekState=null;$('peekExit').style.display='none';}}}
- const p=rain.geometry.attributes.position;for(let i=0;i<rainCount;i++){p.array[i*3+1]-=dt*7;if(p.array[i*3+1]<0){p.array[i*3+1]=18;p.array[i*3]=(Math.random()-.5)*42;p.array[i*3+2]=(Math.random()-.5)*48;}}p.needsUpdate=true;cableCore.intensity=.65+Math.sin(t*.018)*.35;
+ const p=rain.geometry.attributes.position;for(let i=0;i<rainCount;i++){p.array[i*3+1]-=dt*7;if(p.array[i*3+1]<0){p.array[i*3+1]=18;p.array[i*3]=(Math.random()-.5)*90;p.array[i*3+2]=(Math.random()-.5)*88;}}p.needsUpdate=true;cableCore.intensity=.55+Math.sin(t*.018)*.32;expansion.update(dt,t);if(started&&!modalOpen)skyWeather.update(dt,t);
  if(started&&!modalOpen)updateTarget();renderer.render(scene,camera);
 }
 requestAnimationFrame(animate);
@@ -473,13 +490,15 @@ function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMa
 addEventListener('resize',resize);
 const introFootText=document.querySelector('#intro .foot').textContent;
 function resetWorld(){
+ story.reset();
+ skyWeather.reset();
  activeTarget=null;peekState=null;handAction=null;$('peekExit').style.display='none';$('physicalFeedback').classList.remove('visible');$('prompt').style.opacity='0';inventory.splice(0);medkits=0;energyItems=0;health=100;stamina=100;sprintLocked=false;sprintHeld=false;sprintBlend=0;staminaRecoveryDelay=0;
  for(const obj of Object.values(pickupObjects))obj.visible=true;
  for(const obj of motionObjects){obj.userData.open=false;obj.userData.ajar=false;obj.userData.targetFraction=0;obj.userData.target=obj.userData.closedValue??0;obj.userData.speed=7;obj.userData.velocity=0;obj.userData.manualHold=0;if(obj.userData.motion==='slide')obj.position.z=obj.userData.closedValue??-.4;else obj.rotation.y=obj.userData.closedValue??0;}
  posture='stand';stanceFrom=null;stanceElapsed=1;Object.assign(stance,postures.stand);jumpHeight=0;jumpVelocity=0;grounded=true;camera.position.set(0,postures.stand.eye,10.5);yaw=0;pitch=0;look(0,0);joy={x:0,y:0};joyTarget={x:0,y:0};nubReset();keys={};updatePostureUI();updateHealthUI(true);updateStaminaUI(true);updateInventoryUI();save();
 }
 function nubReset(){const nub=$('nub');if(nub)nub.style.transform='translate(0,0)';}
-function beginNewGame(){resetWorld();started=true;modalOpen=false;document.querySelector('#intro .foot').textContent=introFootText;$('confirmNew').style.display='none';$('pause').style.display='none';$('intro').style.display='none';$('menuStatus').textContent='';notify('Проходная комплекса «Север-7». Осмотрись. Двери и предметы можно исследовать.');}
+function beginNewGame(){resetWorld();started=true;modalOpen=true;document.querySelector('#intro .foot').textContent=introFootText;$('confirmNew').style.display='none';$('pause').style.display='none';$('intro').style.display='none';$('menuStatus').textContent='';story.begin(()=>{modalOpen=false;save();notify('Проходная комплекса «Север-7». Осмотрись. Двери и предметы можно исследовать.');});save();}
 function openMainMenu(){if(!started)return;stopSprint();joy={x:0,y:0};joyTarget={x:0,y:0};nubReset();save();modalOpen=true;$('pause').style.display='flex';$('menuStatus').textContent='';}
 function closeMainMenu(){ $('pause').style.display='none';modalOpen=false;}
 function continueAuto(){const data=readStored('tishinaAutoV1')||autosaved;if(!data){$('titleStatus').textContent='АВТОСОХРАНЕНИЕ НЕ НАЙДЕНО';return;}applySnapshot(data);started=true;modalOpen=false;$('intro').style.display='none';$('downed').style.display='none';save();notify('Продолжаем с последней автосохранённой позиции.');}
