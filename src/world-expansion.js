@@ -149,14 +149,26 @@ export function installWorldExpansion({ THREE, scene, box, floor, mat, addIntera
       const vehicle = collada.scene;
       vehicle.name = 'УАЗ-452 — исходная геометрия и UV-текстуры';
 
-      // Keep the authored model orientation; only apply its established scale and placement.
+      // The source DAE is Z_UP. ColladaLoader first converts that coordinate
+      // system to Three.js Y_UP. The authored UAZ itself is exported upside down,
+      // so roll it 180 degrees around its longitudinal (Three.js Z) axis.
+      // Use a parent group so this correction is applied AFTER ColladaLoader's
+      // Z_UP -> Y_UP conversion instead of mixing Euler rotations on its root.
       vehicle.rotation.y = Math.PI;
       vehicle.scale.set(1.25, 1.45, 1.48);
       vehicle.updateMatrixWorld(true);
 
-      const localBounds = new THREE.Box3().setFromObject(vehicle);
+      const uazUpright = new THREE.Group();
+      uazUpright.name = 'УАЗ-452 — разворот на колёса';
+      uazUpright.rotation.z = Math.PI;
+      uazUpright.add(vehicle);
+      uazUpright.updateMatrixWorld(true);
+
+      // Recalculate the bounds AFTER the roll, then place the lowest point on
+      // the ground. This prevents the corrected vehicle from floating or sinking.
+      const localBounds = new THREE.Box3().setFromObject(uazUpright);
       const localCenter = localBounds.getCenter(new THREE.Vector3());
-      vehicle.position.set(-localCenter.x, -localBounds.min.y, -localCenter.z);
+      uazUpright.position.set(-localCenter.x, -localBounds.min.y, -localCenter.z);
 
       vehicle.traverse((node) => {
         if (!node.isMesh) return;
@@ -182,7 +194,7 @@ export function installWorldExpansion({ THREE, scene, box, floor, mat, addIntera
         }
       });
 
-      uazAnchor.add(vehicle);
+      uazAnchor.add(uazUpright);
       uazAnchor.updateMatrixWorld(true);
       scene.updateMatrixWorld(true);
 
@@ -198,6 +210,7 @@ export function installWorldExpansion({ THREE, scene, box, floor, mat, addIntera
 
       console.info('[ТИШИНА] Импортированная модель УАЗ-452 загружена', {
         meshes: countVehicleMeshes(vehicle),
+        orientation: 'upright-roll-around-longitudinal-axis',
         dimensions: worldBounds.getSize(new THREE.Vector3()).toArray().map(v => Number(v.toFixed(2)))
       });
     },
