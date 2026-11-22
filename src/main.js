@@ -1,9 +1,10 @@
-import { THREE } from './three-loader.js';
 import { installPbrSurfaces } from './pbr-surfaces.js';
 import { installWorldExpansion } from './world-expansion.js';
 import { createStoryController } from './story.js';
 import { installSkyWeather } from './sky-weather.js';
 
+const THREE = window.THREE;
+if (!THREE) throw new Error('Three.js не загружен: обновите страницу и проверьте соединение.');
 const $ = (id) => document.getElementById(id);
 const canvas = $('scene');
 const isMobileDevice = matchMedia('(pointer: coarse)').matches || Math.min(innerWidth, innerHeight) < 700;
@@ -673,6 +674,4 @@ stick.addEventListener('pointercancel',resetJoy);stick.addEventListener('lostpoi
 canvas.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'&&e.clientX<innerWidth*.42&&e.clientY>innerHeight*.52)return;if(modalOpen)return;drag={x:e.clientX,y:e.clientY,id:e.pointerId};try{canvas.setPointerCapture(e.pointerId);}catch{}});canvas.addEventListener('pointermove',e=>{if(drag&&drag.id===e.pointerId&&!modalOpen&&(!peekState||peekState.phase==='hold')){const dx=e.clientX-drag.x,dy=e.clientY-drag.y;look(dx,dy);drag={x:e.clientX,y:e.clientY,id:e.pointerId};}});const stopLook=e=>{if(drag&&drag.id===e.pointerId)drag=null;};canvas.addEventListener('pointerup',stopLook);canvas.addEventListener('pointercancel',stopLook);canvas.addEventListener('lostpointercapture',stopLook);
 addEventListener('keydown',e=>{const key=e.key.toLowerCase();if(key==='escape'){if(peekState){endPeek();return;}if($('itemExamine').style.display==='block')finishHeldItem(false);else if($('itemChoice').style.display==='flex')closeItemChoice();else if($('motionPanel').style.display==='flex')closeMotionPanel();else if($('confirmNew').style.display==='flex')$('confirmNew').style.display='none';else if(started&&!modalOpen)openMainMenu();else if(modalOpen&&$('pause').style.display==='flex')closeMainMenu();else if(modalOpen&&$('inventory').style.display==='flex'){$('inventory').style.display='none';modalOpen=false;}else if(modalOpen&&$('inspect').style.display==='flex')closeInspect();return;}if(e.code==='ShiftLeft'||e.code==='ShiftRight'){startSprint();return;}if(e.code==='Space'){e.preventDefault();jump();return;}if(key==='f'&&!e.repeat){toggleFlashlight();return;}if(key==='c'){setPosture(posture==='crouch'?'stand':'crouch');return;}if(key==='z'){setPosture(posture==='prone'?'stand':'prone');return;}keys[key]=true;if(key==='e')interact();});addEventListener('keyup',e=>{if(e.code==='ShiftLeft'||e.code==='ShiftRight'){stopSprint();return;}keys[e.key.toLowerCase()]=false;});
 addEventListener('blur',()=>{stopSprint();if(started)save();});document.addEventListener('visibilitychange',()=>{if(document.hidden){stopSprint();if(started)save();}});addEventListener('pagehide',()=>{if(started)save();});setInterval(()=>{if(started&&!modalOpen)save();},12000);
-if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js').catch(error=>console.warn('[ТИШИНА] Service Worker не зарегистрирован:',error)));
-
 window.__TISHINA_BOOT__?.ready?.();
