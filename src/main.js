@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+import { THREE } from './three-loader.js';
 import { installPbrSurfaces } from './pbr-surfaces.js';
 import { installWorldExpansion } from './world-expansion.js';
 import { createStoryController } from './story.js';
@@ -574,8 +574,27 @@ function animate(t){requestAnimationFrame(animate);if(document.hidden)return;if(
 }
 requestAnimationFrame(animate);
 function look(dx=0,dy=0){yaw-=dx*.0042;pitch=THREE.MathUtils.clamp(pitch-dy*.0042,-1.05,.8);const roll=peekState?.phase==='hold'?camera.rotation.z:0;camera.rotation.set(pitch,yaw,roll,'YXZ');}
-function resize(){const width=Math.max(1,window.innerWidth),height=Math.max(1,window.innerHeight);camera.aspect=width/height;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,pixelRatioLimit));renderer.setSize(width,height);}
-addEventListener('resize',resize);window.visualViewport?.addEventListener('resize',resize);
+function getViewportSize(){
+ const viewport=window.visualViewport;
+ return {
+  width:Math.max(1,Math.round(viewport?.width||window.innerWidth||1)),
+  height:Math.max(1,Math.round(viewport?.height||window.innerHeight||1))
+ };
+}
+function resize(){
+ const {width,height}=getViewportSize();
+ document.documentElement.style.setProperty('--tishina-app-width',`${width}px`);
+ document.documentElement.style.setProperty('--tishina-app-height',`${height}px`);
+ camera.aspect=width/height;
+ camera.updateProjectionMatrix();
+ renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,pixelRatioLimit));
+ renderer.setSize(width,height);
+}
+addEventListener('resize',resize,{passive:true});
+addEventListener('orientationchange',()=>requestAnimationFrame(resize),{passive:true});
+window.visualViewport?.addEventListener('resize',resize,{passive:true});
+window.visualViewport?.addEventListener('scroll',resize,{passive:true});
+resize();
 const introFootText=document.querySelector('#intro .foot').textContent;
 function resetWorld(){
  story.reset();
@@ -587,7 +606,32 @@ function resetWorld(){
  posture='stand';stanceFrom=null;stanceElapsed=1;Object.assign(stance,postures.stand);jumpHeight=0;jumpVelocity=0;grounded=true;camera.position.set(0,postures.stand.eye,10.5);yaw=0;pitch=0;look(0,0);joy={x:0,y:0};joyTarget={x:0,y:0};nubReset();keys={};updatePostureUI();updateHealthUI(true);updateStaminaUI(true);updateInventoryUI();save();
 }
 function nubReset(){const nub=$('nub');if(nub)nub.style.transform='translate(0,0)';}
-function beginNewGame(){resetWorld();started=true;modalOpen=true;document.querySelector('#intro .foot').textContent=introFootText;$('confirmNew').style.display='none';$('pause').style.display='none';$('intro').style.display='none';$('menuStatus').textContent='';story.begin(()=>{modalOpen=false;save();notify('Проходная комплекса «Север-7». Осмотрись. Двери и предметы можно исследовать.');});save();}
+function beginNewGame(){
+ try{
+  $('titleStatus').textContent='';
+  resetWorld();
+  started=true;
+  modalOpen=true;
+  document.querySelector('#intro .foot').textContent=introFootText;
+  $('confirmNew').style.display='none';
+  $('pause').style.display='none';
+  $('intro').style.display='none';
+  $('menuStatus').textContent='';
+  story.begin(()=>{
+   modalOpen=false;
+   save();
+   notify('Проходная комплекса «Север-7». Осмотрись. Двери и предметы можно исследовать.');
+  });
+  save();
+ }catch(error){
+  started=false;
+  modalOpen=true;
+  $('confirmNew').style.display='none';
+  $('pause').style.display='none';
+  window.__TISHINA_BOOT__?.reportError?.(error);
+  console.error('[ТИШИНА] Не удалось начать новую игру:',error);
+ }
+}
 function openMainMenu(){if(!started)return;stopSprint();joy={x:0,y:0};joyTarget={x:0,y:0};nubReset();save();modalOpen=true;$('pause').style.display='flex';$('menuStatus').textContent='';}
 function closeMainMenu(){ $('pause').style.display='none';modalOpen=false;}
 function continueAuto(){const data=readStored('tishinaAutoV1')||autosaved;if(!data){$('titleStatus').textContent='АВТОСОХРАНЕНИЕ НЕ НАЙДЕНО';return;}applySnapshot(data);started=true;modalOpen=false;$('intro').style.display='none';$('downed').style.display='none';save();notify('Продолжаем с последней автосохранённой позиции.');}
@@ -629,6 +673,6 @@ stick.addEventListener('pointercancel',resetJoy);stick.addEventListener('lostpoi
 canvas.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'&&e.clientX<innerWidth*.42&&e.clientY>innerHeight*.52)return;if(modalOpen)return;drag={x:e.clientX,y:e.clientY,id:e.pointerId};try{canvas.setPointerCapture(e.pointerId);}catch{}});canvas.addEventListener('pointermove',e=>{if(drag&&drag.id===e.pointerId&&!modalOpen&&(!peekState||peekState.phase==='hold')){const dx=e.clientX-drag.x,dy=e.clientY-drag.y;look(dx,dy);drag={x:e.clientX,y:e.clientY,id:e.pointerId};}});const stopLook=e=>{if(drag&&drag.id===e.pointerId)drag=null;};canvas.addEventListener('pointerup',stopLook);canvas.addEventListener('pointercancel',stopLook);canvas.addEventListener('lostpointercapture',stopLook);
 addEventListener('keydown',e=>{const key=e.key.toLowerCase();if(key==='escape'){if(peekState){endPeek();return;}if($('itemExamine').style.display==='block')finishHeldItem(false);else if($('itemChoice').style.display==='flex')closeItemChoice();else if($('motionPanel').style.display==='flex')closeMotionPanel();else if($('confirmNew').style.display==='flex')$('confirmNew').style.display='none';else if(started&&!modalOpen)openMainMenu();else if(modalOpen&&$('pause').style.display==='flex')closeMainMenu();else if(modalOpen&&$('inventory').style.display==='flex'){$('inventory').style.display='none';modalOpen=false;}else if(modalOpen&&$('inspect').style.display==='flex')closeInspect();return;}if(e.code==='ShiftLeft'||e.code==='ShiftRight'){startSprint();return;}if(e.code==='Space'){e.preventDefault();jump();return;}if(key==='f'&&!e.repeat){toggleFlashlight();return;}if(key==='c'){setPosture(posture==='crouch'?'stand':'crouch');return;}if(key==='z'){setPosture(posture==='prone'?'stand':'prone');return;}keys[key]=true;if(key==='e')interact();});addEventListener('keyup',e=>{if(e.code==='ShiftLeft'||e.code==='ShiftRight'){stopSprint();return;}keys[e.key.toLowerCase()]=false;});
 addEventListener('blur',()=>{stopSprint();if(started)save();});document.addEventListener('visibilitychange',()=>{if(document.hidden){stopSprint();if(started)save();}});addEventListener('pagehide',()=>{if(started)save();});setInterval(()=>{if(started&&!modalOpen)save();},12000);
-if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js').catch(()=>{}));
+if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js').catch(error=>console.warn('[ТИШИНА] Service Worker не зарегистрирован:',error)));
 
 window.__TISHINA_BOOT__?.ready?.();
