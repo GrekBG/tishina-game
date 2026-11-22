@@ -13,7 +13,7 @@ const camera = new THREE.PerspectiveCamera(72, innerWidth / innerHeight, 0.08, 9
 camera.position.set(0, 1.68, 10.5);
 scene.add(camera); // Camera-only first-person view: no visible player body, arms or legs.
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+renderer.setPixelRatio(Math.min(devicePixelRatio, (matchMedia('(pointer: coarse)').matches || Math.min(innerWidth, innerHeight) < 700) ? 1.2 : 1.5));
 renderer.setSize(innerWidth, innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
