@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tishina-0-4-2-darksteel-fix';
+const CACHE_NAME = 'tishina-0-4-3-hangar-uaz-one-tap-doors';
 const APP_SHELL = [
   './',
   './index.html',
