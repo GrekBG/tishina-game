@@ -131,9 +131,10 @@ export function installWorldExpansion({ THREE, scene, box, floor, mat, addIntera
     detail('Маркировочная табличка контейнера', [1.1, 0.38, 0.045], [x, 1.9, z - 3.18], fadedPaint);
     detail('Номер контейнера', [0.45, 0.035, 0.018], [x, 1.93, z - 3.21], mat(0xc0bba6, 0.85, 0));
   }
-  // 0.4.5 — imported, textured UAZ-452 asset supplied for the project.
-  // The COLLADA source contains 42 mesh nodes, 16 material slots and two 3000px texture atlases.
-  // The atlases are WebP-compressed at original resolution to reduce mobile download size.
+
+  // 0.4.7 — imported, textured UAZ-452 asset. Preserve its original upright orientation.
+  // COLLADA source declares Z_UP; ColladaLoader converts it to Three.js Y_UP.
+  // Do not apply an additional Z-axis half-turn: it flips the complete vehicle upside down.
   const vanX = -28, vanZ = 28;
   const uazAnchor = new THREE.Group();
   uazAnchor.name = 'УАЗ-452 — импортированная модель';
@@ -148,29 +149,10 @@ export function installWorldExpansion({ THREE, scene, box, floor, mat, addIntera
       const vehicle = collada.scene;
       vehicle.name = 'УАЗ-452 — исходная геометрия и UV-текстуры';
 
-      // Fit the authored mesh to UAZ-452 proportions: roughly 4.35 × 1.95 × 2.06 m.
-      // The COLLADA source declares Z_UP; ColladaLoader converts it to Three.js Y_UP.
+      // Keep the authored model orientation; only apply its established scale and placement.
       vehicle.rotation.y = Math.PI;
       vehicle.scale.set(1.25, 1.45, 1.48);
       vehicle.updateMatrixWorld(true);
-
-      // Some Blender COLLADA exports retain wheel assemblies above the body despite Z_UP.
-      // Detect this from the actual tire meshes and flip the vehicle upright without
-      // guessing from the file's declared axis alone.
-      const initialBounds = new THREE.Box3().setFromObject(vehicle);
-      const tireBounds = new THREE.Box3();
-      let tireMeshCount = 0;
-      vehicle.traverse((node) => {
-        if (!node.isMesh || !/(резин|шина|колес|tire|wheel)/i.test(node.name || '')) return;
-        tireBounds.expandByObject(node);
-        tireMeshCount++;
-      });
-      if (tireMeshCount && !tireBounds.isEmpty() &&
-          tireBounds.getCenter(new THREE.Vector3()).y > initialBounds.getCenter(new THREE.Vector3()).y) {
-        vehicle.rotation.z += Math.PI;
-        vehicle.updateMatrixWorld(true);
-        console.info('[ТИШИНА] Исправлена перевёрнутая ориентация модели УАЗ по положению колёс.');
-      }
 
       const localBounds = new THREE.Box3().setFromObject(vehicle);
       const localCenter = localBounds.getCenter(new THREE.Vector3());
