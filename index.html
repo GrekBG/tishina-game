@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="ТИШИНА">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>ТИШИНА — Север-7 · версия 0.4.3</title>
+<title>ТИШИНА — Север-7 · версия 0.4.4</title>
 <style>
 :root{color-scheme:dark;--panel:rgba(13,18,17,.94);--line:rgba(205,215,207,.22);--ink:#e2e7df;--muted:#9ca79e}
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#171d1c;color:var(--ink);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;overscroll-behavior:none}
@@ -19,7 +19,7 @@
 #controls{position:fixed;z-index:5;left:16px;right:16px;bottom:calc(15px + env(safe-area-inset-bottom));display:flex;justify-content:space-between;align-items:end;pointer-events:none;touch-action:none}#stick{width:116px;height:116px;border:1px solid #e0e7dd55;background:#18211c88;border-radius:50%;position:relative;pointer-events:auto;touch-action:none}#nub{position:absolute;width:44px;height:44px;left:35px;top:35px;border-radius:50%;background:#c8d2c355;border:1px solid #e5ebdf88}#actions{display:flex;gap:6px;align-items:end;pointer-events:auto}.btn{color:var(--ink);background:#17201ddc;border:1px solid #d5ded455;border-radius:5px;min-width:58px;height:56px;padding:0 12px;font-size:10px;font-weight:750;letter-spacing:.05em;touch-action:manipulation}.btn.primary{background:#d0d8cd;color:#17201b;border-color:#d0d8cd}.btn.round{width:56px;min-width:56px;border-radius:50%;padding:0}.btn:active{filter:brightness(1.25)}.btn:disabled{opacity:.35;filter:none}.btn.active{background:#d2dfcf;color:#172019;border-color:#e0e9dc;box-shadow:0 0 14px #c4d8be55}.btn.depleted{opacity:.55}.barHead{display:flex;justify-content:flex-end;gap:8px;align-items:center;margin-top:4px;font-size:8px;letter-spacing:.1em;color:#b7c0b7}.barHead b{font-size:9px;color:#e1e7df}.barTrack{width:116px;height:6px;margin:3px 0 0 auto;background:#dce5dc40;border:1px solid #e2e8dc33;border-radius:5px;overflow:hidden}.barTrack>div{width:100%;height:100%;transition:width .12s linear}.healthTrack>div{background:#b96e66}.staminaTrack>div{background:#cbd9c4}.barTrack.low>div{filter:brightness(1.3);box-shadow:0 0 7px currentColor}.healthTrack.low{border-color:#df796d88}.statusBars{margin-top:3px}
 #damageFx{position:fixed;z-index:3;inset:0;pointer-events:none;opacity:0;transition:opacity .18s;background:radial-gradient(ellipse at center,transparent 28%,rgba(125,18,15,.56) 100%)}
 #message{position:fixed;z-index:6;top:17%;left:50%;transform:translateX(-50%);max-width:min(88%,480px);padding:10px 14px;background:#101715e8;border:1px solid var(--line);border-radius:4px;text-align:center;font-size:12px;opacity:0;pointer-events:none;transition:opacity .2s}
-#inspect,#inventory,#intro,#rotate,#pause,#confirmNew,#downed,#itemChoice,#motionPanel{position:fixed;z-index:10;inset:0;display:none;align-items:center;justify-content:center;padding:22px;background:rgba(5,9,8,.82);backdrop-filter:blur(7px)}.panel{position:relative;width:min(480px,100%);padding:24px;background:linear-gradient(145deg,#202925,#111715);border:1px solid #9da99a44;box-shadow:0 18px 70px #0009}.eyebrow{font-size:9px;letter-spacing:.2em;color:#9ca99d}.panel h1,.panel h2{margin:9px 0 12px;font-size:clamp(24px,5vw,36px);letter-spacing:.12em}.panel p{font-size:13px;line-height:1.7;color:#c1c9c0;white-space:pre-line}.panel .closeX{position:absolute;right:12px;top:10px;width:38px;height:38px;border:1px solid var(--line);background:transparent;color:var(--ink);font-size:22px}.panel .foot{margin-top:20px;color:#8e9a90;font-size:10px;letter-spacing:.1em}.panel .wide{width:100%;margin-top:18px;height:46px}
+#inventory,#intro,#rotate,#pause,#confirmNew,#downed,#motionPanel{position:fixed;z-index:10;inset:0;display:none;align-items:center;justify-content:center;padding:22px;background:rgba(5,9,8,.82);backdrop-filter:blur(7px)}.panel{position:relative;width:min(480px,100%);padding:24px;background:linear-gradient(145deg,#202925,#111715);border:1px solid #9da99a44;box-shadow:0 18px 70px #0009}.eyebrow{font-size:9px;letter-spacing:.2em;color:#9ca99d}.panel h1,.panel h2{margin:9px 0 12px;font-size:clamp(24px,5vw,36px);letter-spacing:.12em}.panel p{font-size:13px;line-height:1.7;color:#c1c9c0;white-space:pre-line}.panel .closeX{position:absolute;right:12px;top:10px;width:38px;height:38px;border:1px solid var(--line);background:transparent;color:var(--ink);font-size:22px}.panel .foot{margin-top:20px;color:#8e9a90;font-size:10px;letter-spacing:.1em}.panel .wide{width:100%;margin-top:18px;height:46px}
 #intro{display:flex;background:linear-gradient(180deg,#111816f2,#111816e8),radial-gradient(ellipse,#39443d,#111816)}#intro .panel{text-align:center;background:transparent;border:0;box-shadow:none;max-width:560px}#intro h1{font-size:clamp(42px,11vw,74px);letter-spacing:.25em;margin:12px 0}#intro .desc{margin:22px auto;max-width:440px}#rotate{z-index:20;background:#111816;display:none;text-align:center}#rotate .panel{background:transparent;border:0;box-shadow:none}#rotate .symbol{font-size:46px;margin-bottom:12px}
 #inventory .panel,#pause .panel,#confirmNew .panel{max-height:84vh;overflow:auto}#downed{z-index:15}#downed .panel{text-align:center}#items{font-size:12px;line-height:2;color:#c6cec5}#hintline{font-size:10px;color:#9ca79d;margin-top:12px}.menuActions{display:grid;grid-template-columns:1fr;gap:8px;margin-top:16px}.menuActions .wide{margin:0}.menuStatus{min-height:18px;margin-top:12px;color:#aeb8ae;font-size:10px;text-align:center;letter-spacing:.08em}.supplyRow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #ffffff18;font-size:12px}.supplyRow button{height:34px;min-width:112px}.supplyRow button:disabled{opacity:.35}.inventorySection{margin-top:18px}.inventorySection h3{font-size:10px;letter-spacing:.15em;color:#9ca99d}.menuSecondary{background:#222c27!important;color:#dbe2d9!important;border-color:#76827655!important}
 @media(orientation:portrait){#rotate{display:flex}#intro{display:none}}
@@ -29,23 +29,12 @@
 
 #motionPanel{z-index:14}#motionPanel .panel{max-width:560px}#motionPanel .motionActions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:16px}#motionPanel .motionActions .btn{height:44px}#motionPanel .motionActions .wide{grid-column:1/-1;margin-top:0}
 #physicalFeedback{position:fixed;z-index:8;left:50%;bottom:22%;transform:translate(-50%,8px);padding:9px 14px;background:rgba(9,14,12,.78);border:1px solid #b7c3b044;color:#e1e8df;font-size:9px;letter-spacing:.16em;text-align:center;max-width:min(85vw,420px);opacity:0;transition:opacity .16s,transform .16s;pointer-events:none;text-shadow:0 1px 4px #000}#physicalFeedback.visible{opacity:1;transform:translate(-50%,0)}#physicalFeedback:before{content:"";display:inline-block;width:6px;height:6px;margin-right:9px;background:#a9b99c;border-radius:50%;box-shadow:0 0 10px #b8d0a9;vertical-align:1px}#peekExit{display:none;position:fixed;z-index:9;left:50%;bottom:12%;transform:translateX(-50%);height:42px;padding:0 18px;background:#18211de8;border:1px solid #c5d1bf88;color:#f0f3ee;font-size:10px;letter-spacing:.12em;box-shadow:0 6px 24px #0008}#motionPanel .motionActions #motionHoldOpen,#motionPanel .motionActions #motionHoldClose{font-size:9px;letter-spacing:.06em;touch-action:none;user-select:none;-webkit-user-select:none}
-#itemChoice{z-index:14}#itemChoice .panel{text-align:center;max-width:420px}
-#itemExamine{z-index:13;display:none;position:fixed;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(5,9,8,.14),rgba(5,9,8,.08) 48%,rgba(5,9,8,.72));}
-#itemStage{position:absolute;inset:8% 0 34%;pointer-events:auto;touch-action:none;cursor:grab}
-#itemStage:active{cursor:grabbing}
-#itemHud{position:absolute;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%);width:min(520px,calc(100% - 28px));padding:16px 18px;background:rgba(12,17,15,.94);border:1px solid #c5d0c044;box-shadow:0 12px 42px #0009;pointer-events:auto}
-#itemHud .itemTop{display:flex;justify-content:space-between;align-items:center;gap:12px}
-#itemHud h2{font-size:clamp(18px,3vw,25px);margin:5px 0 8px;letter-spacing:.08em}
-#itemHud p{font-size:12px;line-height:1.55;color:#c3ccc2;margin:6px 0 12px;max-height:18vh;overflow:auto;white-space:pre-line}
-.itemSpecialActions{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:0 0 10px}.itemSpecialActions .btn{height:34px;min-width:108px}.radioTune{font-size:10px;letter-spacing:.12em;color:#d4ddcf;padding:0 5px}.itemActions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.itemActions .btn{height:44px}.itemMeta{font-size:9px;letter-spacing:.12em;color:#9eaa9f}
-#itemStageHint{position:absolute;top:12%;left:50%;transform:translateX(-50%);font-size:10px;letter-spacing:.16em;color:#e0e7de;text-shadow:0 2px 8px #000;text-align:center;pointer-events:none}
 #inventoryWeight{font-size:10px;color:#aeb8ae;letter-spacing:.1em;margin:8px 0 12px}
 .inventoryGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
 .inventoryCell{min-height:64px;padding:8px 6px;border:1px solid #b9c6b52b;background:#ffffff08;display:flex;flex-direction:column;justify-content:space-between;gap:5px;font-size:10px;color:#d5ddd3}
 .inventoryCell .cellIcon{font-size:18px}.inventoryCell .cellName{line-height:1.25}.inventoryCell.empty{border-style:dashed;opacity:.35}
 #inventory .panel{width:min(540px,100%)}
-@media(max-height:500px) and (orientation:landscape){#motionPanel .panel{padding:13px 16px}#motionPanel .panel h2{font-size:20px;margin:4px 0 6px}#motionPanel .panel p{font-size:10px;line-height:1.35;margin:4px 0}#motionPanel .motionActions{gap:5px;margin-top:7px}#motionPanel .motionActions .btn{height:32px;font-size:7px}#motionPanel .foot{font-size:7px;margin-top:6px}#motionPanel .foot{font-size:8px;margin-top:8px}#itemHud{bottom:8px;padding:9px 12px}#itemHud p{font-size:10px;line-height:1.35;margin:4px 0 7px;max-height:13vh}#itemHud h2{font-size:17px;margin:3px 0 5px}#itemStage{inset:2% 0 38%}.itemActions .btn{height:35px}.inventoryGrid{gap:4px}.inventoryCell{min-height:48px;padding:5px;font-size:9px}}
+@media(max-height:500px) and (orientation:landscape){#motionPanel .panel{padding:13px 16px}#motionPanel .panel h2{font-size:20px;margin:4px 0 6px}#motionPanel .panel p{font-size:10px;line-height:1.35;margin:4px 0}#motionPanel .motionActions{gap:5px;margin-top:7px}#motionPanel .motionActions .btn{height:32px;font-size:7px}#motionPanel .foot{font-size:7px;margin-top:6px}#motionPanel .foot{font-size:8px;margin-top:8px}.inventoryGrid{gap:4px}.inventoryCell{min-height:48px;padding:5px;font-size:9px}}
 
 
 /* 0.2.9 — compact touch layout and unobstructed interaction panel */
@@ -71,11 +60,6 @@
 #motionPanel .motionActions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin:0}
 #motionPanel .motionActions .btn{height:35px;min-width:0;padding:0 3px;font-size:8px;letter-spacing:0;border-radius:5px}
 #motionPanel .motionActions #motionHoldOpen,#motionPanel .motionActions #motionHoldClose{font-size:8px;letter-spacing:0;touch-action:none;user-select:none;-webkit-user-select:none}
-#itemChoice .panel{width:min(360px,calc(100vw - 28px));padding:16px 18px;border-radius:10px}
-#itemChoice .panel h2{font-size:19px;margin:6px 0 7px}
-#itemChoice .panel p{font-size:11px;line-height:1.4;margin:4px 0}
-#itemChoice .menuActions{grid-template-columns:1fr;gap:7px;margin-top:10px}
-#itemChoice .menuActions .wide{height:40px;margin:0;padding:0 6px;font-size:9px;min-width:0}
 #top .stats{font-size:9px}
 @media(max-width:740px) and (orientation:landscape){
  #controls{left:8px;right:8px;bottom:calc(6px + env(safe-area-inset-bottom));gap:6px}
@@ -148,19 +132,12 @@ body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;font-f
 #intro .menuActions .wide{height:47px;}
 #intro .foot{margin-top:24px;color:#9ca89b;}
 #rotate .symbol{color:var(--accent);}
-#inspectText{max-width:66ch;}
-#inspectFoot{border-top:1px solid #ffffff17;padding-top:12px;}
-#inventoryWeight,#hintline,.itemMeta,.radioTune{font-family:var(--ui-mono);font-size:9px;letter-spacing:.1em;color:#b3bcae;}
-.inventorySection h3{font-family:var(--ui-mono);font-size:9px;font-weight:500;letter-spacing:.19em;color:var(--accent-soft);}
+#inventoryWeight,#hintline,.itemMeta,.inventorySection h3{font-family:var(--ui-mono);font-size:9px;font-weight:500;letter-spacing:.19em;color:var(--accent-soft);}
 .inventoryCell{border-color:#b7c4b32e;border-radius:2px;background:linear-gradient(145deg,#ffffff0b,#ffffff03);font-family:var(--ui-body);font-size:10px;line-height:1.35;transition:border-color .16s,background .16s;}
 .inventoryCell:not(.empty){border-left:2px solid #b99a65;}
 .inventoryCell .cellIcon{font-size:17px;filter:grayscale(.15);}
 .inventoryCell .cellName{font-weight:500;color:#e0e3d8;}
 .supplyRow{font-family:var(--ui-body);border-color:#ffffff18;color:#d5dace;}
-#itemHud{border:1px solid rgba(205,215,198,.32);border-top:2px solid var(--accent);border-radius:2px;background:linear-gradient(150deg,rgba(25,33,28,.97),rgba(8,13,11,.98));box-shadow:0 18px 52px #000b;}
-#itemHud h2{font-family:var(--ui-display);font-weight:500;letter-spacing:.08em;color:#f0eee3;}
-#itemHud p{font-family:var(--ui-body);font-size:12px;line-height:1.65;color:#cbd2c6;}
-#itemStageHint{font-family:var(--ui-mono);font-size:9px;letter-spacing:.16em;color:#e1d7bf;}
 #motionPanel .panel{border-top:2px solid var(--accent);}
 #motionPanel .panel h2{font-family:var(--ui-display);font-weight:500;}
 #motionPanel .motionActions .btn{font-size:8px;letter-spacing:.09em;}
@@ -252,7 +229,7 @@ html,body{width:100%;height:var(--tishina-app-height,100dvh);min-height:var(--ti
 @media (orientation:portrait){#intro{display:none;}}
 
 </style>
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.187.0/build/three.module.js"}}</script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.187.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.187.0/examples/jsm/"}}</script>
 <script>
 (() => {
   const root = document.documentElement;
@@ -274,6 +251,7 @@ html,body{width:100%;height:var(--tishina-app-height,100dvh);min-height:var(--ti
   window.visualViewport?.addEventListener('scroll', syncViewport, { passive: true });
 })();
 </script>
+<link rel="preconnect" href="https://cdn.3dassets.dev" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -299,12 +277,12 @@ html,body{width:100%;height:var(--tishina-app-height,100dvh);min-height:var(--ti
   <button class="btn iconBtn sprintBtn" id="sprint" aria-label="Удерживать для бега" title="Удерживать для бега" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="15.5" cy="4.2" r="2"/><path d="m12.8 7.2-3.1 4.1 4.4 2.1 2.7-2.7 3.5 1.4M9.7 11.3l-3.8.2M13.8 13.4 11 18.8l-4.2 1.5M14 13.5l3.1 5.4 3 .6"/></svg></button>
  </div>
 </div>
-<div id="intro"><div class="panel"><div class="eyebrow">ГРАФИКА И УПРАВЛЕНИЕ · 0.4.3</div><h1>ТИШИНА</h1><div class="eyebrow">ПОСЛЕ КАТАСТРОФЫ МИР НЕ ИСЧЕЗ.</div><p class="desc">Северный промышленный регион. 18 ноября 2034 года.<br>Комплекс «Север-7» эвакуирован четыре дня назад.<br>На аварийной частоте снова появился сигнал.</p><div class="menuActions"><button class="btn primary wide" id="continueTitle" disabled>ПРОДОЛЖИТЬ</button><button class="btn wide" id="start">НОВАЯ ИГРА</button><button class="btn wide menuSecondary" id="titleLoad" disabled>ЗАГРУЗИТЬ СОХРАНЕНИЕ</button></div><div class="menuStatus" id="titleStatus"></div><div class="foot">ЛЕВЫЙ СТИК — ДВИЖЕНИЕ · ПРАВАЯ ЧАСТЬ — ОБЗОР ВВЕРХ / ВНИЗ / ПО СТОРОНАМ</div></div></div>
+<div id="intro"><div class="panel"><div class="eyebrow">ГРАФИКА И УПРАВЛЕНИЕ · 0.4.4</div><h1>ТИШИНА</h1><div class="eyebrow">ПОСЛЕ КАТАСТРОФЫ МИР НЕ ИСЧЕЗ.</div><p class="desc">Северный промышленный регион. 18 ноября 2034 года.<br>Комплекс «Север-7» эвакуирован четыре дня назад.<br>На аварийной частоте снова появился сигнал.</p><div class="menuActions"><button class="btn primary wide" id="continueTitle" disabled>ПРОДОЛЖИТЬ</button><button class="btn wide" id="start">НОВАЯ ИГРА</button><button class="btn wide menuSecondary" id="titleLoad" disabled>ЗАГРУЗИТЬ СОХРАНЕНИЕ</button></div><div class="menuStatus" id="titleStatus"></div><div class="foot">ЛЕВЫЙ СТИК — ДВИЖЕНИЕ · ПРАВАЯ ЧАСТЬ — ОБЗОР ВВЕРХ / ВНИЗ / ПО СТОРОНАМ</div></div></div>
 <div id="rotate"><div class="panel"><div class="symbol">↻</div><h2>ПОВЕРНИТЕ УСТРОЙСТВО</h2><p>«ТИШИНА» рассчитана на горизонтальный экран.</p></div></div>
-<div id="inspect"><div class="panel"><button class="closeX" id="closeInspect" aria-label="Закрыть">×</button><div class="eyebrow" id="inspectType">ОСМОТР</div><h2 id="inspectTitle">Предмет</h2><p id="inspectText"></p><div class="foot" id="inspectFoot">ОСМОТРЕННЫЙ ОБЪЕКТ СОХРАНЁН В ЖУРНАЛЕ</div></div></div>
-<div id="itemChoice"><div class="panel"><div class="eyebrow" id="choiceType">НАЙДЕННЫЙ ПРЕДМЕТ</div><h2 id="choiceTitle">Предмет</h2><p id="choiceText">Выбери действие.</p><div class="menuActions itemChoiceActions"><button class="btn primary wide" id="choiceInspect">ОСМОТРЕТЬ ПРЕДМЕТ</button><button class="btn wide" id="choiceInventory">В ИНВЕНТАРЬ</button><button class="btn wide" id="choiceLeave">ОСТАВИТЬ НА МЕСТЕ</button></div></div></div>
+
+
 <div id="motionPanel"><div class="panel"><button class="closeX" id="motionClosePanel" aria-label="Закрыть">×</button><div class="eyebrow">ВЗАИМОДЕЙСТВИЕ</div><h2 id="motionTitle">МЕХАНИЗМ</h2><p id="motionDescription">Выбери действие.</p><div class="motionActions"><button class="btn" id="motionAjar">ЩЕЛЬ</button><button class="btn" id="motionPeek">ЗАГЛЯНУТЬ</button><button class="btn primary" id="motionSlowOpen">ТИХО ОТКР.</button><button class="btn" id="motionFastOpen">РЕЗКО ОТКР.</button><button class="btn" id="motionSlowClose">ТИХО ЗАКР.</button><button class="btn" id="motionFastClose">РЕЗКО ЗАКР.</button><button class="btn primary" id="motionHoldOpen">ДЕРЖАТЬ +</button><button class="btn" id="motionHoldClose">ДЕРЖАТЬ −</button></div><div class="foot">УДЕРЖИВАЙ — ДЛЯ ТОЧНОГО ПОЛОЖЕНИЯ.</div></div></div>
-<div id="itemExamine"><div id="itemStage"></div><div id="itemStageHint">ПЕРЕТАСКИВАЙ ПРЕДМЕТ ПАЛЬЦЕМ, ЧТОБЫ ПОВЕРНУТЬ</div><div id="itemHud"><div class="itemTop"><div class="itemMeta" id="heldType">ОСМОТР ПРЕДМЕТА</div><div class="itemMeta" id="heldWeight"></div></div><h2 id="heldTitle">Предмет</h2><p id="heldDescription"></p><div id="itemSpecialActions" class="itemSpecialActions" style="display:none"></div><div class="itemActions"><button class="btn primary" id="takeToInventory">В ИНВЕНТАРЬ</button><button class="btn" id="putBack">ПОЛОЖИТЬ НА МЕСТО</button></div></div></div>
+
 <div id="inventory"><div class="panel"><button class="closeX" id="closeBag">×</button><div class="eyebrow">ЛИЧНЫЕ ЗАПИСИ И СНАРЯЖЕНИЕ</div><h2>ИНВЕНТАРЬ</h2><div class="inventorySection"><h3>НАЙДЕННЫЕ ЗАПИСИ</h3><div id="inventoryWeight">ВЕС: 0 / 8 КГ · ЯЧЕЙКИ: 0 / 8</div><div id="items" class="inventoryGrid">Пока пусто</div></div><div class="inventorySection"><h3>РАСХОДНИКИ</h3><div class="supplyRow"><span>Аптечка · <b id="medkitCount">0</b></span><button class="btn" id="useMedkit">ИСПОЛЬЗОВАТЬ</button></div><div class="supplyRow"><span>Энергетик · <b id="energyCount">0</b></span><button class="btn" id="useEnergy">ИСПОЛЬЗОВАТЬ</button></div></div><div id="hintline">Сохранения хранятся на этом устройстве.</div></div></div>
 <div id="pause"><div class="panel"><button class="closeX" id="closeMenu">×</button><div class="eyebrow">СЕВЕР-7 · ПАУЗА</div><h2>ГЛАВНОЕ МЕНЮ</h2><p>Прогресс можно сохранить на устройстве и продолжить позже.</p><div class="menuActions"><button class="btn primary wide" id="continueGame">ПРОДОЛЖИТЬ</button><button class="btn wide" id="saveGame">СОХРАНИТЬ ИГРУ</button><button class="btn wide" id="loadGame">ЗАГРУЗИТЬ ИГРУ</button><button class="btn wide" id="newGame">НОВАЯ ИГРА</button><button class="btn wide menuSecondary" id="exitGame">ВЫЙТИ ИЗ ИГРЫ</button></div><div class="menuStatus" id="menuStatus"></div></div></div>
 <div id="confirmNew"><div class="panel"><div class="eyebrow">ПОДТВЕРЖДЕНИЕ</div><h2>НАЧАТЬ ЗАНОВО?</h2><p>Текущий прогресс останется в последнем сохранении, но несохранённые изменения будут потеряны.</p><div class="menuActions"><button class="btn primary wide" id="confirmNewYes">НАЧАТЬ НОВУЮ ИГРУ</button><button class="btn wide" id="confirmNewNo">ОТМЕНА</button></div></div></div>
@@ -315,7 +293,7 @@ html,body{width:100%;height:var(--tishina-app-height,100dvh);min-height:var(--ti
   let queuedStart = false;
   const statusNode = () => document.getElementById('titleStatus');
   const shortError = value => String(value || 'Неизвестная ошибка').split('\n')[0].slice(0, 180);
-  const currentCacheName = 'tishina-0-4-3-hangar-uaz-one-tap-doors';
+  const currentCacheName = 'tishina-0-4-4-glb-models-no-item-examine';
   const threeSources = [
     'https://cdn.jsdelivr.net/npm/three@0.187.0/build/three.module.js',
     'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.187.0/three.module.js'

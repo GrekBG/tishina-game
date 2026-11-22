@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tishina-0-4-3-hangar-uaz-one-tap-doors';
+const CACHE_NAME = 'tishina-0-4-4-glb-models-no-item-examine';
 const APP_SHELL = [
   './',
   './index.html',
