@@ -1,6 +1,6 @@
 // Exterior service yard extension for ТИШИНА 0.3.0, polished in 0.3.3.
 // Designed for mobile WebGL: low-poly geometry, shared materials, modest light count.
-export function installWorldExpansion({ THREE, scene, box, floor, mat, addInteract, colliders, surfaces }) {
+export function installWorldExpansion({ THREE, scene, box, floor, mat, addInteract, colliders, gltfLoaderPromise = null, surfaces }) {
   const toned = (base, color, roughness, metalness) => { const m = base.clone(); m.color.setHex(color); m.roughness = roughness; m.metalness = metalness; return m; };
   const steel = toned(surfaces.metal, 0x303a37, 0.72, 0.72);
   const darkSteel = toned(surfaces.darkConcrete, 0x202927, 0.82, 0.58);
@@ -327,7 +327,55 @@ uazBox('Табличка СЕВЕР-7',[.62,.16,.035],[0,2.02,2.56],uazDark);
 uazBox('Передняя эмблема',[.16,.13,.035],[0,1.48,-2.64],uazMetal);
 
 // Collision envelope for the assembled UAZ.
-colliders.push({minX:vanX-1.62,maxX:vanX+1.62,minY:0,maxY:2.65,minZ:vanZ-2.80,maxZ:vanZ+2.82});
+colliders.push({minX:vanX-1.45,maxX:vanX+1.45,minY:0,maxY:2.55,minZ:vanZ-3.05,maxZ:vanZ+3.05});
+
+// A real GLB period forward-control van replaces the temporary box-built UAZ stand-in.
+// This asset has a sloped cab nose, deep windshield, side glazing, separate doors,
+// roof vent, tubular rack, mirrors, rear step and lamp clusters; +Z is its forward axis.
+const PERIOD_VAN_GLB_URL = 'https://cdn.3dassets.dev/assets/15685/v1/model.glb';
+if (gltfLoaderPromise) {
+  Promise.resolve(gltfLoaderPromise).then(loader => {
+    if (!loader) return;
+    loader.load(PERIOD_VAN_GLB_URL, gltf => {
+      const vehicle = gltf.scene;
+      vehicle.name = 'Служебный фургон эпохи Север-7 — GLB';
+      vehicle.position.set(vanX, 0, vanZ);
+      vehicle.rotation.y = Math.PI; // face the same direction as the previous parked vehicle
+      vehicle.scale.set(1.04, 1.06, 0.94);
+      vehicle.traverse(node => {
+        if (!node.isMesh) return;
+        node.castShadow = true;
+        node.receiveShadow = true;
+        const materials = Array.isArray(node.material) ? node.material : [node.material];
+        for (const material of materials) {
+          if (!material) continue;
+          const label = String(material.name || '').toLowerCase();
+          if (/glass|window|windscreen/.test(label)) {
+            material.transparent = true;
+            material.opacity = Math.min(material.opacity ?? 1, 0.82);
+            material.roughness = Math.max(material.roughness ?? 0.3, 0.22);
+          } else if (/rubber|tyre|tire/.test(label)) {
+            material.roughness = 0.98;
+          } else {
+            // Muted, aged service-yard palette; retain the supplied PBR maps.
+            if (material.color) material.color.multiply(new THREE.Color(0.88, 0.86, 0.76));
+            material.roughness = Math.max(material.roughness ?? 0.75, 0.86);
+          }
+          for (const texture of [material.map, material.normalMap, material.roughnessMap, material.metalnessMap]) {
+            if (texture) texture.anisotropy = 4;
+          }
+          material.needsUpdate = true;
+        }
+      });
+      scene.add(vehicle);
+      uaz.visible = false;
+      console.info('[ТИШИНА] Period van GLB loaded:', PERIOD_VAN_GLB_URL);
+    }, undefined, error => {
+      console.warn('[ТИШИНА] Period van GLB failed; keeping local fallback vehicle.', error);
+    });
+  }).catch(error => console.warn('[ТИШИНА] Period van GLB loader error:', error));
+}
+
 // Transformer enclosure and a visible warning lamp near the eastern service lane.
   solid('Трансформаторная будка', [7.2, 4.1, 6.2], [28, 2.05, 5], darkSteel);
   for (let x = 24.9; x <= 31.1; x += 1.25) detail('Решётка трансформаторной', [0.055, 2.5, 0.08], [x, 1.8, 1.84], steel);

@@ -7,6 +7,11 @@ const THREE = window.THREE;
 if (!THREE) throw new Error('Three.js не загружен: обновите страницу и проверьте соединение.');
 const $ = (id) => document.getElementById(id);
 const canvas = $('scene');
+// Real GLB game assets are loaded after the basic scene boots. If the asset CDN is
+// unavailable, the local fallback geometry remains visible and the game still runs.
+const gltfLoaderPromise = import('three/addons/loaders/GLTFLoader.js')
+  .then(({ GLTFLoader }) => new GLTFLoader())
+  .catch(error => { console.warn('[ТИШИНА] GLTFLoader unavailable; using local fallback meshes.', error); return null; });
 const isMobileDevice = matchMedia('(pointer: coarse)').matches || Math.min(innerWidth, innerHeight) < 700;
 const pixelRatioLimit = isMobileDevice ? 1.2 : 1.5;
 const scene = new THREE.Scene();
@@ -125,7 +130,7 @@ const pbrBuild = installPbrSurfaces(THREE, { concrete, darkConcrete, plaster, di
  renderer, quality: 'ultra', maxAnisotropy: isMobileDevice ? 4 : 8, rowsPerYield: isMobileDevice ? 12 : 24
 }).catch(error => { console.error('[ТИШИНА] HD PBR generation failed; keeping base 1024px maps.', error); });
 const colliders=[]; const interactables=[]; const inventory=[]; const motionObjects=[]; const pickupObjects={};
-let pendingItemId=null,heldItemId=null,heldObject=null,heldSourceRoot=null,heldPointer=null,activeMotion=null;let heldFlipped=false,heldNoteOpen=false,heldRadioPowered=false,heldRadioChannel=4;const INVENTORY_MAX_SLOTS=8,INVENTORY_MAX_WEIGHT=8;
+let activeMotion=null;const INVENTORY_MAX_SLOTS=8,INVENTORY_MAX_WEIGHT=8;
 function readStored(key){try{return JSON.parse(localStorage.getItem(key)||'null');}catch{return null;}}
 const legacySaved=readStored('tishina02')||{};
 const autosaved=readStored('tishinaAutoV1')||legacySaved;
@@ -152,7 +157,7 @@ function box(parent, name, size, pos, material, opts={}) {
 }
 function wall(name,x,y,z,w,h,d,material=concrete, collide=true){const m=box(scene,name,[w,h,d],[x,y,z],material);if(collide)colliders.push({minX:x-w/2,maxX:x+w/2,minY:y-h/2,maxY:y+h/2,minZ:z-d/2,maxZ:z+d/2});return m;}
 function floor(name,x,z,w,d,material=floorMat,y=0){return box(scene,name,[w,.18,d],[x,y,z],material,{cast:false});}
-function addInteract(obj, title, description, type='ОСМОТР', action=null){obj.userData.interaction={title,description,type,action};interactables.push(obj);return obj;}
+function addInteract(obj, title, description, type='ОБЪЕКТ', action=null){obj.userData.interaction={title,description,type,action};interactables.push(obj);return obj;}
 
 // Rain-darkened forecourt and approach.
 floor('Мокрый асфальт',0,17,96,88,forecourtMat,-.12);
@@ -401,7 +406,7 @@ function makeNote(x,y,z){const g=new THREE.Group();g.position.set(x,y,z);scene.a
 makeRadio(-6.2,1.3,-5.0);makePass(-5.25,1.205,-5.0);
 box(scene,'Рабочий стол',[2.5,.9,1.1],[1.9,.48,-12.5],wood,{solid:true});box(scene,'Папки',[.45,.22,.32],[1.25,1.05,-12.35],yellow);
 makePhoto(2.4,.95,-12.3);makeNote(1.1,1.05,-12.32);
-// Supplies have recognizable silhouettes and use the same hold / examine / take flow.
+// Supplies have recognizable silhouettes and are collected with one interaction.
 const medkitGroup=new THREE.Group();medkitGroup.position.set(-4.85,1.28,-5.0);scene.add(medkitGroup);
 const medkitMesh=box(medkitGroup,'Аптечка',[.42,.22,.28],[0,0,0],mat(0xb5b6aa,.8));
 box(medkitGroup,'Красная полоса аптечки',[.09,.225,.285],[0,0,0],mat(0x8d3834,.8));box(medkitGroup,'Крест аптечки',[.16,.035,.02],[0,.02,-.151],mat(0xe3e4d8,.8));
@@ -413,7 +418,7 @@ const energyStripe=new THREE.Mesh(new THREE.CylinderGeometry(.108,.108,.075,12),
 const energyTop=new THREE.Mesh(new THREE.CylinderGeometry(.07,.07,.012,12),metal);energyTop.position.y=.35;energyGroup.add(energyTop);
 energyMesh.userData.pickupGroup=energyGroup;energyMesh.userData.pickupId='energy';pickupObjects.energy=energyGroup;
 addInteract(energyMesh,'Энергетик',itemCatalog.energy.description,'ПРЕДМЕТ',()=>offerItem('energy'));
-// Wall mounted electrical panel with an inspectable latch.
+// Wall-mounted electrical panel: one interaction reports its current state.
 const panel=box(scene,'Электрощит',[.95,1.5,.18],[3.3,2.1,-16.1],metal,{solid:true});
 addInteract(panel,'Электрощит','Питание отключено. На схеме отмечен резервный контур, уходящий в подвал.','ОБОРУДОВАНИЕ');
 // Damaged insulation has left a live cable in a shallow puddle. It is visible and avoidable.
@@ -430,17 +435,64 @@ for(let i=0;i<7;i++){
 for(let i=0;i<12;i++){
  const x=-12+(i%6)*4.7,z=5+Math.floor(i/6)*7;
  const crate=box(scene,'Ящик',[.8+(i%2)*.3,.75,.8],[x,.38,z],i%3===0?wood:darkConcrete,{solid:true});
- if(i%3===0)addInteract(crate,'Грузовой ящик','Дерево разбухло от сырости. Внутри ничего ценного.','ОСМОТР');
+ if(i%3===0)addInteract(crate,'Грузовой ящик','Дерево разбухло от сырости. Внутри ничего ценного.','ОБЪЕКТ');
 }
 for(let i=0;i<24;i++){
  const stone= new THREE.Mesh(new THREE.DodecahedronGeometry(.15+(i%4)*.07,0),darkConcrete);stone.position.set(-8+(i*1.73)%16,.02,3+(i*2.37)%15);stone.rotation.set(i,i*.7,i*.2);scene.add(stone);
 }
 // TISHINA_030_STORY_WORLD_UPGRADE
 // TISHINA_033_CAMERA_FLASHLIGHT_HANGAR_INTERACTION
-const expansion = installWorldExpansion({ THREE, scene, box, floor, mat, addInteract, colliders, surfaces: { metal, darkConcrete, plaster, yellow, floorMat, rust, gravel:gravelMat, earth:earthMat, driveConcrete:driveConcreteMat } });
+const expansion = installWorldExpansion({ THREE, scene, box, floor, mat, addInteract, colliders, gltfLoaderPromise, surfaces: { metal, darkConcrete, plaster, yellow, floorMat, rust, gravel:gravelMat, earth:earthMat, driveConcrete:driveConcreteMat } });
+const HANGAR_GLB_URL = 'https://cdn.3dassets.dev/assets/17354/v1/model.glb';
+function loadHangarModel() {
+  gltfLoaderPromise.then(loader => {
+    if (!loader) return;
+    loader.load(HANGAR_GLB_URL, gltf => {
+      const model = gltf.scene;
+      model.name = 'Тентовый ангар — GLB game asset';
+      // The asset is authored in metres: 18.3 × 6.974 × 16.52 m.
+      // Fit the existing 19.8 × 9.7 × 19 m footprint and keep the opening toward +Z.
+      model.scale.set(1.08, 1.39, 1.15);
+      model.position.set(0, 0, -10.0);
+      model.traverse(node => {
+        if (!node.isMesh) return;
+        node.castShadow = !isMobileDevice;
+        node.receiveShadow = true;
+        const materials = Array.isArray(node.material) ? node.material : [node.material];
+        for (const material of materials) {
+          if (!material) continue;
+          const textures = [material.map, material.normalMap, material.roughnessMap, material.metalnessMap, material.emissiveMap];
+          for (const texture of textures) if (texture) texture.anisotropy = Math.min(isMobileDevice ? 4 : 8, renderer.capabilities.getMaxAnisotropy());
+          material.needsUpdate = true;
+        }
+      });
+      // The new GLB replaces the previous procedural skin, roof ribs and straps.
+      const oldShellPrefixes = [
+        'Тентовый фасад', 'Тентовый фронтон', 'Тентовая боковая стена',
+        'Тентовая нижняя панель', 'Тентовая задняя стена', 'Полотно кровли ангара',
+        'Тентовый торцевой фронтон', 'Каркас ангара', 'Продольный шов тентовой кровли',
+        'Продольная лента бокового тента', 'Вертикальная усилительная лента тента',
+        'Натяжной ремень тента', 'Анкер крепления тента', 'Накладка усиления тента на фасаде',
+        'Защитная полоса нижней кромки тента', 'Прямоугольная усилительная заплата тента',
+        'Шов заплаты тента', 'Балка перекрытия',
+        'Промышленные ворота ангара — полотно', 'Профильная ламель рулонных ворот',
+        'Направляющая рулонных ворот', 'Короб рулонных ворот', 'Жёлтая метка ворот'
+      ];
+      scene.traverse(node => {
+        if (node.isMesh && oldShellPrefixes.some(prefix => node.name.startsWith(prefix))) node.visible = false;
+      });
+      scene.add(model);
+      console.info('[ТИШИНА] GLB hangar loaded:', HANGAR_GLB_URL);
+    }, undefined, error => {
+      console.warn('[ТИШИНА] Hangar GLB failed; keeping local hangar fallback.', error);
+    });
+  }).catch(error => console.warn('[ТИШИНА] Hangar GLB loader error:', error));
+}
+loadHangarModel();
+
 const story = createStoryController({ onObjective: value => { const el = $('objective'); if (el) el.textContent = value; }, notify });
-panel.userData.interaction.action = () => { const data = panel.userData.interaction; story.markBreaker(); openInspect(data); };
-expansion.evacuationLog.userData.interaction.action = () => { const data = expansion.evacuationLog.userData.interaction; story.markJournal(); openInspect(data); };
+panel.userData.interaction.action = () => { story.markBreaker(); notify('ЭЛЕКТРОЩИТ: питание отключено. На схеме отмечен резервный контур в подвал.'); };
+expansion.evacuationLog.userData.interaction.action = () => { story.markJournal(); notify('ЖУРНАЛ ЭВАКУАЦИИ добавлен в записи. Последняя отметка: нижний контур.'); };
 
 // Rain particles: restrained count for mobile GPUs.
 const rainCount=360, rainPositions=new Float32Array(rainCount*3);
@@ -476,7 +528,7 @@ function showPhysicalFeedback(text,sticky=false){
  const el=$('physicalFeedback');if(!el)return;el.textContent=text;el.classList.add('visible');clearTimeout(physicalFeedbackTimer);
  if(!sticky)physicalFeedbackTimer=setTimeout(()=>el.classList.remove('visible'),1450);
 }
-function beginHandAction(kind='pull',hold=false){handAction={kind,hold,weight:0,releaseElapsed:0,releaseDuration:.48};showPhysicalFeedback(kind==='peek'?'ОСТОРОЖНО ЗАГЛЯДЫВАЕШЬ ЗА КРАЙ':kind==='pickup'?'ОСМАТРИВАЕШЬ ПРЕДМЕТ':kind==='slide'?'ДВИГАЕШЬ ЯЩИК':'ПЕРЕМЕЩАЕШЬ СТВОРКУ',hold);}
+function beginHandAction(kind='pull',hold=false){handAction={kind,hold,weight:0,releaseElapsed:0,releaseDuration:.48};showPhysicalFeedback(kind==='peek'?'ОСТОРОЖНО ЗАГЛЯДЫВАЕШЬ ЗА КРАЙ':kind==='pickup'?'ПОДБИРАЕШЬ ПРЕДМЕТ':kind==='slide'?'ДВИГАЕШЬ ЯЩИК':'ПЕРЕМЕЩАЕШЬ СТВОРКУ',hold);}
 function releaseHandAction(){if(handAction){handAction.hold=false;handAction.releaseElapsed=0;}}
 function physicalSound(type='creak',strength=1){
  try{
@@ -568,41 +620,21 @@ function doMotionAction(action){if(!activeMotion)return;const d=activeMotion.use
 function endPeek(){if(!peekState||peekState.phase==='out')return;const p=peekState;p.phase='out';p.elapsed=0;p.duration=.34;p.fromX=camera.position.x;p.fromZ=camera.position.z;p.fromRoll=camera.rotation.z;p.fromYaw=yaw;p.fromPitch=pitch;p.toX=p.baseX;p.toZ=p.baseZ;p.toRoll=0;p.toYaw=yaw;p.toPitch=p.basePitch;releaseHandAction();$('peekExit').style.display='none';physicalSound('click',.65);showPhysicalFeedback('НАЗАД');}
 function doPeek(){if(!activeMotion)return;if(!(currentMotionFraction(activeMotion)>.02)){notify('Сначала оставь щель.');return;}const forwardX=-Math.sin(yaw),forwardZ=-Math.cos(yaw),rightX=Math.cos(yaw),rightZ=-Math.sin(yaw);const baseX=camera.position.x,baseZ=camera.position.z,baseYaw=yaw,basePitch=pitch;peekState={phase:'in',elapsed:0,duration:.36,baseX,baseZ,baseYaw,basePitch,fromX:baseX,fromZ:baseZ,fromYaw:baseYaw,fromPitch:basePitch,fromRoll:0,toX:baseX+rightX*.24+forwardX*.10,toZ:baseZ+rightZ*.24+forwardZ*.10,toYaw:baseYaw+.07,toPitch:basePitch,toRoll:-.055};drag=null;keys={};joy={x:0,y:0};joyTarget={x:0,y:0};nubReset();beginHandAction('peek',true);physicalSound('click',.75);closeMotionPanel();$('peekExit').style.display='block';showPhysicalFeedback('ЗАГЛЯДЫВАЕШЬ',true);}
 function offerItem(id){
- const item=itemCatalog[id];if(!item)return;pendingItemId=id;activeTarget=null;$('prompt').style.opacity='0';
- $('choiceType').textContent=item.type;$('choiceTitle').textContent=item.name;
- $('choiceText').textContent=item.description+'\n\nВыбери действие: подробно осмотреть предмет, сразу поместить его в инвентарь или оставить на месте.';
- const inventoryButton=$('choiceInventory');inventoryButton.disabled=!canCarry(id);inventoryButton.textContent=canCarry(id)?'В ИНВЕНТАРЬ':'ИНВЕНТАРЬ ПЕРЕПОЛНЕН';
- $('itemChoice').style.display='flex';modalOpen=true;
-}
-function takePendingItemToInventory(){
- if(!pendingItemId)return;const id=pendingItemId,item=itemCatalog[id],source=itemRoot(id);
+ const item=itemCatalog[id],source=itemRoot(id);
  if(!item||!source)return;
- if(!canCarry(id)){notify('Недостаточно места в инвентаре.');return;}
+ if(!canCarry(id)){notify('ИНВЕНТАРЬ ПЕРЕПОЛНЕН. Освободи место перед подбором.');return;}
+ beginHandAction('pickup',false);physicalSound('click',.6);
  if(id==='medkit')medkits=Math.min(20,medkits+1);
  else if(id==='energy')energyItems=Math.min(20,energyItems+1);
  else if(!inventory.includes(item.name))inventory.push(item.name);
- source.visible=false;pendingItemId=null;$('itemChoice').style.display='none';modalOpen=false;
- updateInventoryUI();save();physicalSound('click',.55);notify(`${item.name} помещён в инвентарь.`);
+ source.visible=false;activeTarget=null;
+ updateInventoryUI();save();
+ notify(`${item.name} добавлен в инвентарь. ${item.description}`);
 }
-function makeHeldClone(id){const root=itemRoot(id);if(!root)return null;const clone=root.clone(true);clone.visible=true;clone.position.set(0,0,0);clone.rotation.set(0,0,0);clone.scale.setScalar(1);return clone;}
-function renderHeldSpecialActions(){const host=$('itemSpecialActions');let html='';if(heldItemId==='photo')html='<button class="btn" data-held-action="flip">ПЕРЕВЕРНУТЬ ФОТО</button>';else if(heldItemId==='pass')html='<button class="btn" data-held-action="flip">ПОСМОТРЕТЬ ОБОРОТ</button>';else if(heldItemId==='note')html=`<button class="btn" data-held-action="fold">${heldNoteOpen?'СЛОЖИТЬ ЗАПИСКУ':'РАЗВЕРНУТЬ ЗАПИСКУ'}</button>`;else if(heldItemId==='radio')html=`<button class="btn" data-held-action="power">${heldRadioPowered?'ВЫКЛЮЧИТЬ РАЦИЮ':'ВКЛЮЧИТЬ РАЦИЮ'}</button><span class="radioTune">КАНАЛ ${String(heldRadioChannel).padStart(2,'0')}</span><button class="btn" data-held-action="down">−</button><button class="btn" data-held-action="up">+</button>`;host.innerHTML=html;host.style.display=html?'flex':'none';}
-function updateHeldDescription(){const item=itemCatalog[heldItemId];if(!item)return;let text=item.description;if(heldItemId==='photo'&&heldFlipped)text='Оборот фотографии. Почерк выцветший, но фраза читается: «Они знали заранее». На нижнем краю — едва заметная отметка «С-7 / 04».';if(heldItemId==='pass'&&heldFlipped)text='Оборот пропуска. Под штрих-кодом выбит номер допуска С-0714. На пластике остались следы от магнитного считывателя.';if(heldItemId==='note'&&heldNoteOpen)text='Записка полностью развёрнута. На внутренней половине дописано: «Если свет в окнах погаснет — не выходить на площадку. Они идут на звук». Подпись отсутствует.';if(heldItemId==='radio'&&heldRadioPowered)text=heldRadioChannel===4?'Рация включена. На канале 04 индикатор мигает в коротком ритме. На экране появляется обрывок служебной метки: «НИЖНИЙ КОНТУР · НЕ ОТВЕЧАТЬ».':'Рация включена. На канале '+String(heldRadioChannel).padStart(2,'0')+' — только помехи и редкие щелчки. Устойчивой связи нет.';$('heldDescription').textContent=text;}
-function beginItemExamine(id){const item=itemCatalog[id],source=itemRoot(id);if(!item||!source)return;beginHandAction('pickup',false);physicalSound('click',.6);pendingItemId=null;heldItemId=id;heldSourceRoot=source;heldFlipped=false;heldNoteOpen=false;heldRadioPowered=false;heldRadioChannel=4;heldObject=makeHeldClone(id);heldObject.traverse(o=>{if(o.isMesh){o.material=Array.isArray(o.material)?o.material.map(m=>m.clone()):o.material.clone();o.castShadow=false;o.receiveShadow=false;}});camera.add(heldObject);heldObject.position.set(0,-.18,-.95);if(id==='radio'||id==='medkit')heldObject.rotation.set(-.08,Math.PI,0);else if(id==='photo'||id==='pass'||id==='note')heldObject.rotation.set(Math.PI/2,0,0);else heldObject.rotation.set(-.08,.18,0);source.visible=false;$('itemChoice').style.display='none';$('heldType').textContent=item.type+' · ОСМОТР';$('heldTitle').textContent=item.name;$('heldWeight').textContent=`МАССА: ${item.weight.toFixed(2)} КГ`;$('takeToInventory').disabled=!canCarry(id);$('takeToInventory').textContent=canCarry(id)?'В ИНВЕНТАРЬ':'ИНВЕНТАРЬ ПЕРЕПОЛНЕН';renderHeldSpecialActions();updateHeldDescription();$('itemExamine').style.display='block';modalOpen=true;}
-function finishHeldItem(take){if(!heldItemId||!heldSourceRoot)return;beginHandAction('pickup',false);physicalSound('click',.55);const id=heldItemId,item=itemCatalog[id];if(heldObject){camera.remove(heldObject);heldObject=null;}if(take){if(id==='medkit')medkits=Math.min(20,medkits+1);else if(id==='energy')energyItems=Math.min(20,energyItems+1);else if(!inventory.includes(item.name))inventory.push(item.name);heldSourceRoot.visible=false;notify(`${item.name} помещён в инвентарь.`);}else{heldSourceRoot.visible=true;notify(`${item.name} возвращён на место.`);}heldItemId=null;heldSourceRoot=null;$('itemSpecialActions').innerHTML='';$('itemSpecialActions').style.display='none';$('itemExamine').style.display='none';modalOpen=false;save();}
-function closeItemChoice(){pendingItemId=null;$('itemChoice').style.display='none';modalOpen=false;}
-function handleHeldAction(action){if(!heldObject||!heldItemId)return;if(action==='flip'&&(heldItemId==='photo'||heldItemId==='pass')){heldFlipped=!heldFlipped;heldObject.rotation.x+=Math.PI;updateHeldDescription();}else if(action==='fold'&&heldItemId==='note'){heldNoteOpen=!heldNoteOpen;heldObject.userData.noteTarget=heldNoteOpen?0:Math.PI;const flap=heldObject.getObjectByName('Записка: сгибаемая часть');if(flap)flap.userData.foldTarget=heldObject.userData.noteTarget;renderHeldSpecialActions();updateHeldDescription();}else if(action==='power'&&heldItemId==='radio'){heldRadioPowered=!heldRadioPowered;const led=heldObject.getObjectByName('Индикатор рации'),display=heldObject.getObjectByName('Экран рации');if(led)led.material.color.setHex(heldRadioPowered?0x5cff84:0x20352b);if(display)display.material.color.setHex(heldRadioPowered?0x7abf83:0x18231d);renderHeldSpecialActions();updateHeldDescription();}else if((action==='up'||action==='down')&&heldItemId==='radio'){heldRadioChannel=THREE.MathUtils.clamp(heldRadioChannel+(action==='up'?1:-1),1,16);renderHeldSpecialActions();updateHeldDescription();}}
-function useMedkit(){if(medkits<=0){notify('Аптечек нет.');return;}if(health>=100){notify('Здоровье уже полностью восстановлено.');return;}medkits--;health=Math.min(100,health+40);updateHealthUI(true);save();notify('Использована аптечка. Здоровье восстановлено.');}
-function useEnergy(){if(energyItems<=0){notify('Энергетиков нет.');return;}if(stamina>=100){notify('Выносливость уже восстановлена.');return;}energyItems--;stamina=Math.min(100,stamina+55);if(stamina>=STAMINA_RESTART)sprintLocked=false;updateStaminaUI(true);save();notify('Энергетик использован. Выносливость восстановлена.');}
-// Restore a previous local autosave on launch; a separate manual slot is controlled from the main menu.
-if(autosaved&& (autosaved.player||autosaved.health!==undefined||autosaved.items))applySnapshot({inventory:autosaved.inventory||autosaved.items,health:autosaved.health,stamina:autosaved.stamina,medkits:autosaved.medkits,energyItems:autosaved.energyItems,player:autosaved.player,motions:autosaved.motions,collected:autosaved.collected});
-else {updateInventoryUI();updateHealthUI(true);updateStaminaUI(true);}
-const hasManualSave=!!readStored('tishinaManualSaveV1');const hasAutoSave=!!(autosaved&&(autosaved.player||autosaved.health!==undefined||autosaved.items));$('titleLoad').disabled=!hasManualSave;$('continueTitle').disabled=!hasAutoSave;if(hasManualSave||hasAutoSave)$('titleStatus').textContent='ЕСТЬ СОХРАНЕНИЕ НА ЭТОМ УСТРОЙСТВЕ';
-function openInspect(data){beginHandAction('inspect',false);physicalSound('click',.35);modalOpen=true;$('inspectType').textContent=data.type;$('inspectTitle').textContent=data.title;$('inspectText').textContent=data.description;$('inspect').style.display='flex';}
-function closeInspect(){$('inspect').style.display='none';modalOpen=false;}
-function interact(){if(peekState){endPeek();return;}if(modalOpen)return;if(!activeTarget){notify('Ничего интересного в поле зрения.');return;}const d=activeTarget.userData.interaction;if(d.action){d.action();}else openInspect(d);}
+function interact(){if(peekState){endPeek();return;}if(modalOpen)return;if(!activeTarget){notify('Нечего использовать рядом.');return;}const d=activeTarget.userData.interaction;if(d.action){d.action();}else{physicalSound('click',.25);notify(d.description||d.title||'Здесь ничего не происходит.');}}
 const raycaster=new THREE.Raycaster();
 function isEffectivelyVisible(obj){for(let node=obj;node;node=node.parent){if(!node.visible)return false;}return true;}
-function updateTarget(){raycaster.setFromCamera(new THREE.Vector2(0,0),camera);const hits=raycaster.intersectObjects(interactables,false).filter(h=>h.distance<3.7&&isEffectivelyVisible(h.object));activeTarget=hits.length?hits[0].object:null;const interaction=activeTarget?.userData.interaction;$('prompt').textContent=interaction?(interaction.type==='ДВЕРЬ'?`◉ ${interaction.title} · ОТКРЫТЬ / ЗАКРЫТЬ`:`◉ ${interaction.title}`):'';$('prompt').style.opacity=activeTarget?'1':'0';}
+function updateTarget(){raycaster.setFromCamera(new THREE.Vector2(0,0),camera);const hits=raycaster.intersectObjects(interactables,false).filter(h=>h.distance<3.7&&isEffectivelyVisible(h.object));activeTarget=hits.length?hits[0].object:null;const interaction=activeTarget?.userData.interaction;const hint=interaction?.type==='ДВЕРЬ'?' · ОТКРЫТЬ / ЗАКРЫТЬ':interaction?.type==='ПРЕДМЕТ'?' · ПОДОБРАТЬ':'';$('prompt').textContent=interaction?`◉ ${interaction.title}${hint}`:'';$('prompt').style.opacity=activeTarget?'1':'0';}
 function lowZoneAt(x,z,radius=0){return lowClearanceZones.find(zone=>x+radius>zone.minX&&x-radius<zone.maxX&&z+radius>zone.minZ&&z-radius<zone.maxZ)||null;}
 function canFitAt(x,z,mode=posture){const zone=lowZoneAt(x,z,postures[mode].radius);return !zone||postures[mode].height<=zone.clearance;}
 function canOccupyAt(x,z){const zone=lowZoneAt(x,z,stance.radius);return !zone||stance.height<=zone.clearance;}
@@ -674,7 +706,7 @@ function animate(t){requestAnimationFrame(animate);if(document.hidden)return;if(
  for(const obj of motionObjects){const d=obj.userData;if(d.manualHold){d.targetFraction=THREE.MathUtils.clamp(d.targetFraction+d.manualHold*d.manualHoldSpeed*dt,0,1);d.target=d.closedValue+(d.openedValue-d.closedValue)*d.targetFraction;if(d.targetFraction<=0||d.targetFraction>=1){d.manualHold=0;releaseHandAction();}}
   const current=d.motion==='slide'?obj.position.z:obj.rotation.y,delta=d.target-current;const fast=(d.speed||0)>8,stiffness=fast?62:31,damping=fast?11.8:9.2;let velocity=Number(d.velocity)||0;velocity+=delta*stiffness*dt;velocity*=Math.exp(-damping*dt);let next=current+velocity*dt;if(Math.abs(delta)<.0015&&Math.abs(velocity)<.009){next=d.target;velocity=0;}else if(delta*(d.target-next)<0){next=d.target;velocity=0;}if(d.motion==='slide')obj.position.z=next;else obj.rotation.y=next;d.velocity=velocity;const fraction=currentMotionFraction(obj);d.open=fraction>=.99;d.ajar=fraction>.02&&!d.open;
  }
- if(heldObject){const flap=heldObject.getObjectByName('Записка: сгибаемая часть');if(flap&&flap.userData.foldTarget!==undefined)flap.rotation.x=THREE.MathUtils.damp(flap.rotation.x,flap.userData.foldTarget,10,dt);}
+ 
  if(peekState){const p=peekState;p.elapsed+=dt;const k=smooth01(p.elapsed/p.duration);camera.position.x=THREE.MathUtils.lerp(p.fromX,p.toX,k);camera.position.z=THREE.MathUtils.lerp(p.fromZ,p.toZ,k);const viewYaw=p.phase==='hold'?yaw:THREE.MathUtils.lerp(p.fromYaw,p.toYaw,k);const roll=THREE.MathUtils.lerp(p.fromRoll,p.toRoll,k);const viewPitch=p.phase==='hold'?pitch:THREE.MathUtils.lerp(p.fromPitch,p.toPitch,k);camera.rotation.set(viewPitch,viewYaw,roll,'YXZ');if(p.elapsed>=p.duration){if(p.phase==='in'){p.phase='hold';p.elapsed=0;p.fromX=p.toX;p.fromZ=p.toZ;p.fromYaw=p.toYaw;p.fromRoll=p.toRoll;camera.position.x=p.toX;camera.position.z=p.toZ;yaw=p.toYaw;camera.rotation.set(pitch,yaw,p.toRoll,'YXZ');}else if(p.phase==='out'){camera.position.x=p.toX;camera.position.z=p.toZ;camera.rotation.set(pitch,yaw,0,'YXZ');peekState=null;$('peekExit').style.display='none';}}}
  const p=rain.geometry.attributes.position;for(let i=0;i<rainCount;i++){p.array[i*3+1]-=dt*7;if(p.array[i*3+1]<0){p.array[i*3+1]=18;p.array[i*3]=(Math.random()-.5)*90;p.array[i*3+2]=(Math.random()-.5)*88;}}p.needsUpdate=true;cableCore.intensity=.55+Math.sin(t*.018)*.32;expansion.update(dt,t);if(started&&!modalOpen)skyWeather.update(dt,t);
  if(started&&!modalOpen)updateTarget();renderer.render(scene,camera);
@@ -727,7 +759,7 @@ function beginNewGame(){
   story.begin(()=>{
    modalOpen=false;
    save();
-   notify('Проходная комплекса «Север-7». Осмотрись. Двери и предметы можно исследовать.');
+   notify('Проходная комплекса «Север-7». Двери открываются одной кнопкой. Найденные предметы подбираются сразу.');
   });
   save();
  }catch(error){
@@ -744,14 +776,11 @@ function closeMainMenu(){ $('pause').style.display='none';modalOpen=false;}
 function continueAuto(){const data=readStored('tishinaAutoV1')||autosaved;if(!data){$('titleStatus').textContent='АВТОСОХРАНЕНИЕ НЕ НАЙДЕНО';return;}applySnapshot(data);started=true;modalOpen=false;$('intro').style.display='none';$('downed').style.display='none';save();notify('Продолжаем с последней автосохранённой позиции.');}
 function exitGame(){save();started=false;stopSprint();joy={x:0,y:0};joyTarget={x:0,y:0};nubReset();modalOpen=true;$('pause').style.display='none';$('intro').style.display='flex';document.querySelector('#intro .foot').textContent='ИГРА ОСТАНОВЛЕНА · В БРАУЗЕРЕ МОЖНО ЗАКРЫТЬ ВКЛАДКУ ВРУЧНУЮ';if(document.fullscreenElement)document.exitFullscreen?.().catch(()=>{});}
 $('start').onclick=beginNewGame;$('continueTitle').onclick=continueAuto;$('titleLoad').onclick=()=>{if(!loadManual()){$('titleStatus').textContent='Сначала сохраните игру в главном меню.';}};
-$('use').onclick=interact;$('closeInspect').onclick=closeInspect;
-$('choiceInspect').onclick=()=>{if(pendingItemId)beginItemExamine(pendingItemId);};$('choiceInventory').onclick=takePendingItemToInventory;$('choiceLeave').onclick=closeItemChoice;$('flashlight').onclick=toggleFlashlight;setFlashlightState(flashlightOn,false);
-$('itemSpecialActions').addEventListener('click',e=>{const btn=e.target.closest('button[data-held-action]');if(btn)handleHeldAction(btn.dataset.heldAction);});
+$('use').onclick=interact;$('flashlight').onclick=toggleFlashlight;setFlashlightState(flashlightOn,false);
 $('motionAjar').onclick=()=>doMotionAction('ajar');$('motionPeek').onclick=doPeek;$('motionSlowOpen').onclick=()=>doMotionAction('slowOpen');$('motionFastOpen').onclick=()=>doMotionAction('fastOpen');$('motionSlowClose').onclick=()=>doMotionAction('slowClose');$('motionFastClose').onclick=()=>doMotionAction('fastClose');$('motionClosePanel').onclick=closeMotionPanel;
 function bindMotionHold(id,direction){const el=$(id);el.addEventListener('pointerdown',e=>{e.preventDefault();if(!activeMotion)return;el.setPointerCapture(e.pointerId);startManualMotion(direction);});const end=()=>stopManualMotion();el.addEventListener('pointerup',end);el.addEventListener('pointercancel',end);el.addEventListener('lostpointercapture',end);el.addEventListener('contextmenu',e=>e.preventDefault());}
 bindMotionHold('motionHoldOpen',1);bindMotionHold('motionHoldClose',-1);$('peekExit').onclick=endPeek;
-$('takeToInventory').onclick=()=>finishHeldItem(true);$('putBack').onclick=()=>finishHeldItem(false);
-const itemStage=$('itemStage');itemStage.addEventListener('pointerdown',e=>{if(!heldObject)return;heldPointer={x:e.clientX,y:e.clientY};itemStage.setPointerCapture(e.pointerId);});itemStage.addEventListener('pointermove',e=>{if(!heldPointer||!heldObject)return;const dx=e.clientX-heldPointer.x,dy=e.clientY-heldPointer.y;heldObject.rotation.y+=dx*.012;heldObject.rotation.x=THREE.MathUtils.clamp(heldObject.rotation.x+dy*.009,-1.25,1.25);heldPointer={x:e.clientX,y:e.clientY};});const stopHeldRotate=()=>{heldPointer=null;};itemStage.addEventListener('pointerup',stopHeldRotate);itemStage.addEventListener('pointercancel',stopHeldRotate);
+
 $('bag').onclick=()=>{$('inventory').style.display='flex';modalOpen=true;updateInventoryUI();};$('closeBag').onclick=()=>{$('inventory').style.display='none';modalOpen=false;};
 $('useMedkit').onclick=useMedkit;$('useEnergy').onclick=useEnergy;
 $('openMenu').onclick=openMainMenu;$('closeMenu').onclick=closeMainMenu;$('continueGame').onclick=closeMainMenu;$('saveGame').onclick=saveManual;$('loadGame').onclick=()=>loadManual();$('newGame').onclick=()=>{$('confirmNew').style.display='flex';};$('confirmNewNo').onclick=()=>{$('confirmNew').style.display='none';};$('confirmNewYes').onclick=beginNewGame;$('exitGame').onclick=exitGame;
@@ -778,6 +807,6 @@ stick.addEventListener('pointermove',e=>{if(stickPointerId===e.pointerId){e.prev
 stick.addEventListener('pointerup',e=>{if(stickPointerId===e.pointerId)resetJoy();});
 stick.addEventListener('pointercancel',resetJoy);stick.addEventListener('lostpointercapture',resetJoy);
 canvas.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'&&e.clientX<innerWidth*.42&&e.clientY>innerHeight*.52)return;if(modalOpen)return;drag={x:e.clientX,y:e.clientY,id:e.pointerId};try{canvas.setPointerCapture(e.pointerId);}catch{}});canvas.addEventListener('pointermove',e=>{if(drag&&drag.id===e.pointerId&&!modalOpen&&(!peekState||peekState.phase==='hold')){const dx=e.clientX-drag.x,dy=e.clientY-drag.y;look(dx,dy);drag={x:e.clientX,y:e.clientY,id:e.pointerId};}});const stopLook=e=>{if(drag&&drag.id===e.pointerId)drag=null;};canvas.addEventListener('pointerup',stopLook);canvas.addEventListener('pointercancel',stopLook);canvas.addEventListener('lostpointercapture',stopLook);
-addEventListener('keydown',e=>{const key=e.key.toLowerCase();if(key==='escape'){if(peekState){endPeek();return;}if($('itemExamine').style.display==='block')finishHeldItem(false);else if($('itemChoice').style.display==='flex')closeItemChoice();else if($('motionPanel').style.display==='flex')closeMotionPanel();else if($('confirmNew').style.display==='flex')$('confirmNew').style.display='none';else if(started&&!modalOpen)openMainMenu();else if(modalOpen&&$('pause').style.display==='flex')closeMainMenu();else if(modalOpen&&$('inventory').style.display==='flex'){$('inventory').style.display='none';modalOpen=false;}else if(modalOpen&&$('inspect').style.display==='flex')closeInspect();return;}if(e.code==='ShiftLeft'||e.code==='ShiftRight'){startSprint();return;}if(e.code==='Space'){e.preventDefault();jump();return;}if(key==='f'&&!e.repeat){toggleFlashlight();return;}if(key==='c'){setPosture(posture==='crouch'?'stand':'crouch');return;}if(key==='z'){setPosture(posture==='prone'?'stand':'prone');return;}keys[key]=true;if(key==='e')interact();});addEventListener('keyup',e=>{if(e.code==='ShiftLeft'||e.code==='ShiftRight'){stopSprint();return;}keys[e.key.toLowerCase()]=false;});
+addEventListener('keydown',e=>{const key=e.key.toLowerCase();if(key==='escape'){if(peekState){endPeek();return;}if($('motionPanel').style.display==='flex')closeMotionPanel();else if($('confirmNew').style.display==='flex')$('confirmNew').style.display='none';else if(started&&!modalOpen)openMainMenu();else if(modalOpen&&$('pause').style.display==='flex')closeMainMenu();else if(modalOpen&&$('inventory').style.display==='flex'){$('inventory').style.display='none';modalOpen=false;}return;}if(e.code==='ShiftLeft'||e.code==='ShiftRight'){startSprint();return;}if(e.code==='Space'){e.preventDefault();jump();return;}if(key==='f'&&!e.repeat){toggleFlashlight();return;}if(key==='c'){setPosture(posture==='crouch'?'stand':'crouch');return;}if(key==='z'){setPosture(posture==='prone'?'stand':'prone');return;}keys[key]=true;if(key==='e')interact();});addEventListener('keyup',e=>{if(e.code==='ShiftLeft'||e.code==='ShiftRight'){stopSprint();return;}keys[e.key.toLowerCase()]=false;});
 addEventListener('blur',()=>{stopSprint();if(started)save();});document.addEventListener('visibilitychange',()=>{if(document.hidden){stopSprint();if(started)save();}});addEventListener('pagehide',()=>{if(started)save();});setInterval(()=>{if(started&&!modalOpen)save();},12000);
 window.__TISHINA_BOOT__?.ready?.();
