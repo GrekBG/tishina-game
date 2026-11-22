@@ -37,7 +37,7 @@ sun.position.set(-12, 20, 9); sun.castShadow = !isMobileDevice;
 sun.shadow.mapSize.set(1024, 1024);
 sun.shadow.camera.left = -22; sun.shadow.camera.right = 22; sun.shadow.camera.top = 22; sun.shadow.camera.bottom = -22;
 sun.shadow.bias = -0.00025; scene.add(sun);
-const skyWeather = installSkyWeather({ THREE, scene, camera, sun, hemisphereLight, renderer, onHud: ({ date, clock, weather }) => { const dateEl = $('worldDate'); const timeEl = $('worldClock'); const weatherEl = $('worldWeather'); if (dateEl) dateEl.textContent = date; if (timeEl) timeEl.textContent = clock; if (weatherEl) weatherEl.textContent = weather; } });
+const skyWeather = installSkyWeather({ THREE, scene, camera, sun, hemisphereLight, renderer, isMobileDevice, onHud: ({ date, clock, weather }) => { const dateEl = $('worldDate'); const timeEl = $('worldClock'); const weatherEl = $('worldWeather'); if (dateEl) dateEl.textContent = date; if (timeEl) timeEl.textContent = clock; if (weatherEl) weatherEl.textContent = weather; } });
 
 // 0.3.3 flashlight: camera-mounted spotlight with a soft local fill.
 // It follows camera yaw/pitch, does not render a hand-held body model, and casts no mobile shadow map.

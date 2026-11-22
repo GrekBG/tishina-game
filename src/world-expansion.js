@@ -154,6 +154,24 @@ export function installWorldExpansion({ THREE, scene, box, floor, mat, addIntera
       vehicle.scale.set(1.25, 1.45, 1.48);
       vehicle.updateMatrixWorld(true);
 
+      // Some Blender COLLADA exports retain wheel assemblies above the body despite Z_UP.
+      // Detect this from the actual tire meshes and flip the vehicle upright without
+      // guessing from the file's declared axis alone.
+      const initialBounds = new THREE.Box3().setFromObject(vehicle);
+      const tireBounds = new THREE.Box3();
+      let tireMeshCount = 0;
+      vehicle.traverse((node) => {
+        if (!node.isMesh || !/(резин|шина|колес|tire|wheel)/i.test(node.name || '')) return;
+        tireBounds.expandByObject(node);
+        tireMeshCount++;
+      });
+      if (tireMeshCount && !tireBounds.isEmpty() &&
+          tireBounds.getCenter(new THREE.Vector3()).y > initialBounds.getCenter(new THREE.Vector3()).y) {
+        vehicle.rotation.z += Math.PI;
+        vehicle.updateMatrixWorld(true);
+        console.info('[ТИШИНА] Исправлена перевёрнутая ориентация модели УАЗ по положению колёс.');
+      }
+
       const localBounds = new THREE.Box3().setFromObject(vehicle);
       const localCenter = localBounds.getCenter(new THREE.Vector3());
       vehicle.position.set(-localCenter.x, -localBounds.min.y, -localCenter.z);

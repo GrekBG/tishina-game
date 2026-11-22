@@ -1,6 +1,6 @@
 // TISHINA 0.3.1 — procedural sky, sun/moon cycle and wind-driven clouds; exposure tuned in 0.3.3.
 // No external textures or network requests. Kept intentionally lightweight for mobile GPUs.
-export function installSkyWeather({ THREE, scene, camera, sun, hemisphereLight, renderer, onHud = () => {} }) {
+export function installSkyWeather({ THREE, scene, camera, sun, hemisphereLight, renderer, isMobileDevice = false, onHud = () => {} }) {
   const CONFIG = {
     startHour: 7 + 50 / 60,       // The player arrives near the northern winter dawn; 04:17 is the recorded radio call.
     fullDaySeconds: 60 * 60,     // One complete 24-hour game day in 60 real minutes.
@@ -22,9 +22,9 @@ export function installSkyWeather({ THREE, scene, camera, sun, hemisphereLight, 
   const overcastFog = new THREE.Color(0x727d80);
   const lightTarget = new THREE.Vector3();
   const dayHemi = new THREE.Color(0xc5d0cb);
-  const nightHemi = new THREE.Color(0x35465d);
+  const nightHemi = new THREE.Color(0x58636b);
   const groundDay = new THREE.Color(0x242d29);
-  const groundNight = new THREE.Color(0x101722);
+  const groundNight = new THREE.Color(0x292d2b);
   const moonLight = new THREE.DirectionalLight(0x9db8e0, 0);
   moonLight.castShadow = false;
   scene.add(moonLight);
@@ -226,15 +226,15 @@ export function installSkyWeather({ THREE, scene, camera, sun, hemisphereLight, 
     sun.target.position.copy(lightTarget);
     sun.position.copy(lightTarget).addScaledVector(sunDirection, 90);
     sun.intensity = 1.72 * dayAmount * cloudDim;
-    sun.castShadow = sunElevation > 0.08 && wind.coverage < 0.88;
+    sun.castShadow = !isMobileDevice && sunElevation > 0.08 && wind.coverage < 0.88;
     moonLight.target.position.copy(lightTarget);
     moonLight.position.copy(lightTarget).addScaledVector(moonDirection, 70);
-    moonLight.intensity = 0.34 * nightAmount * (1 - wind.coverage * 0.58);
+    moonLight.intensity = 0.78 * nightAmount * (1 - wind.coverage * 0.42);
 
     hemisphereLight.color.copy(nightHemi).lerp(dayHemi, dayAmount);
     hemisphereLight.groundColor.copy(groundNight).lerp(groundDay, dayAmount);
-    hemisphereLight.intensity = 0.70 + dayAmount * 0.58;
-    renderer.toneMappingExposure = 0.94 + dayAmount * 0.22;
+    hemisphereLight.intensity = 1.02 + dayAmount * 0.48;
+    renderer.toneMappingExposure = 1.08 + dayAmount * 0.16;
     if (scene.fog) {
       currentFog.copy(nightFog).lerp(daylightFog, dayAmount);
       currentFog.lerp(overcastFog, wind.coverage * 0.22);
