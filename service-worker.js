@@ -1,10 +1,9 @@
-const CACHE_NAME = 'tishina-0-4-0-safari-viewport-cdn-fallback';
+const CACHE_NAME = 'tishina-0-4-1-safari-safe-boot';
 const APP_SHELL = [
   './',
   './index.html',
   './manifest.webmanifest',
   './src/main.js',
-  './src/three-loader.js',
   './src/pbr-surfaces.js',
   './src/world-expansion.js',
   './src/story.js',
@@ -56,8 +55,27 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Static assets are cache-first. A missing JS module stays a failed JS request,
-  // it is never replaced by an HTML document.
+  // JavaScript is network-first so a second GitHub commit can replace modules
+  // even when this worker was installed by the first (root-files) commit.
+  const isJavaScript = request.destination === 'script' || /\.m?js$/i.test(url.pathname);
+  if (isJavaScript) {
+    event.respondWith(
+      fetch(request).then(response => {
+        if (response && response.ok) {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
+        }
+        return response;
+      }).catch(async () => {
+        const cached = await caches.match(request);
+        if (cached) return cached;
+        throw new Error('JavaScript недоступен: проверьте подключение к интернету.');
+      })
+    );
+    return;
+  }
+
+  // Other static assets are cache-first. A missing JS module is never replaced by HTML.
   event.respondWith(
     caches.match(request).then(cached => {
       if (cached) return cached;

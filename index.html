@@ -9,14 +9,14 @@
 <meta name="apple-mobile-web-app-title" content="ТИШИНА">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>ТИШИНА — Север-7 · версия 0.4.0</title>
+<title>ТИШИНА — Север-7 · версия 0.4.1</title>
 <style>
 :root{color-scheme:dark;--panel:rgba(13,18,17,.94);--line:rgba(205,215,207,.22);--ink:#e2e7df;--muted:#9ca79e}
-*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#171d1c;color:var(--ink);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;touch-action:none;overscroll-behavior:none}
-#scene{position:fixed;inset:0;width:100%;height:100%;display:block;outline:0}#shade{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 48%,rgba(0,0,0,.42) 100%);z-index:2}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#171d1c;color:var(--ink);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;overscroll-behavior:none}
+#scene{position:fixed;inset:0;width:100%;height:100%;display:block;outline:0;touch-action:none}#shade{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 48%,rgba(0,0,0,.42) 100%);z-index:2}
 #top{position:fixed;z-index:4;top:env(safe-area-inset-top,10px);left:16px;right:16px;display:flex;justify-content:space-between;align-items:flex-start;text-shadow:0 2px 8px #000;pointer-events:none}.brand{font-weight:850;font-size:12px;letter-spacing:.28em}.sub{font-size:9px;letter-spacing:.15em;color:#aeb8ae;margin-top:4px}.stats{text-align:right;font-size:10px;line-height:1.6;color:#c4cdc4}.menuButton{pointer-events:auto;margin-top:9px;height:32px;padding:0 11px;border:1px solid #d5ded455;background:#17201ddc;color:var(--ink);border-radius:4px;font-size:9px;font-weight:800;letter-spacing:.1em}
 #crosshair{position:fixed;z-index:3;left:50%;top:50%;transform:translate(-50%,-50%);font-size:22px;font-weight:200;color:#e5e9e2aa;pointer-events:none}#prompt{position:fixed;z-index:5;left:50%;bottom:calc(112px + env(safe-area-inset-bottom));transform:translateX(-50%);padding:9px 14px;border:1px solid var(--line);border-radius:4px;background:#111816d9;font-size:11px;letter-spacing:.06em;white-space:nowrap;opacity:0;transition:opacity .15s;pointer-events:none}
-#controls{position:fixed;z-index:5;left:16px;right:16px;bottom:calc(15px + env(safe-area-inset-bottom));display:flex;justify-content:space-between;align-items:end;pointer-events:none}#stick{width:116px;height:116px;border:1px solid #e0e7dd55;background:#18211c88;border-radius:50%;position:relative;pointer-events:auto;touch-action:none}#nub{position:absolute;width:44px;height:44px;left:35px;top:35px;border-radius:50%;background:#c8d2c355;border:1px solid #e5ebdf88}#actions{display:flex;gap:6px;align-items:end;pointer-events:auto}.btn{color:var(--ink);background:#17201ddc;border:1px solid #d5ded455;border-radius:5px;min-width:58px;height:56px;padding:0 12px;font-size:10px;font-weight:750;letter-spacing:.05em;touch-action:manipulation}.btn.primary{background:#d0d8cd;color:#17201b;border-color:#d0d8cd}.btn.round{width:56px;min-width:56px;border-radius:50%;padding:0}.btn:active{filter:brightness(1.25)}.btn:disabled{opacity:.35;filter:none}.btn.active{background:#d2dfcf;color:#172019;border-color:#e0e9dc;box-shadow:0 0 14px #c4d8be55}.btn.depleted{opacity:.55}.barHead{display:flex;justify-content:flex-end;gap:8px;align-items:center;margin-top:4px;font-size:8px;letter-spacing:.1em;color:#b7c0b7}.barHead b{font-size:9px;color:#e1e7df}.barTrack{width:116px;height:6px;margin:3px 0 0 auto;background:#dce5dc40;border:1px solid #e2e8dc33;border-radius:5px;overflow:hidden}.barTrack>div{width:100%;height:100%;transition:width .12s linear}.healthTrack>div{background:#b96e66}.staminaTrack>div{background:#cbd9c4}.barTrack.low>div{filter:brightness(1.3);box-shadow:0 0 7px currentColor}.healthTrack.low{border-color:#df796d88}.statusBars{margin-top:3px}
+#controls{position:fixed;z-index:5;left:16px;right:16px;bottom:calc(15px + env(safe-area-inset-bottom));display:flex;justify-content:space-between;align-items:end;pointer-events:none;touch-action:none}#stick{width:116px;height:116px;border:1px solid #e0e7dd55;background:#18211c88;border-radius:50%;position:relative;pointer-events:auto;touch-action:none}#nub{position:absolute;width:44px;height:44px;left:35px;top:35px;border-radius:50%;background:#c8d2c355;border:1px solid #e5ebdf88}#actions{display:flex;gap:6px;align-items:end;pointer-events:auto}.btn{color:var(--ink);background:#17201ddc;border:1px solid #d5ded455;border-radius:5px;min-width:58px;height:56px;padding:0 12px;font-size:10px;font-weight:750;letter-spacing:.05em;touch-action:manipulation}.btn.primary{background:#d0d8cd;color:#17201b;border-color:#d0d8cd}.btn.round{width:56px;min-width:56px;border-radius:50%;padding:0}.btn:active{filter:brightness(1.25)}.btn:disabled{opacity:.35;filter:none}.btn.active{background:#d2dfcf;color:#172019;border-color:#e0e9dc;box-shadow:0 0 14px #c4d8be55}.btn.depleted{opacity:.55}.barHead{display:flex;justify-content:flex-end;gap:8px;align-items:center;margin-top:4px;font-size:8px;letter-spacing:.1em;color:#b7c0b7}.barHead b{font-size:9px;color:#e1e7df}.barTrack{width:116px;height:6px;margin:3px 0 0 auto;background:#dce5dc40;border:1px solid #e2e8dc33;border-radius:5px;overflow:hidden}.barTrack>div{width:100%;height:100%;transition:width .12s linear}.healthTrack>div{background:#b96e66}.staminaTrack>div{background:#cbd9c4}.barTrack.low>div{filter:brightness(1.3);box-shadow:0 0 7px currentColor}.healthTrack.low{border-color:#df796d88}.statusBars{margin-top:3px}
 #damageFx{position:fixed;z-index:3;inset:0;pointer-events:none;opacity:0;transition:opacity .18s;background:radial-gradient(ellipse at center,transparent 28%,rgba(125,18,15,.56) 100%)}
 #message{position:fixed;z-index:6;top:17%;left:50%;transform:translateX(-50%);max-width:min(88%,480px);padding:10px 14px;background:#101715e8;border:1px solid var(--line);border-radius:4px;text-align:center;font-size:12px;opacity:0;pointer-events:none;transition:opacity .2s}
 #inspect,#inventory,#intro,#rotate,#pause,#confirmNew,#downed,#itemChoice,#motionPanel{position:fixed;z-index:10;inset:0;display:none;align-items:center;justify-content:center;padding:22px;background:rgba(5,9,8,.82);backdrop-filter:blur(7px)}.panel{position:relative;width:min(480px,100%);padding:24px;background:linear-gradient(145deg,#202925,#111715);border:1px solid #9da99a44;box-shadow:0 18px 70px #0009}.eyebrow{font-size:9px;letter-spacing:.2em;color:#9ca99d}.panel h1,.panel h2{margin:9px 0 12px;font-size:clamp(24px,5vw,36px);letter-spacing:.12em}.panel p{font-size:13px;line-height:1.7;color:#c1c9c0;white-space:pre-line}.panel .closeX{position:absolute;right:12px;top:10px;width:38px;height:38px;border:1px solid var(--line);background:transparent;color:var(--ink);font-size:22px}.panel .foot{margin-top:20px;color:#8e9a90;font-size:10px;letter-spacing:.1em}.panel .wide{width:100%;margin-top:18px;height:46px}
@@ -195,7 +195,7 @@ body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;font-f
 }
 
 
-/* TISHINA 0.4.0 — mobile viewport and start-menu fit */
+/* TISHINA 0.4.1 — mobile viewport and start-menu fit */
 html,body{min-height:100%;min-height:100dvh;}
 #scene{width:100vw;height:100vh;height:100dvh;}
 #intro{inset:0;width:100vw;min-height:100vh;min-height:100dvh;height:100vh;height:100dvh;padding:calc(env(safe-area-inset-top,0px) + 8px) max(12px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 8px) max(12px,env(safe-area-inset-left,0px));overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
@@ -228,14 +228,14 @@ html,body{min-height:100%;min-height:100dvh;}
 }
 @media (orientation:portrait){#intro{display:none;}}
 
-/* TISHINA 0.4.0 — use the live Safari visual viewport; the menu may scroll rather than clip. */
+/* TISHINA 0.4.1 — use the live Safari visual viewport; the menu may scroll rather than clip. */
 html,body{width:100%;height:var(--tishina-app-height,100dvh);min-height:var(--tishina-app-height,100dvh);}
-#scene{position:fixed;inset:0;width:var(--tishina-app-width,100vw);height:var(--tishina-app-height,100dvh);}
-#intro{inset:0;width:var(--tishina-app-width,100vw);height:var(--tishina-app-height,100dvh);min-height:var(--tishina-app-height,100dvh);max-height:var(--tishina-app-height,100dvh);display:flex;align-items:center;justify-content:center;touch-action:pan-y;overflow-x:hidden;overflow-y:auto;padding:8px 12px;padding-top:max(8px,env(safe-area-inset-top,0px));padding-right:max(12px,env(safe-area-inset-right,0px));padding-bottom:max(8px,env(safe-area-inset-bottom,0px));padding-left:max(12px,env(safe-area-inset-left,0px));overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
+#scene{position:fixed;left:var(--tishina-app-left,0px);top:var(--tishina-app-top,0px);width:var(--tishina-app-width,100vw);height:var(--tishina-app-height,100dvh);}
+#intro{left:var(--tishina-app-left,0px);top:var(--tishina-app-top,0px);right:auto;bottom:auto;width:var(--tishina-app-width,100vw);height:var(--tishina-app-height,100dvh);min-height:var(--tishina-app-height,100dvh);max-height:var(--tishina-app-height,100dvh);display:flex;align-items:center;justify-content:center;touch-action:pan-y;overflow-x:hidden;overflow-y:auto;padding:8px 12px;padding-top:max(8px,env(safe-area-inset-top,0px));padding-right:max(12px,env(safe-area-inset-right,0px));padding-bottom:max(8px,env(safe-area-inset-bottom,0px));padding-left:max(12px,env(safe-area-inset-left,0px));overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
 #intro .panel{flex:0 1 auto;width:min(620px,100%);max-width:620px;touch-action:pan-y;max-height:calc(var(--tishina-app-height,100dvh) - 24px);min-height:0;margin:auto;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
 #intro h1{max-width:100%;overflow-wrap:anywhere;}
 #intro .menuActions button:disabled{display:none;}
-#rotate{width:var(--tishina-app-width,100vw);height:var(--tishina-app-height,100dvh);min-height:var(--tishina-app-height,100dvh);}
+#rotate{left:var(--tishina-app-left,0px);top:var(--tishina-app-top,0px);right:auto;bottom:auto;width:var(--tishina-app-width,100vw);height:var(--tishina-app-height,100dvh);min-height:var(--tishina-app-height,100dvh);}
 @media (max-height:600px) and (orientation:landscape){
  #intro .panel{max-height:calc(var(--tishina-app-height,100dvh) - 8px);}
 }
@@ -252,6 +252,7 @@ html,body{width:100%;height:var(--tishina-app-height,100dvh);min-height:var(--ti
 @media (orientation:portrait){#intro{display:none;}}
 
 </style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.187.0/build/three.module.js"}}</script>
 <script>
 (() => {
   const root = document.documentElement;
@@ -259,8 +260,12 @@ html,body{width:100%;height:var(--tishina-app-height,100dvh);min-height:var(--ti
     const viewport = window.visualViewport;
     const width = Math.max(1, Math.round(viewport?.width || window.innerWidth || 1));
     const height = Math.max(1, Math.round(viewport?.height || window.innerHeight || 1));
+    const left = Math.round(viewport?.offsetLeft || 0);
+    const top = Math.round(viewport?.offsetTop || 0);
     root.style.setProperty('--tishina-app-width', `${width}px`);
     root.style.setProperty('--tishina-app-height', `${height}px`);
+    root.style.setProperty('--tishina-app-left', `${left}px`);
+    root.style.setProperty('--tishina-app-top', `${top}px`);
   };
   syncViewport();
   window.addEventListener('resize', syncViewport, { passive: true });
@@ -294,7 +299,7 @@ html,body{width:100%;height:var(--tishina-app-height,100dvh);min-height:var(--ti
   <button class="btn iconBtn sprintBtn" id="sprint" aria-label="Удерживать для бега" title="Удерживать для бега" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="15.5" cy="4.2" r="2"/><path d="m12.8 7.2-3.1 4.1 4.4 2.1 2.7-2.7 3.5 1.4M9.7 11.3l-3.8.2M13.8 13.4 11 18.8l-4.2 1.5M14 13.5l3.1 5.4 3 .6"/></svg></button>
  </div>
 </div>
-<div id="intro"><div class="panel"><div class="eyebrow">ГРАФИКА И УПРАВЛЕНИЕ · 0.4.0</div><h1>ТИШИНА</h1><div class="eyebrow">ПОСЛЕ КАТАСТРОФЫ МИР НЕ ИСЧЕЗ.</div><p class="desc">Северный промышленный регион. 18 ноября 2034 года.<br>Комплекс «Север-7» эвакуирован четыре дня назад.<br>На аварийной частоте снова появился сигнал.</p><div class="menuActions"><button class="btn primary wide" id="continueTitle" disabled>ПРОДОЛЖИТЬ</button><button class="btn wide" id="start">НОВАЯ ИГРА</button><button class="btn wide menuSecondary" id="titleLoad" disabled>ЗАГРУЗИТЬ СОХРАНЕНИЕ</button></div><div class="menuStatus" id="titleStatus"></div><div class="foot">ЛЕВЫЙ СТИК — ДВИЖЕНИЕ · ПРАВАЯ ЧАСТЬ — ОБЗОР ВВЕРХ / ВНИЗ / ПО СТОРОНАМ</div></div></div>
+<div id="intro"><div class="panel"><div class="eyebrow">ГРАФИКА И УПРАВЛЕНИЕ · 0.4.1</div><h1>ТИШИНА</h1><div class="eyebrow">ПОСЛЕ КАТАСТРОФЫ МИР НЕ ИСЧЕЗ.</div><p class="desc">Северный промышленный регион. 18 ноября 2034 года.<br>Комплекс «Север-7» эвакуирован четыре дня назад.<br>На аварийной частоте снова появился сигнал.</p><div class="menuActions"><button class="btn primary wide" id="continueTitle" disabled>ПРОДОЛЖИТЬ</button><button class="btn wide" id="start">НОВАЯ ИГРА</button><button class="btn wide menuSecondary" id="titleLoad" disabled>ЗАГРУЗИТЬ СОХРАНЕНИЕ</button></div><div class="menuStatus" id="titleStatus"></div><div class="foot">ЛЕВЫЙ СТИК — ДВИЖЕНИЕ · ПРАВАЯ ЧАСТЬ — ОБЗОР ВВЕРХ / ВНИЗ / ПО СТОРОНАМ</div></div></div>
 <div id="rotate"><div class="panel"><div class="symbol">↻</div><h2>ПОВЕРНИТЕ УСТРОЙСТВО</h2><p>«ТИШИНА» рассчитана на горизонтальный экран.</p></div></div>
 <div id="inspect"><div class="panel"><button class="closeX" id="closeInspect" aria-label="Закрыть">×</button><div class="eyebrow" id="inspectType">ОСМОТР</div><h2 id="inspectTitle">Предмет</h2><p id="inspectText"></p><div class="foot" id="inspectFoot">ОСМОТРЕННЫЙ ОБЪЕКТ СОХРАНЁН В ЖУРНАЛЕ</div></div></div>
 <div id="itemChoice"><div class="panel"><div class="eyebrow" id="choiceType">НАЙДЕННЫЙ ПРЕДМЕТ</div><h2 id="choiceTitle">Предмет</h2><p id="choiceText">Выбери действие.</p><div class="menuActions itemChoiceActions"><button class="btn primary wide" id="choiceInspect">ОСМОТРЕТЬ ПРЕДМЕТ</button><button class="btn wide" id="choiceInventory">В ИНВЕНТАРЬ</button><button class="btn wide" id="choiceLeave">ОСТАВИТЬ НА МЕСТЕ</button></div></div></div>
@@ -310,6 +315,11 @@ html,body{width:100%;height:var(--tishina-app-height,100dvh);min-height:var(--ti
   let queuedStart = false;
   const statusNode = () => document.getElementById('titleStatus');
   const shortError = value => String(value || 'Неизвестная ошибка').split('\n')[0].slice(0, 180);
+  const currentCacheName = 'tishina-0-4-1-safari-safe-boot';
+  const threeSources = [
+    'https://cdn.jsdelivr.net/npm/three@0.187.0/build/three.module.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.187.0/three.module.js'
+  ];
   const setStatus = (message, isError = false) => {
     const node = statusNode();
     if (!node) return;
@@ -353,13 +363,45 @@ html,body{width:100%;height:var(--tishina-app-height,100dvh);min-height:var(--ti
         queuedStart = false;
         setStatus('ЗАПУСК НОВОЙ ИГРЫ…');
         setTimeout(() => document.getElementById('start')?.click(), 0);
-      } else if (statusNode()?.textContent === 'ЗАГРУЗКА ИГРЫ…') {
+      } else {
         setStatus('');
       }
     }
   };
-  setStatus('ЗАГРУЗКА ИГРЫ…');
+  setStatus('ЗАГРУЗКА 3D-ДВИЖКА…');
+  (async () => {
+    // Remove only previous TISHINA caches before the first module request.
+    // This prevents an older active worker from serving stale main.js/modules.
+    try {
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.filter(key => key.startsWith('tishina-') && key !== currentCacheName).map(key => caches.delete(key)));
+      }
+    } catch (error) {
+      console.warn('[ТИШИНА] Не удалось очистить старый кэш:', error);
+    }
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./service-worker.js').catch(error => console.warn('[ТИШИНА] Service Worker не зарегистрирован:', error));
+    }
+    let three = null;
+    let lastError = null;
+    for (const source of threeSources) {
+      try {
+        three = await import(source);
+        break;
+      } catch (error) {
+        lastError = error;
+        console.warn('[ТИШИНА] Не удалось загрузить Three.js с ' + source, error);
+      }
+    }
+    if (!three) {
+      const detail = lastError?.message ? ' (' + lastError.message + ')' : '';
+      throw new Error('Не удалось загрузить 3D-движок Three.js. Проверьте интернет-соединение и обновите страницу.' + detail);
+    }
+    window.THREE = three;
+    setStatus('ЗАГРУЗКА ИГРОВОГО МИРА…');
+    await import(new URL('./src/main.js', document.baseURI).href);
+  })().catch(reportError);
 })();
 </script>
-<script type="module" src="./src/main.js"></script>
 </body></html>
