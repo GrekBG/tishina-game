@@ -6,6 +6,8 @@ import { installSkyWeather } from './sky-weather.js';
 
 const $ = (id) => document.getElementById(id);
 const canvas = $('scene');
+const isMobileDevice = matchMedia('(pointer: coarse)').matches || Math.min(innerWidth, innerHeight) < 700;
+const pixelRatioLimit = isMobileDevice ? 1.2 : 1.5;
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x9aa39e);
 scene.fog = new THREE.FogExp2(0x9aa39e, 0.018);
@@ -13,18 +15,19 @@ const camera = new THREE.PerspectiveCamera(72, innerWidth / innerHeight, 0.08, 9
 camera.position.set(0, 1.68, 10.5);
 scene.add(camera); // Camera-only first-person view: no visible player body, arms or legs.
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(devicePixelRatio, (matchMedia('(pointer: coarse)').matches || Math.min(innerWidth, innerHeight) < 700) ? 1.2 : 1.5));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, pixelRatioLimit));
 renderer.setSize(innerWidth, innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.04;
-renderer.shadowMap.enabled = true;
+// Mobile Safari gets a lighter shadow path; HD surface maps stay at 1024×1024.
+renderer.shadowMap.enabled = !isMobileDevice;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const hemisphereLight = new THREE.HemisphereLight(0xc5d0cb, 0x242d29, 0.92);
 scene.add(hemisphereLight);
 const sun = new THREE.DirectionalLight(0xd6ded9, 1.45);
-sun.position.set(-12, 20, 9); sun.castShadow = true;
+sun.position.set(-12, 20, 9); sun.castShadow = !isMobileDevice;
 sun.shadow.mapSize.set(1024, 1024);
 sun.shadow.camera.left = -22; sun.shadow.camera.right = 22; sun.shadow.camera.top = 22; sun.shadow.camera.bottom = -22;
 sun.shadow.bias = -0.00025; scene.add(sun);
@@ -45,15 +48,25 @@ camera.add(flashlightFill);
 function grungeTexture(base, seed=1){
  const size=1024,c=document.createElement('canvas');c.width=c.height=size;const g=c.getContext('2d',{alpha:false});g.fillStyle=base;g.fillRect(0,0,size,size);
  let n=seed;const rand=()=>{n=(n*1664525+1013904223)>>>0;return n/4294967296;};
- for(let i=0;i<26000;i++){const v=Math.floor(rand()*95),a=.018+rand()*.105;g.fillStyle=rand()>.48?`rgba(225,225,210,${a})`:`rgba(10,14,12,${a})`;g.fillRect(rand()*size,rand()*size,.8+rand()*7,.8+rand()*5);}
- for(let i=0;i<82;i++){g.strokeStyle=`rgba(20,24,21,${.035+rand()*.10})`;g.lineWidth=.7+rand()*3;g.beginPath();let x=rand()*size,y=rand()*size;g.moveTo(x,y);g.lineTo(x+(rand()-.5)*170,y+45+rand()*220);g.stroke();}
- const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(2,2);t.colorSpace=THREE.SRGBColorSpace;t.generateMipmaps=true;t.minFilter=THREE.LinearMipmapLinearFilter;t.anisotropy=Math.min(16,renderer.capabilities.getMaxAnisotropy());return t;
+ const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(2,2);t.colorSpace=THREE.SRGBColorSpace;t.generateMipmaps=true;t.minFilter=THREE.LinearMipmapLinearFilter;t.magFilter=THREE.LinearFilter;t.anisotropy=Math.min(isMobileDevice?4:8,renderer.capabilities.getMaxAnisotropy());
+ // Draw the existing 1024px grain in small batches, so the menu and input handlers can boot first.
+ let index=0;
+ const drawBatch=()=>{
+  const end=Math.min(index+900,26000);
+  for(;index<end;index++){const v=Math.floor(rand()*95),a=.018+rand()*.105;g.fillStyle=rand()>.48?`rgba(225,225,210,${a})`:`rgba(10,14,12,${a})`;g.fillRect(rand()*size,rand()*size,.8+rand()*7,.8+rand()*5);}
+  if(index<26000){setTimeout(drawBatch,0);return;}
+  for(let i=0;i<82;i++){g.strokeStyle=`rgba(20,24,21,${.035+rand()*.10})`;g.lineWidth=.7+rand()*3;g.beginPath();let x=rand()*size,y=rand()*size;g.moveTo(x,y);g.lineTo(x+(rand()-.5)*170,y+45+rand()*220);g.stroke();}
+  t.needsUpdate=true;
+ };
+ t.needsUpdate=true;setTimeout(drawBatch,0);return t;
 }
 const concreteMap=grungeTexture('#777d77',7), plasterMap=grungeTexture('#999b90',13), floorMap=grungeTexture('#666b64',23);
 const mat = (color, roughness=0.92, metalness=0) => new THREE.MeshStandardMaterial({ color, roughness, metalness });
 const concrete = mat(0x747a75), darkConcrete = mat(0x444b47), plaster = mat(0x888d85), dirtyWhite = mat(0x9a9b8f), metal = mat(0x414b49,.78,.62), rust = mat(0x704b37,.96,.08), glass = new THREE.MeshStandardMaterial({color:0x738b8a,roughness:.42,metalness:.02,transparent:true,opacity:.30}), floorMat = mat(0x686d66,.98,.015), wood = mat(0x554b3e), paper = mat(0xb7b39e), yellow = mat(0x9b8b55,.9,.03);
 const gravelMat = mat(0x65645a,.99,.0), earthMat = mat(0x4e5148,.99,.0), driveConcreteMat = mat(0x73766e,.96,.0);
-installPbrSurfaces(THREE, { concrete, darkConcrete, plaster, dirtyWhite, metal, rust, floorMat, wood, paper, yellow, gravel:gravelMat, earth:earthMat, driveConcrete:driveConcreteMat }, { renderer, quality: 'ultra' });
+const pbrBuild = installPbrSurfaces(THREE, { concrete, darkConcrete, plaster, dirtyWhite, metal, rust, floorMat, wood, paper, yellow, gravel:gravelMat, earth:earthMat, driveConcrete:driveConcreteMat }, {
+ renderer, quality: 'ultra', maxAnisotropy: isMobileDevice ? 4 : 8, rowsPerYield: isMobileDevice ? 12 : 24
+}).catch(error => { console.error('[ТИШИНА] HD PBR generation failed; keeping base 1024px maps.', error); });
 const colliders=[]; const interactables=[]; const inventory=[]; const motionObjects=[]; const pickupObjects={};
 let pendingItemId=null,heldItemId=null,heldObject=null,heldSourceRoot=null,heldPointer=null,activeMotion=null;let heldFlipped=false,heldNoteOpen=false,heldRadioPowered=false,heldRadioChannel=4;const INVENTORY_MAX_SLOTS=8,INVENTORY_MAX_WEIGHT=8;
 function readStored(key){try{return JSON.parse(localStorage.getItem(key)||'null');}catch{return null;}}
@@ -549,7 +562,8 @@ function move(dt){
 }
 function updateBodyAnimation(){ bodyRig.visible=false; }
 
-function animate(t){requestAnimationFrame(animate);const dt=Math.min(.04,(t-last)/1000||0);last=t;move(dt);
+let lastIdleRender = 0;
+function animate(t){requestAnimationFrame(animate);if(document.hidden)return;if(!started){if(t-lastIdleRender>250){renderer.render(scene,camera);lastIdleRender=t;}return;}const dt=Math.min(.04,(t-last)/1000||0);last=t;move(dt);
  for(const obj of motionObjects){const d=obj.userData;if(d.manualHold){d.targetFraction=THREE.MathUtils.clamp(d.targetFraction+d.manualHold*d.manualHoldSpeed*dt,0,1);d.target=d.closedValue+(d.openedValue-d.closedValue)*d.targetFraction;if(d.targetFraction<=0||d.targetFraction>=1){d.manualHold=0;releaseHandAction();}}
   const current=d.motion==='slide'?obj.position.z:obj.rotation.y,delta=d.target-current;const fast=(d.speed||0)>8,stiffness=fast?62:31,damping=fast?11.8:9.2;let velocity=Number(d.velocity)||0;velocity+=delta*stiffness*dt;velocity*=Math.exp(-damping*dt);let next=current+velocity*dt;if(Math.abs(delta)<.0015&&Math.abs(velocity)<.009){next=d.target;velocity=0;}else if(delta*(d.target-next)<0){next=d.target;velocity=0;}if(d.motion==='slide')obj.position.z=next;else obj.rotation.y=next;d.velocity=velocity;const fraction=currentMotionFraction(obj);d.open=fraction>=.99;d.ajar=fraction>.02&&!d.open;
  }
@@ -560,8 +574,8 @@ function animate(t){requestAnimationFrame(animate);const dt=Math.min(.04,(t-last
 }
 requestAnimationFrame(animate);
 function look(dx=0,dy=0){yaw-=dx*.0042;pitch=THREE.MathUtils.clamp(pitch-dy*.0042,-1.05,.8);const roll=peekState?.phase==='hold'?camera.rotation.z:0;camera.rotation.set(pitch,yaw,roll,'YXZ');}
-function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(devicePixelRatio,(matchMedia('(pointer: coarse)').matches||Math.min(innerWidth,innerHeight)<700)?1.2:1.5));renderer.setSize(innerWidth,innerHeight);}
-addEventListener('resize',resize);
+function resize(){const width=Math.max(1,window.innerWidth),height=Math.max(1,window.innerHeight);camera.aspect=width/height;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,pixelRatioLimit));renderer.setSize(width,height);}
+addEventListener('resize',resize);window.visualViewport?.addEventListener('resize',resize);
 const introFootText=document.querySelector('#intro .foot').textContent;
 function resetWorld(){
  story.reset();
@@ -616,3 +630,5 @@ canvas.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'&&e.clientX<
 addEventListener('keydown',e=>{const key=e.key.toLowerCase();if(key==='escape'){if(peekState){endPeek();return;}if($('itemExamine').style.display==='block')finishHeldItem(false);else if($('itemChoice').style.display==='flex')closeItemChoice();else if($('motionPanel').style.display==='flex')closeMotionPanel();else if($('confirmNew').style.display==='flex')$('confirmNew').style.display='none';else if(started&&!modalOpen)openMainMenu();else if(modalOpen&&$('pause').style.display==='flex')closeMainMenu();else if(modalOpen&&$('inventory').style.display==='flex'){$('inventory').style.display='none';modalOpen=false;}else if(modalOpen&&$('inspect').style.display==='flex')closeInspect();return;}if(e.code==='ShiftLeft'||e.code==='ShiftRight'){startSprint();return;}if(e.code==='Space'){e.preventDefault();jump();return;}if(key==='f'&&!e.repeat){toggleFlashlight();return;}if(key==='c'){setPosture(posture==='crouch'?'stand':'crouch');return;}if(key==='z'){setPosture(posture==='prone'?'stand':'prone');return;}keys[key]=true;if(key==='e')interact();});addEventListener('keyup',e=>{if(e.code==='ShiftLeft'||e.code==='ShiftRight'){stopSprint();return;}keys[e.key.toLowerCase()]=false;});
 addEventListener('blur',()=>{stopSprint();if(started)save();});document.addEventListener('visibilitychange',()=>{if(document.hidden){stopSprint();if(started)save();}});addEventListener('pagehide',()=>{if(started)save();});setInterval(()=>{if(started&&!modalOpen)save();},12000);
 if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js').catch(()=>{}));
+
+window.__TISHINA_BOOT__?.ready?.();

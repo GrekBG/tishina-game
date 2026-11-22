@@ -3,7 +3,9 @@
 export async function installPbrSurfaces(THREE, surfaces, options = {}) {
   const quality = options.quality || 'ultra';
   const renderer = options.renderer || null;
-  const maxAnisotropy = Math.max(1, Math.min(16, renderer?.capabilities?.getMaxAnisotropy?.() || 8));
+  const maxAnisotropy = Math.max(1, Math.min(16, Number(options.maxAnisotropy) || renderer?.capabilities?.getMaxAnisotropy?.() || 8));
+  const yieldToMain = () => new Promise(resolve => setTimeout(resolve, 0));
+  const rowsPerYield = Math.max(4, Math.min(64, Math.floor(Number(options.rowsPerYield) || 16)));
 
   const configs = {
     concrete:     { baseRoughness: 0.96, metalness: 0.02, repeat: 3.2, hero: true,  normalStrength: 2.15, pattern: 'concrete', bumpScale: 0.018 },
@@ -64,7 +66,7 @@ export async function installPbrSurfaces(THREE, surfaces, options = {}) {
     return texture;
   }
 
-  function addSurfaceMarks(ctx, size, kind, rand) {
+  async function addSurfaceMarks(ctx, size, kind, rand) {
     ctx.save();
     if (kind === 'concrete' || kind === 'plaster') {
       for (let i = 0; i < (kind === 'concrete' ? 180 : 115); i++) {
@@ -103,6 +105,7 @@ export async function installPbrSurfaces(THREE, surfaces, options = {}) {
         const v = rand() > 0.5 ? 205 : 10;
         ctx.fillStyle = `rgba(${v},${v},${v},${0.025 + rand() * 0.12})`;
         ctx.beginPath(); ctx.ellipse(x, y, r * 1.4, r, rand(), 0, Math.PI * 2); ctx.fill();
+        if ((i & 511) === 511) await yieldToMain();
       }
       for (let i = 0; i < 38; i++) {
         const x = rand() * size, y = rand() * size;
@@ -118,6 +121,7 @@ export async function installPbrSurfaces(THREE, surfaces, options = {}) {
         const alpha = kind === 'gravel' ? 0.035 + rand() * 0.17 : 0.025 + rand() * 0.12;
         ctx.fillStyle = light ? `rgba(205,202,184,${alpha})` : `rgba(24,27,24,${alpha})`;
         ctx.beginPath();ctx.ellipse(x,y,r*(0.55+rand()*0.8),r*(0.45+rand()*0.55),rand()*Math.PI,0,Math.PI*2);ctx.fill();
+        if ((i & 511) === 511) await yieldToMain();
       }
       for (let i = 0; i < (kind === 'gravel' ? 75 : 45); i++) {
         const x = rand() * size, y = rand() * size;
@@ -144,12 +148,14 @@ export async function installPbrSurfaces(THREE, surfaces, options = {}) {
         ctx.strokeStyle = rand() > 0.5 ? `rgba(100,82,56,${0.025 + rand() * 0.08})` : `rgba(255,255,244,${0.025 + rand() * 0.1})`;
         ctx.lineWidth = 0.25 + rand() * 0.7;
         ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + (rand() - 0.5) * 5, y + 1 + rand() * 7); ctx.stroke();
+        if ((i & 511) === 511) await yieldToMain();
       }
     }
     ctx.restore();
   }
 
- async function buildMaps(name, material, config, size) {
+  async function buildMaps(name, material, config, size) {
+    await yieldToMain();
     const rand = random((name.length * 7919 + size * 31) >>> 0);
     const grids = [makeGrid(8, rand), makeGrid(24, rand), makeGrid(72, rand), makeGrid(192, rand)];
     const heights = new Float32Array(size * size);
@@ -196,6 +202,7 @@ export async function installPbrSurfaces(THREE, surfaces, options = {}) {
         roughness[ci] = roughness[ci + 1] = roughness[ci + 2] = rv;
         roughness[ci + 3] = 255;
       }
+      if (y % rowsPerYield === rowsPerYield - 1) await yieldToMain();
     }
 
     const normal = new Uint8Array(size * size * 4);
@@ -213,6 +220,7 @@ export async function installPbrSurfaces(THREE, surfaces, options = {}) {
         normal[i + 2] = Math.round((nz * 0.5 + 0.5) * 255);
         normal[i + 3] = 255;
       }
+      if (y % rowsPerYield === rowsPerYield - 1) await yieldToMain();
     }
 
     const canvas = document.createElement('canvas');
@@ -221,7 +229,7 @@ export async function installPbrSurfaces(THREE, surfaces, options = {}) {
     const image = ctx.createImageData(size, size);
     image.data.set(color);
     ctx.putImageData(image, 0, 0);
-    addSurfaceMarks(ctx, size, kind, rand);
+    await addSurfaceMarks(ctx, size, kind, rand);
 
     const albedo = new THREE.CanvasTexture(canvas);
     albedo.wrapS = albedo.wrapT = THREE.RepeatWrapping;
@@ -245,7 +253,7 @@ export async function installPbrSurfaces(THREE, surfaces, options = {}) {
     const resolution = 1024;
     let maps;
     try {
-      maps = buildMaps(name, material, config, resolution);
+      maps = await buildMaps(name, material, config, resolution);
     } catch (error) {
       // The source grunge map for each primary surface is also 1024px; keep it if a secondary PBR map cannot be allocated.
       console.warn(`[ТИШИНА] Не удалось собрать полный PBR-набор 1024px для ${name}; сохранена базовая 1024px-карта.`, error);
@@ -268,6 +276,8 @@ export async function installPbrSurfaces(THREE, surfaces, options = {}) {
     material.needsUpdate = true;
     report.materials.push(name);
     report.resolutions[name] = resolution;
+    if (typeof options.onProgress === 'function') options.onProgress({ name, completed: report.materials.length, total: Object.keys(configs).length });
+    await yieldToMain();
   }
   console.info('[ТИШИНА] HD PBR surfaces:', report);
   return report;
