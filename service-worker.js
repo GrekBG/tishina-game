@@ -1,9 +1,10 @@
-const CACHE_NAME = 'tishina-0-3-4-mobile-hd-stable';
+const CACHE_NAME = 'tishina-0-4-0-safari-viewport-cdn-fallback';
 const APP_SHELL = [
   './',
   './index.html',
   './manifest.webmanifest',
   './src/main.js',
+  './src/three-loader.js',
   './src/pbr-surfaces.js',
   './src/world-expansion.js',
   './src/story.js',
