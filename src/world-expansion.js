@@ -1,6 +1,8 @@
+import { ColladaLoader } from 'three/addons/loaders/ColladaLoader.js';
+
 // Exterior service yard extension for ТИШИНА 0.3.0, polished in 0.3.3.
 // Designed for mobile WebGL: low-poly geometry, shared materials, modest light count.
-export function installWorldExpansion({ THREE, scene, box, floor, mat, addInteract, colliders, gltfLoaderPromise = null, surfaces }) {
+export function installWorldExpansion({ THREE, scene, box, floor, mat, addInteract, colliders, surfaces, notify = () => {} }) {
   const toned = (base, color, roughness, metalness) => { const m = base.clone(); m.color.setHex(color); m.roughness = roughness; m.metalness = metalness; return m; };
   const steel = toned(surfaces.metal, 0x303a37, 0.72, 0.72);
   const darkSteel = toned(surfaces.darkConcrete, 0x202927, 0.82, 0.58);
@@ -129,254 +131,91 @@ export function installWorldExpansion({ THREE, scene, box, floor, mat, addIntera
     detail('Маркировочная табличка контейнера', [1.1, 0.38, 0.045], [x, 1.9, z - 3.18], fadedPaint);
     detail('Номер контейнера', [0.45, 0.035, 0.018], [x, 1.93, z - 3.21], mat(0xc0bba6, 0.85, 0));
   }
-  // 0.4.3 — weathered UAZ-452 service van: rounded cab-forward silhouette and real vehicle details.
-const vanX = -28, vanZ = 28;
-const uaz = new THREE.Group(); uaz.name = 'УАЗ-452 — старый служебный фургон'; uaz.position.set(vanX,0,vanZ); scene.add(uaz);
-const uazPaint = toned(surfaces.plaster, 0x9b907a, 0.94, 0.025);
-const uazDark = toned(surfaces.darkConcrete, 0x343a35, 0.94, 0.035);
-const uazMetal = toned(surfaces.metal, 0x62645b, 0.88, 0.16);
-const uazRubber = new THREE.MeshStandardMaterial({color:0x171917,roughness:0.995,metalness:0});
-const uazGlass = new THREE.MeshStandardMaterial({color:0x52615e,roughness:0.24,metalness:0.015,transparent:true,opacity:0.78,side:THREE.DoubleSide});
-const uazGasket = new THREE.MeshStandardMaterial({color:0x202421,roughness:0.98,metalness:0});
-const uazLampRing = new THREE.MeshStandardMaterial({color:0x4b4b43,roughness:0.72,metalness:0.42});
-const uazLamp = new THREE.MeshStandardMaterial({color:0xd7d0b5,emissive:0x4b4430,emissiveIntensity:0.32,roughness:0.28,metalness:0.05});
-const uazAmber = new THREE.MeshStandardMaterial({color:0xa56f36,emissive:0x2c1607,emissiveIntensity:0.12,roughness:0.55});
-const uazRed = new THREE.MeshStandardMaterial({color:0x71312d,emissive:0x210706,emissiveIntensity:0.08,roughness:0.62});
+  // 0.4.5 — imported, textured UAZ-452 asset supplied for the project.
+  // The COLLADA source contains 42 mesh nodes, 16 material slots and two 3000px texture atlases.
+  // The atlases are WebP-compressed at original resolution to reduce mobile download size.
+  const vanX = -28, vanZ = 28;
+  const uazAnchor = new THREE.Group();
+  uazAnchor.name = 'УАЗ-452 — импортированная модель';
+  uazAnchor.position.set(vanX, 0, vanZ);
+  scene.add(uazAnchor);
 
-// Faded paint with vertical rain streaks, oxidized pinholes and irregular rust blooms.
-const patinaCanvas = document.createElement('canvas'); patinaCanvas.width = patinaCanvas.height = 1024;
-const patinaCtx = patinaCanvas.getContext('2d',{alpha:false});
-patinaCtx.fillStyle = '#a49a82'; patinaCtx.fillRect(0,0,1024,1024);
-let patinaSeed = 45219;
-const patinaRand = () => { patinaSeed = (patinaSeed * 1664525 + 1013904223) >>> 0; return patinaSeed / 4294967296; };
-for(let i=0;i<12500;i++){
- const x=patinaRand()*1024,y=patinaRand()*1024,r=.5+patinaRand()*5;
- const rustSpot=patinaRand()>.79;
- patinaCtx.fillStyle=rustSpot?`rgba(91,49,31,${.055+patinaRand()*.19})`:`rgba(${patinaRand()>.5?225:38},${patinaRand()>.5?213:42},${patinaRand()>.5?186:31},${.025+patinaRand()*.10})`;
- patinaCtx.beginPath(); patinaCtx.ellipse(x,y,r,r*(.45+patinaRand()),patinaRand()*Math.PI,0,Math.PI*2); patinaCtx.fill();
-}
-for(let i=0;i<68;i++){
- const x=patinaRand()*1024,y=patinaRand()*900,w=1+patinaRand()*5,h=30+patinaRand()*190;
- const grad=patinaCtx.createLinearGradient(x,y,x+(patinaRand()-.5)*12,y+h);
- grad.addColorStop(0,'rgba(73,43,27,0)');grad.addColorStop(.3,`rgba(84,48,30,${.08+patinaRand()*.17})`);grad.addColorStop(1,'rgba(73,43,27,0)');
- patinaCtx.fillStyle=grad;patinaCtx.fillRect(x,y,w,h);
-}
-const patinaTexture = new THREE.CanvasTexture(patinaCanvas);
-patinaTexture.wrapS=patinaTexture.wrapT=THREE.RepeatWrapping;patinaTexture.repeat.set(1.35,1.15);
-patinaTexture.colorSpace=THREE.SRGBColorSpace;patinaTexture.generateMipmaps=true;
-patinaTexture.minFilter=THREE.LinearMipmapLinearFilter;patinaTexture.anisotropy=4;
-uazPaint.map=patinaTexture;uazPaint.color.setHex(0xd0c4a9);uazPaint.needsUpdate=true;
+  const uazLoader = new ColladaLoader();
+  const uazUrl = new URL('../uaz.dae', import.meta.url).href;
+  uazLoader.load(
+    uazUrl,
+    (collada) => {
+      const vehicle = collada.scene;
+      vehicle.name = 'УАЗ-452 — исходная геометрия и UV-текстуры';
 
-function uazBox(name,size,pos,material,opts={}){
- const mesh=new THREE.Mesh(new THREE.BoxGeometry(...size),material);mesh.name=name;mesh.position.set(...pos);
- mesh.castShadow=opts.cast!==false;mesh.receiveShadow=true;uaz.add(mesh);return mesh;
-}
-function uazCylinder(name,rTop,rBottom,height,pos,material,rotation=[0,0,0],segments=24){
- const mesh=new THREE.Mesh(new THREE.CylinderGeometry(rTop,rBottom,height,segments),material);mesh.name=name;
- mesh.position.set(...pos);mesh.rotation.set(...rotation);mesh.castShadow=true;mesh.receiveShadow=true;uaz.add(mesh);return mesh;
-}
-function uazBeam(name,a,b,radius,material){
- const va=new THREE.Vector3(...a),vb=new THREE.Vector3(...b),dir=new THREE.Vector3().subVectors(vb,va),len=dir.length();
- const mesh=new THREE.Mesh(new THREE.CylinderGeometry(radius,radius,len,8),material);
- mesh.name=name;mesh.position.copy(va).add(vb).multiplyScalar(.5);
- mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir.normalize());mesh.castShadow=true;mesh.receiveShadow=true;uaz.add(mesh);return mesh;
-}
-function uazSideShape(name,shape,side,material){
- const mesh=new THREE.Mesh(new THREE.ShapeGeometry(shape),material);mesh.name=name;
- mesh.position.set(side*1.385,0,0);mesh.rotation.y=Math.PI/2;mesh.castShadow=false;mesh.receiveShadow=true;uaz.add(mesh);return mesh;
-}
+      // Fit the authored mesh to UAZ-452 proportions: roughly 4.35 × 1.95 × 2.06 m.
+      // The COLLADA source declares Z_UP; ColladaLoader converts it to Three.js Y_UP.
+      vehicle.rotation.y = Math.PI;
+      vehicle.scale.set(1.25, 1.45, 1.48);
+      vehicle.updateMatrixWorld(true);
 
-// One-piece rounded side profile with raised wheel arches, rather than a pair of rectangular boxes.
-const uazProfile = new THREE.Shape();
-uazProfile.moveTo(-2.48,.66);
-uazProfile.lineTo(-2.02,.66);
-uazProfile.quadraticCurveTo(-1.98,1.25,-1.53,1.25);
-uazProfile.quadraticCurveTo(-1.08,1.25,-1.04,.66);
-uazProfile.lineTo(1.04,.66);
-uazProfile.quadraticCurveTo(1.08,1.25,1.53,1.25);
-uazProfile.quadraticCurveTo(1.98,1.25,2.02,.66);
-uazProfile.lineTo(2.48,.66);
-uazProfile.lineTo(2.48,2.18);
-uazProfile.quadraticCurveTo(2.48,2.47,2.19,2.52);
-uazProfile.lineTo(-1.72,2.52);
-uazProfile.quadraticCurveTo(-2.02,2.50,-2.17,2.30);
-uazProfile.lineTo(-2.48,1.94);
-uazProfile.closePath();
-const uazBodyGeo=new THREE.ExtrudeGeometry(uazProfile,{depth:2.72,bevelEnabled:true,bevelSegments:5,steps:1,bevelSize:.055,bevelThickness:.06,curveSegments:10});
-uazBodyGeo.rotateY(-Math.PI/2);
-const uazBody=new THREE.Mesh(uazBodyGeo,uazPaint);uazBody.name='Скруглённый кузов УАЗ-452 с арками колёс';
-uazBody.position.x=1.36;uazBody.castShadow=true;uazBody.receiveShadow=true;uaz.add(uazBody);
+      const localBounds = new THREE.Box3().setFromObject(vehicle);
+      const localCenter = localBounds.getCenter(new THREE.Vector3());
+      vehicle.position.set(-localCenter.x, -localBounds.min.y, -localCenter.z);
 
-// Cab-forward front panel, roof drip edge and front bumper.
-uazBox('Передняя панель кабины',[2.48,1.34,.12],[0,1.55,-2.42],uazPaint);
-uazBox('Передний бампер — изношенная сталь',[2.72,.19,.24],[0,.61,-2.57],uazMetal);
-uazBox('Накладка бампера',[2.46,.065,.255],[0,.60,-2.70],uazDark);
-for(const x of [-.92,.92]){
- uazBeam('Кронштейн переднего бампера',[x,.70,-2.38],[x,.70,-2.62],.055,uazDark);
- uazBeam('Буксировочная петля',[x,.53,-2.64],[x,.42,-2.72],.035,uazMetal);
-}
-uazBox('Защитная полка передка',[1.6,.08,.30],[0,1.05,-2.51],uazDark);
-
-// Split windshield, rubber gaskets, center divider and two worn wiper arms.
-const windShape=new THREE.Shape();
-windShape.moveTo(-1.08,1.72);windShape.lineTo(1.08,1.72);windShape.lineTo(.98,2.34);
-windShape.quadraticCurveTo(.93,2.39,.84,2.39);windShape.lineTo(-.84,2.39);
-windShape.quadraticCurveTo(-.93,2.39,-.98,2.34);windShape.closePath();
-const windshield=new THREE.Mesh(new THREE.ShapeGeometry(windShape),uazGlass);
-windshield.name='Два мутных лобовых стекла УАЗ';windshield.position.set(0,0,-2.49);windshield.rotation.x=-.04;uaz.add(windshield);
-uazBox('Уплотнитель лобового стекла — верх',[2.18,.055,.06],[0,2.405,-2.50],uazGasket);
-uazBox('Уплотнитель лобового стекла — низ',[2.20,.055,.06],[0,1.70,-2.50],uazGasket);
-uazBox('Разделитель лобового стекла',[.045,.69,.06],[0,2.05,-2.515],uazDark);
-for(const x of [-.55,.55]){
- const wiper=uazBox('Старый стеклоочиститель',[.58,.025,.045],[x,1.76,-2.535],uazDark);
- wiper.rotation.z=x<0?-.12:.12;
-}
-
-// UAZ signature: two round recessed headlights and a narrow horizontal grille.
-for(const x of [-.98,.98]){
- uazCylinder('Обод круглой фары УАЗ',.285,.285,.095,[x,1.42,-2.565],uazLampRing,[Math.PI/2,0,0],28);
- uazCylinder('Мутное стекло круглой фары',.235,.235,.105,[x,1.42,-2.625],uazLamp,[Math.PI/2,0,0],28);
- uazBox('Передний указатель поворота',[.23,.12,.07],[x,1.07,-2.56],uazAmber);
- uazBox('Передний габарит',[.15,.08,.06],[x,1.23,-2.57],uazAmber);
-}
-uazBox('Решётка радиатора — ниша',[.88,.34,.065],[0,1.27,-2.565],uazDark);
-for(let y=1.15;y<=1.39;y+=.06)uazBox('Горизонтальная планка радиаторной решётки',[.78,.018,.035],[0,y,-2.61],uazMetal);
-uazBox('Передний номерной знак',[.64,.16,.035],[0,.82,-2.59],uazMetal);
-uazBox('Тёмная окантовка номерного знака',[.70,.21,.025],[0,.82,-2.57],uazDark);
-
-// A worn dashboard, steering wheel and two seats make the cab read as a usable vehicle.
-uazBox('Панель приборов',[2.05,.17,.42],[0,1.48,-2.02],uazDark);
-uazBox('Потёртая приборная вставка',[1.48,.09,.035],[0,1.51,-2.24],uazMetal);
-for(const x of [-.52,.52]){
- uazBox('Сиденье кабины — подушка',[.56,.18,.58],[x,.93,-1.38],uazDark);
- const seatBack=uazBox('Сиденье кабины — спинка',[.56,.72,.17],[x,1.30,-1.69],uazDark);
- seatBack.rotation.x=-.10;
- uazBox('Подголовник сиденья',[.34,.19,.13],[x,1.78,-1.73],uazDark);
-}
-const steeringWheel=new THREE.Mesh(new THREE.TorusGeometry(.19,.026,8,24),uazMetal);
-steeringWheel.name='Рулевое колесо УАЗ';steeringWheel.position.set(-.60,1.60,-1.94);steeringWheel.rotation.x=Math.PI/2;uaz.add(steeringWheel);
-uazBeam('Рулевая колонка',[-.60,1.37,-1.93],[-.60,1.58,-1.93],.045,uazDark);
-
-// Side windows: separate driver/passenger glass and two broad cargo windows per side.
-const cabWindow=new THREE.Shape();
-cabWindow.moveTo(1.12,1.68);cabWindow.lineTo(2.16,1.68);cabWindow.lineTo(2.08,2.28);
-cabWindow.quadraticCurveTo(2.04,2.33,1.96,2.33);cabWindow.lineTo(1.43,2.33);
-cabWindow.lineTo(1.15,2.05);cabWindow.closePath();
-const cargoWindow1=new THREE.Shape();
-cargoWindow1.moveTo(-.05,1.72);cargoWindow1.lineTo(-.88,1.72);cargoWindow1.lineTo(-.88,2.30);cargoWindow1.lineTo(-.05,2.30);cargoWindow1.closePath();
-const cargoWindow2=new THREE.Shape();
-cargoWindow2.moveTo(-1.02,1.72);cargoWindow2.lineTo(-2.08,1.72);cargoWindow2.lineTo(-2.08,2.28);
-cargoWindow2.quadraticCurveTo(-2.04,2.34,-1.96,2.34);cargoWindow2.lineTo(-1.02,2.34);cargoWindow2.closePath();
-for(const side of [-1,1]){
- uazSideShape('Боковое стекло водительской двери',cabWindow,side,uazGlass);
- uazSideShape('Боковое грузовое стекло — среднее',cargoWindow1,side,uazGlass);
- uazSideShape('Боковое грузовое стекло — заднее',cargoWindow2,side,uazGlass);
- // Rubber window surrounds and body seams.
- for(const [z,y0,y1] of [[-1.64,1.63,2.36],[-.47,1.68,2.36],[.46,1.68,2.36],[1.55,1.66,2.36]]){
-  uazBox('Стойка кузова вокруг бокового стекла',[.055,y1-y0,.065],[side*1.405,(y0+y1)/2,z],uazGasket);
- }
- uazBox('Нижняя окантовка боковых окон',[.045,.055,3.95],[side*1.405,1.64,.13],uazDark);
- // Cab door outline, two handles, three hinges and worn running board.
- uazBox('Шов водительской двери',[.035,1.22,.035],[side*1.405,1.27,-1.02],uazDark);
- uazBox('Ручка боковой двери',[.055,.075,.22],[side*1.445,1.47,-.84],uazMetal);
- for(const y of [.94,1.48,2.04])uazBox('Петля водительской двери',[.09,.12,.16],[side*1.43,y,-1.82],uazMetal);
- uazBox('Подножка под боковой дверью',[.22,.11,1.10],[side*1.42,.66,-1.10],uazDark);
- // Old mirror arms and rectangular mirrors.
- uazBeam('Кронштейн бокового зеркала',[side*1.34,1.86,-1.88],[side*1.72,1.93,-2.05],.045,uazMetal);
- uazBox('Корпус бокового зеркала',[.11,.32,.26],[side*1.75,1.95,-2.06],uazDark);
- uazBox('Зеркальная поверхность',[.025,.24,.19],[side*1.81,1.95,-2.06],uazGlass);
- // Faded ribs pressed into the side panels, plus roof rain gutter.
- for(const z of [-.72,-.34,.04,.42,.80,1.18,1.56,1.94]){
-  uazBox('Штампованное ребро боковой панели',[.028,.82,.035],[side*1.392,1.12,z],uazMetal);
- }
- uazBox('Водосточный желоб крыши',[.065,.07,4.55],[side*1.34,2.49,.06],uazDark);
- // Faded vertical rust streak accents on the lower side.
- for(const z of [-.60,.02,.68,1.36,2.05]){
-  uazBox('Пятно старой ржавчины на борту',[.012,.36,.12],[side*1.414,.94,z],rust);
- }
-}
-
-// Wheels with sidewalls, pressed steel hubs, lug nuts and half-round mudguards.
-const wheelGeometry=new THREE.CylinderGeometry(.49,.49,.30,32);wheelGeometry.rotateZ(Math.PI/2);
-const hubGeometry=new THREE.CylinderGeometry(.245,.245,.315,24);hubGeometry.rotateZ(Math.PI/2);
-const wheelArchGeometry=new THREE.TorusGeometry(.565,.055,8,28,Math.PI);
-wheelArchGeometry.rotateY(Math.PI/2);
-for(const side of [-1,1])for(const z of [-1.55,1.55]){
- const tire=new THREE.Mesh(wheelGeometry,uazRubber);tire.name='Грязная внедорожная шина УАЗ';tire.position.set(side*1.40,.68,z);tire.castShadow=true;uaz.add(tire);
- const hub=new THREE.Mesh(hubGeometry,uazMetal);hub.name='Штампованный диск колеса';hub.position.set(side*1.43,.68,z);uaz.add(hub);
- const cap=uazCylinder('Ступичный колпак',.105,.105,.33,[side*1.46,.68,z],uazDark,[0,0,Math.PI/2],16);
- const ring=new THREE.Mesh(new THREE.TorusGeometry(.205,.027,8,20),uazMetal);ring.rotation.y=Math.PI/2;ring.position.set(side*1.455,.68,z);uaz.add(ring);
- const arch=new THREE.Mesh(wheelArchGeometry,uazDark);arch.name='Накладка арки колеса';arch.position.set(side*1.39, .68, z);arch.rotation.z=Math.PI;uaz.add(arch);
- for(let i=0;i<6;i++){
-  const a=i*Math.PI/3;
-  uazCylinder('Колёсная гайка',.027,.027,.035,[side*1.47,.68+Math.sin(a)*.16,z+Math.cos(a)*.16],uazDark,[0,0,Math.PI/2],8);
- }
-}
-// Rear doors, spare wheel, bumpers and faded tail lamps.
-uazBox('Задний бампер',[2.72,.18,.22],[0,.62,2.55],uazMetal);
-uazBox('Задняя дверь — шов створок',[.035,1.48,.05],[0,1.48,2.50],uazDark);
-uazBox('Ручка задних дверей',[.075,.24,.07],[0,1.45,2.57],uazMetal);
-for(const x of [-1.05,1.05]){
- uazBox('Задний фонарь УАЗ',[.18,.42,.085],[x,1.25,2.52],uazRed);
- uazBox('Задний указатель',[.18,.12,.09],[x,1.48,2.52],uazAmber);
-}
-const spare=new THREE.Mesh(wheelGeometry,uazRubber);spare.name='Запасное колесо на задней двери';
-spare.position.set(0,1.44,2.70);spare.rotation.y=Math.PI/2;uaz.add(spare);
-uazCylinder('Колпак запасного колеса',.19,.19,.33,[0,1.44,2.88],uazMetal,[Math.PI/2,0,0],18);
-uazBox('Табличка СЕВЕР-7',[.62,.16,.035],[0,2.02,2.56],uazDark);
-uazBox('Передняя эмблема',[.16,.13,.035],[0,1.48,-2.64],uazMetal);
-
-// Collision envelope for the assembled UAZ.
-colliders.push({minX:vanX-1.45,maxX:vanX+1.45,minY:0,maxY:2.55,minZ:vanZ-3.05,maxZ:vanZ+3.05});
-
-// A real GLB period forward-control van replaces the temporary box-built UAZ stand-in.
-// This asset has a sloped cab nose, deep windshield, side glazing, separate doors,
-// roof vent, tubular rack, mirrors, rear step and lamp clusters; +Z is its forward axis.
-const PERIOD_VAN_GLB_URL = 'https://cdn.3dassets.dev/assets/15685/v1/model.glb';
-if (gltfLoaderPromise) {
-  Promise.resolve(gltfLoaderPromise).then(loader => {
-    if (!loader) return;
-    loader.load(PERIOD_VAN_GLB_URL, gltf => {
-      const vehicle = gltf.scene;
-      vehicle.name = 'Служебный фургон эпохи Север-7 — GLB';
-      vehicle.position.set(vanX, 0, vanZ);
-      vehicle.rotation.y = Math.PI; // face the same direction as the previous parked vehicle
-      vehicle.scale.set(1.04, 1.06, 0.94);
-      vehicle.traverse(node => {
+      vehicle.traverse((node) => {
         if (!node.isMesh) return;
         node.castShadow = true;
         node.receiveShadow = true;
+        node.frustumCulled = true;
         const materials = Array.isArray(node.material) ? node.material : [node.material];
         for (const material of materials) {
           if (!material) continue;
-          const label = String(material.name || '').toLowerCase();
-          if (/glass|window|windscreen/.test(label)) {
-            material.transparent = true;
-            material.opacity = Math.min(material.opacity ?? 1, 0.82);
-            material.roughness = Math.max(material.roughness ?? 0.3, 0.22);
-          } else if (/rubber|tyre|tire/.test(label)) {
-            material.roughness = 0.98;
-          } else {
-            // Muted, aged service-yard palette; retain the supplied PBR maps.
-            if (material.color) material.color.multiply(new THREE.Color(0.88, 0.86, 0.76));
-            material.roughness = Math.max(material.roughness ?? 0.75, 0.86);
+          if (material.map) {
+            material.map.colorSpace = THREE.SRGBColorSpace;
+            material.map.anisotropy = 4;
+            material.map.generateMipmaps = true;
+            material.map.minFilter = THREE.LinearMipmapLinearFilter;
+            material.map.magFilter = THREE.LinearFilter;
           }
-          for (const texture of [material.map, material.normalMap, material.roughnessMap, material.metalnessMap]) {
-            if (texture) texture.anisotropy = 4;
+          if (material.isMeshPhongMaterial) {
+            // Keep the source's painted/specular appearance without overly plastic highlights.
+            material.shininess = Math.min(Number(material.shininess) || 28, 42);
+            if (material.specular) material.specular.multiplyScalar(0.55);
           }
           material.needsUpdate = true;
         }
       });
-      scene.add(vehicle);
-      uaz.visible = false;
-      console.info('[ТИШИНА] Period van GLB loaded:', PERIOD_VAN_GLB_URL);
-    }, undefined, error => {
-      console.warn('[ТИШИНА] Period van GLB failed; keeping local fallback vehicle.', error);
-    });
-  }).catch(error => console.warn('[ТИШИНА] Period van GLB loader error:', error));
-}
 
-// Transformer enclosure and a visible warning lamp near the eastern service lane.
+      uazAnchor.add(vehicle);
+      uazAnchor.updateMatrixWorld(true);
+      scene.updateMatrixWorld(true);
+
+      const worldBounds = new THREE.Box3().setFromObject(uazAnchor);
+      colliders.push({
+        minX: worldBounds.min.x + 0.10,
+        maxX: worldBounds.max.x - 0.10,
+        minY: Math.max(0, worldBounds.min.y),
+        maxY: worldBounds.max.y,
+        minZ: worldBounds.min.z + 0.10,
+        maxZ: worldBounds.max.z - 0.10
+      });
+
+      console.info('[ТИШИНА] Импортированная модель УАЗ-452 загружена', {
+        meshes: countVehicleMeshes(vehicle),
+        dimensions: worldBounds.getSize(new THREE.Vector3()).toArray().map(v => Number(v.toFixed(2)))
+      });
+    },
+    undefined,
+    (error) => {
+      console.error('[ТИШИНА] Не удалось загрузить модель УАЗ-452:', error);
+      notify('НЕ УДАЛОСЬ ЗАГРУЗИТЬ МОДЕЛЬ УАЗ. Проверьте соединение и обновите игру.');
+    }
+  );
+
+  function countVehicleMeshes(root) {
+    let count = 0;
+    root.traverse(node => { if (node.isMesh) count++; });
+    return count;
+  }
+
+
+  // Transformer enclosure and a visible warning lamp near the eastern service lane.
   solid('Трансформаторная будка', [7.2, 4.1, 6.2], [28, 2.05, 5], darkSteel);
   for (let x = 24.9; x <= 31.1; x += 1.25) detail('Решётка трансформаторной', [0.055, 2.5, 0.08], [x, 1.8, 1.84], steel);
   detail('Знак высокого напряжения', [0.72, 0.78, 0.06], [28, 2.6, 1.78], hazard);
