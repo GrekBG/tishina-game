@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="ТИШИНА">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>ТИШИНА — Север-7 · версия 0.4.4</title>
+<title>ТИШИНА — Север-7 · версия 0.4.5</title>
 <style>
 :root{color-scheme:dark;--panel:rgba(13,18,17,.94);--line:rgba(205,215,207,.22);--ink:#e2e7df;--muted:#9ca79e}
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#171d1c;color:var(--ink);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;overscroll-behavior:none}
@@ -19,7 +19,7 @@
 #controls{position:fixed;z-index:5;left:16px;right:16px;bottom:calc(15px + env(safe-area-inset-bottom));display:flex;justify-content:space-between;align-items:end;pointer-events:none;touch-action:none}#stick{width:116px;height:116px;border:1px solid #e0e7dd55;background:#18211c88;border-radius:50%;position:relative;pointer-events:auto;touch-action:none}#nub{position:absolute;width:44px;height:44px;left:35px;top:35px;border-radius:50%;background:#c8d2c355;border:1px solid #e5ebdf88}#actions{display:flex;gap:6px;align-items:end;pointer-events:auto}.btn{color:var(--ink);background:#17201ddc;border:1px solid #d5ded455;border-radius:5px;min-width:58px;height:56px;padding:0 12px;font-size:10px;font-weight:750;letter-spacing:.05em;touch-action:manipulation}.btn.primary{background:#d0d8cd;color:#17201b;border-color:#d0d8cd}.btn.round{width:56px;min-width:56px;border-radius:50%;padding:0}.btn:active{filter:brightness(1.25)}.btn:disabled{opacity:.35;filter:none}.btn.active{background:#d2dfcf;color:#172019;border-color:#e0e9dc;box-shadow:0 0 14px #c4d8be55}.btn.depleted{opacity:.55}.barHead{display:flex;justify-content:flex-end;gap:8px;align-items:center;margin-top:4px;font-size:8px;letter-spacing:.1em;color:#b7c0b7}.barHead b{font-size:9px;color:#e1e7df}.barTrack{width:116px;height:6px;margin:3px 0 0 auto;background:#dce5dc40;border:1px solid #e2e8dc33;border-radius:5px;overflow:hidden}.barTrack>div{width:100%;height:100%;transition:width .12s linear}.healthTrack>div{background:#b96e66}.staminaTrack>div{background:#cbd9c4}.barTrack.low>div{filter:brightness(1.3);box-shadow:0 0 7px currentColor}.healthTrack.low{border-color:#df796d88}.statusBars{margin-top:3px}
 #damageFx{position:fixed;z-index:3;inset:0;pointer-events:none;opacity:0;transition:opacity .18s;background:radial-gradient(ellipse at center,transparent 28%,rgba(125,18,15,.56) 100%)}
 #message{position:fixed;z-index:6;top:17%;left:50%;transform:translateX(-50%);max-width:min(88%,480px);padding:10px 14px;background:#101715e8;border:1px solid var(--line);border-radius:4px;text-align:center;font-size:12px;opacity:0;pointer-events:none;transition:opacity .2s}
-#inventory,#intro,#rotate,#pause,#confirmNew,#downed,#motionPanel{position:fixed;z-index:10;inset:0;display:none;align-items:center;justify-content:center;padding:22px;background:rgba(5,9,8,.82);backdrop-filter:blur(7px)}.panel{position:relative;width:min(480px,100%);padding:24px;background:linear-gradient(145deg,#202925,#111715);border:1px solid #9da99a44;box-shadow:0 18px 70px #0009}.eyebrow{font-size:9px;letter-spacing:.2em;color:#9ca99d}.panel h1,.panel h2{margin:9px 0 12px;font-size:clamp(24px,5vw,36px);letter-spacing:.12em}.panel p{font-size:13px;line-height:1.7;color:#c1c9c0;white-space:pre-line}.panel .closeX{position:absolute;right:12px;top:10px;width:38px;height:38px;border:1px solid var(--line);background:transparent;color:var(--ink);font-size:22px}.panel .foot{margin-top:20px;color:#8e9a90;font-size:10px;letter-spacing:.1em}.panel .wide{width:100%;margin-top:18px;height:46px}
+#inspect,#inventory,#intro,#rotate,#pause,#confirmNew,#downed,#motionPanel{position:fixed;z-index:10;inset:0;display:none;align-items:center;justify-content:center;padding:22px;background:rgba(5,9,8,.82);backdrop-filter:blur(7px)}.panel{position:relative;width:min(480px,100%);padding:24px;background:linear-gradient(145deg,#202925,#111715);border:1px solid #9da99a44;box-shadow:0 18px 70px #0009}.eyebrow{font-size:9px;letter-spacing:.2em;color:#9ca99d}.panel h1,.panel h2{margin:9px 0 12px;font-size:clamp(24px,5vw,36px);letter-spacing:.12em}.panel p{font-size:13px;line-height:1.7;color:#c1c9c0;white-space:pre-line}.panel .closeX{position:absolute;right:12px;top:10px;width:38px;height:38px;border:1px solid var(--line);background:transparent;color:var(--ink);font-size:22px}.panel .foot{margin-top:20px;color:#8e9a90;font-size:10px;letter-spacing:.1em}.panel .wide{width:100%;margin-top:18px;height:46px}
 #intro{display:flex;background:linear-gradient(180deg,#111816f2,#111816e8),radial-gradient(ellipse,#39443d,#111816)}#intro .panel{text-align:center;background:transparent;border:0;box-shadow:none;max-width:560px}#intro h1{font-size:clamp(42px,11vw,74px);letter-spacing:.25em;margin:12px 0}#intro .desc{margin:22px auto;max-width:440px}#rotate{z-index:20;background:#111816;display:none;text-align:center}#rotate .panel{background:transparent;border:0;box-shadow:none}#rotate .symbol{font-size:46px;margin-bottom:12px}
 #inventory .panel,#pause .panel,#confirmNew .panel{max-height:84vh;overflow:auto}#downed{z-index:15}#downed .panel{text-align:center}#items{font-size:12px;line-height:2;color:#c6cec5}#hintline{font-size:10px;color:#9ca79d;margin-top:12px}.menuActions{display:grid;grid-template-columns:1fr;gap:8px;margin-top:16px}.menuActions .wide{margin:0}.menuStatus{min-height:18px;margin-top:12px;color:#aeb8ae;font-size:10px;text-align:center;letter-spacing:.08em}.supplyRow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #ffffff18;font-size:12px}.supplyRow button{height:34px;min-width:112px}.supplyRow button:disabled{opacity:.35}.inventorySection{margin-top:18px}.inventorySection h3{font-size:10px;letter-spacing:.15em;color:#9ca99d}.menuSecondary{background:#222c27!important;color:#dbe2d9!important;border-color:#76827655!important}
 @media(orientation:portrait){#rotate{display:flex}#intro{display:none}}
@@ -132,7 +132,10 @@ body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;font-f
 #intro .menuActions .wide{height:47px;}
 #intro .foot{margin-top:24px;color:#9ca89b;}
 #rotate .symbol{color:var(--accent);}
-#inventoryWeight,#hintline,.itemMeta,.inventorySection h3{font-family:var(--ui-mono);font-size:9px;font-weight:500;letter-spacing:.19em;color:var(--accent-soft);}
+#inspectText{max-width:66ch;}
+#inspectFoot{border-top:1px solid #ffffff17;padding-top:12px;}
+#inventoryWeight,#hintline{font-family:var(--ui-mono);font-size:9px;letter-spacing:.1em;color:#b3bcae;}
+.inventorySection h3{font-family:var(--ui-mono);font-size:9px;font-weight:500;letter-spacing:.19em;color:var(--accent-soft);}
 .inventoryCell{border-color:#b7c4b32e;border-radius:2px;background:linear-gradient(145deg,#ffffff0b,#ffffff03);font-family:var(--ui-body);font-size:10px;line-height:1.35;transition:border-color .16s,background .16s;}
 .inventoryCell:not(.empty){border-left:2px solid #b99a65;}
 .inventoryCell .cellIcon{font-size:17px;filter:grayscale(.15);}
@@ -172,7 +175,7 @@ body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;font-f
 }
 
 
-/* TISHINA 0.4.3 — mobile viewport and start-menu fit */
+/* TISHINA 0.4.5 — mobile viewport and start-menu fit */
 html,body{min-height:100%;min-height:100dvh;}
 #scene{width:100vw;height:100vh;height:100dvh;}
 #intro{inset:0;width:100vw;min-height:100vh;min-height:100dvh;height:100vh;height:100dvh;padding:calc(env(safe-area-inset-top,0px) + 8px) max(12px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 8px) max(12px,env(safe-area-inset-left,0px));overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
@@ -205,7 +208,7 @@ html,body{min-height:100%;min-height:100dvh;}
 }
 @media (orientation:portrait){#intro{display:none;}}
 
-/* TISHINA 0.4.3 — use the live Safari visual viewport; the menu may scroll rather than clip. */
+/* TISHINA 0.4.5 — use the live Safari visual viewport; the menu may scroll rather than clip. */
 html,body{width:100%;height:var(--tishina-app-height,100dvh);min-height:var(--tishina-app-height,100dvh);}
 #scene{position:fixed;left:var(--tishina-app-left,0px);top:var(--tishina-app-top,0px);width:var(--tishina-app-width,100vw);height:var(--tishina-app-height,100dvh);}
 #intro{left:var(--tishina-app-left,0px);top:var(--tishina-app-top,0px);right:auto;bottom:auto;width:var(--tishina-app-width,100vw);height:var(--tishina-app-height,100dvh);min-height:var(--tishina-app-height,100dvh);max-height:var(--tishina-app-height,100dvh);display:flex;align-items:center;justify-content:center;touch-action:pan-y;overflow-x:hidden;overflow-y:auto;padding:8px 12px;padding-top:max(8px,env(safe-area-inset-top,0px));padding-right:max(12px,env(safe-area-inset-right,0px));padding-bottom:max(8px,env(safe-area-inset-bottom,0px));padding-left:max(12px,env(safe-area-inset-left,0px));overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
@@ -251,7 +254,6 @@ html,body{width:100%;height:var(--tishina-app-height,100dvh);min-height:var(--ti
   window.visualViewport?.addEventListener('scroll', syncViewport, { passive: true });
 })();
 </script>
-<link rel="preconnect" href="https://cdn.3dassets.dev" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -273,16 +275,15 @@ html,body{width:100%;height:var(--tishina-app-height,100dvh);min-height:var(--ti
   <button class="btn iconBtn" id="bag" aria-label="Инвентарь" title="Инвентарь"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l1.4 12H3.6L5 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2M9 13h6"/></svg></button>
   <button class="btn iconBtn" id="jump" aria-label="Прыжок" title="Прыжок"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20V5M6 11l6-6 6 6M5 20h14"/></svg></button>
   <button class="btn iconBtn" id="fullscreen" aria-label="Полный экран" title="Полный экран"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4H4v4M16 4h4v4M4 16v4h4M20 16v4h-4"/></svg></button>
-  <button class="btn primary iconBtn" id="use" aria-label="Действие" title="Действие"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 12V6.5a1.5 1.5 0 0 1 3 0V11 5.8a1.5 1.5 0 0 1 3 0V11 7.2a1.5 1.5 0 0 1 3 0v5.1l1.1-1.2a1.7 1.7 0 0 1 2.8 1.6l-1.7 5A3.5 3.5 0 0 1 15.9 20h-4.2a4 4 0 0 1-3.1-1.5L5.4 14a1.8 1.8 0 0 1 2.6-2.4L10 14"/></svg></button>
+  <button class="btn primary iconBtn" id="use" aria-label="Взаимодействовать / подобрать" title="Взаимодействовать / подобрать"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 12V6.5a1.5 1.5 0 0 1 3 0V11 5.8a1.5 1.5 0 0 1 3 0V11 7.2a1.5 1.5 0 0 1 3 0v5.1l1.1-1.2a1.7 1.7 0 0 1 2.8 1.6l-1.7 5A3.5 3.5 0 0 1 15.9 20h-4.2a4 4 0 0 1-3.1-1.5L5.4 14a1.8 1.8 0 0 1 2.6-2.4L10 14"/></svg></button>
   <button class="btn iconBtn sprintBtn" id="sprint" aria-label="Удерживать для бега" title="Удерживать для бега" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="15.5" cy="4.2" r="2"/><path d="m12.8 7.2-3.1 4.1 4.4 2.1 2.7-2.7 3.5 1.4M9.7 11.3l-3.8.2M13.8 13.4 11 18.8l-4.2 1.5M14 13.5l3.1 5.4 3 .6"/></svg></button>
  </div>
 </div>
-<div id="intro"><div class="panel"><div class="eyebrow">ГРАФИКА И УПРАВЛЕНИЕ · 0.4.4</div><h1>ТИШИНА</h1><div class="eyebrow">ПОСЛЕ КАТАСТРОФЫ МИР НЕ ИСЧЕЗ.</div><p class="desc">Северный промышленный регион. 18 ноября 2034 года.<br>Комплекс «Север-7» эвакуирован четыре дня назад.<br>На аварийной частоте снова появился сигнал.</p><div class="menuActions"><button class="btn primary wide" id="continueTitle" disabled>ПРОДОЛЖИТЬ</button><button class="btn wide" id="start">НОВАЯ ИГРА</button><button class="btn wide menuSecondary" id="titleLoad" disabled>ЗАГРУЗИТЬ СОХРАНЕНИЕ</button></div><div class="menuStatus" id="titleStatus"></div><div class="foot">ЛЕВЫЙ СТИК — ДВИЖЕНИЕ · ПРАВАЯ ЧАСТЬ — ОБЗОР ВВЕРХ / ВНИЗ / ПО СТОРОНАМ</div></div></div>
+<div id="intro"><div class="panel"><div class="eyebrow">ГРАФИКА И УПРАВЛЕНИЕ · 0.4.5</div><h1>ТИШИНА</h1><div class="eyebrow">ПОСЛЕ КАТАСТРОФЫ МИР НЕ ИСЧЕЗ.</div><p class="desc">Северный промышленный регион. 18 ноября 2034 года.<br>Комплекс «Север-7» эвакуирован четыре дня назад.<br>На аварийной частоте снова появился сигнал.</p><div class="menuActions"><button class="btn primary wide" id="continueTitle" disabled>ПРОДОЛЖИТЬ</button><button class="btn wide" id="start">НОВАЯ ИГРА</button><button class="btn wide menuSecondary" id="titleLoad" disabled>ЗАГРУЗИТЬ СОХРАНЕНИЕ</button></div><div class="menuStatus" id="titleStatus"></div><div class="foot">ЛЕВЫЙ СТИК — ДВИЖЕНИЕ · ПРАВАЯ ЧАСТЬ — ОБЗОР ВВЕРХ / ВНИЗ / ПО СТОРОНАМ</div></div></div>
 <div id="rotate"><div class="panel"><div class="symbol">↻</div><h2>ПОВЕРНИТЕ УСТРОЙСТВО</h2><p>«ТИШИНА» рассчитана на горизонтальный экран.</p></div></div>
-
-
+<div id="inspect"><div class="panel"><button class="closeX" id="closeInspect" aria-label="Закрыть">×</button><div class="eyebrow" id="inspectType">ОСМОТР</div><h2 id="inspectTitle">Предмет</h2><p id="inspectText"></p><div class="foot" id="inspectFoot">ОСМОТРЕННЫЙ ОБЪЕКТ СОХРАНЁН В ЖУРНАЛЕ</div></div></div>
+</div>
 <div id="motionPanel"><div class="panel"><button class="closeX" id="motionClosePanel" aria-label="Закрыть">×</button><div class="eyebrow">ВЗАИМОДЕЙСТВИЕ</div><h2 id="motionTitle">МЕХАНИЗМ</h2><p id="motionDescription">Выбери действие.</p><div class="motionActions"><button class="btn" id="motionAjar">ЩЕЛЬ</button><button class="btn" id="motionPeek">ЗАГЛЯНУТЬ</button><button class="btn primary" id="motionSlowOpen">ТИХО ОТКР.</button><button class="btn" id="motionFastOpen">РЕЗКО ОТКР.</button><button class="btn" id="motionSlowClose">ТИХО ЗАКР.</button><button class="btn" id="motionFastClose">РЕЗКО ЗАКР.</button><button class="btn primary" id="motionHoldOpen">ДЕРЖАТЬ +</button><button class="btn" id="motionHoldClose">ДЕРЖАТЬ −</button></div><div class="foot">УДЕРЖИВАЙ — ДЛЯ ТОЧНОГО ПОЛОЖЕНИЯ.</div></div></div>
-
 <div id="inventory"><div class="panel"><button class="closeX" id="closeBag">×</button><div class="eyebrow">ЛИЧНЫЕ ЗАПИСИ И СНАРЯЖЕНИЕ</div><h2>ИНВЕНТАРЬ</h2><div class="inventorySection"><h3>НАЙДЕННЫЕ ЗАПИСИ</h3><div id="inventoryWeight">ВЕС: 0 / 8 КГ · ЯЧЕЙКИ: 0 / 8</div><div id="items" class="inventoryGrid">Пока пусто</div></div><div class="inventorySection"><h3>РАСХОДНИКИ</h3><div class="supplyRow"><span>Аптечка · <b id="medkitCount">0</b></span><button class="btn" id="useMedkit">ИСПОЛЬЗОВАТЬ</button></div><div class="supplyRow"><span>Энергетик · <b id="energyCount">0</b></span><button class="btn" id="useEnergy">ИСПОЛЬЗОВАТЬ</button></div></div><div id="hintline">Сохранения хранятся на этом устройстве.</div></div></div>
 <div id="pause"><div class="panel"><button class="closeX" id="closeMenu">×</button><div class="eyebrow">СЕВЕР-7 · ПАУЗА</div><h2>ГЛАВНОЕ МЕНЮ</h2><p>Прогресс можно сохранить на устройстве и продолжить позже.</p><div class="menuActions"><button class="btn primary wide" id="continueGame">ПРОДОЛЖИТЬ</button><button class="btn wide" id="saveGame">СОХРАНИТЬ ИГРУ</button><button class="btn wide" id="loadGame">ЗАГРУЗИТЬ ИГРУ</button><button class="btn wide" id="newGame">НОВАЯ ИГРА</button><button class="btn wide menuSecondary" id="exitGame">ВЫЙТИ ИЗ ИГРЫ</button></div><div class="menuStatus" id="menuStatus"></div></div></div>
 <div id="confirmNew"><div class="panel"><div class="eyebrow">ПОДТВЕРЖДЕНИЕ</div><h2>НАЧАТЬ ЗАНОВО?</h2><p>Текущий прогресс останется в последнем сохранении, но несохранённые изменения будут потеряны.</p><div class="menuActions"><button class="btn primary wide" id="confirmNewYes">НАЧАТЬ НОВУЮ ИГРУ</button><button class="btn wide" id="confirmNewNo">ОТМЕНА</button></div></div></div>
@@ -293,7 +294,7 @@ html,body{width:100%;height:var(--tishina-app-height,100dvh);min-height:var(--ti
   let queuedStart = false;
   const statusNode = () => document.getElementById('titleStatus');
   const shortError = value => String(value || 'Неизвестная ошибка').split('\n')[0].slice(0, 180);
-  const currentCacheName = 'tishina-0-4-4-glb-models-no-item-examine';
+  const currentCacheName = 'tishina-0-4-5-uaz-dae-one-tap-pickup';
   const threeSources = [
     'https://cdn.jsdelivr.net/npm/three@0.187.0/build/three.module.js',
     'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.187.0/three.module.js'

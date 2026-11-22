@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tishina-0-4-4-glb-models-no-item-examine';
+const CACHE_NAME = 'tishina-0-4-5-uaz-dae-one-tap-pickup';
 const APP_SHELL = [
   './',
   './index.html',
@@ -8,6 +8,12 @@ const APP_SHELL = [
   './src/world-expansion.js',
   './src/story.js',
   './src/sky-weather.js',
+  './assets/uaz/uaz.dae',
+  './assets/uaz/uaz-body.webp',
+  './assets/uaz/uaz-details.webp',
+  './uaz.dae',
+  './uaz-body.webp',
+  './uaz-details.webp',
   './icon-192.png',
   './icon-512.png'
 ];
