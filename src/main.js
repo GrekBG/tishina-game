@@ -65,6 +65,9 @@ const concreteMap=grungeTexture('#777d77',7), plasterMap=grungeTexture('#999b90'
 const mat = (color, roughness=0.92, metalness=0) => new THREE.MeshStandardMaterial({ color, roughness, metalness });
 const concrete = mat(0x747a75), darkConcrete = mat(0x444b47), plaster = mat(0x888d85), dirtyWhite = mat(0x9a9b8f), metal = mat(0x414b49,.78,.62), rust = mat(0x704b37,.96,.08), glass = new THREE.MeshStandardMaterial({color:0x738b8a,roughness:.42,metalness:.02,transparent:true,opacity:.30}), floorMat = mat(0x686d66,.98,.015), wood = mat(0x554b3e), paper = mat(0xb7b39e), yellow = mat(0x9b8b55,.9,.03);
 const gravelMat = mat(0x65645a,.99,.0), earthMat = mat(0x4e5148,.99,.0), driveConcreteMat = mat(0x73766e,.96,.0);
+// Shared hangar steel materials (also used by the main scene, not only the yard module).
+const steel = metal.clone(); steel.color.setHex(0x303a37); steel.roughness = 0.72; steel.metalness = 0.72;
+const darkSteel = darkConcrete.clone(); darkSteel.color.setHex(0x202927); darkSteel.roughness = 0.82; darkSteel.metalness = 0.58;
 const pbrBuild = installPbrSurfaces(THREE, { concrete, darkConcrete, plaster, dirtyWhite, metal, rust, floorMat, wood, paper, yellow, gravel:gravelMat, earth:earthMat, driveConcrete:driveConcreteMat }, {
  renderer, quality: 'ultra', maxAnisotropy: isMobileDevice ? 4 : 8, rowsPerYield: isMobileDevice ? 12 : 24
 }).catch(error => { console.error('[ТИШИНА] HD PBR generation failed; keeping base 1024px maps.', error); });
