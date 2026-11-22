@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tishina-0-3-3-camera-flashlight-hangar';
+const CACHE_NAME = 'tishina-0-3-4-fix-mobile-start';
 const APP_SHELL = [
   './',
   './index.html',
