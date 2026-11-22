@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="ТИШИНА">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>ТИШИНА — Север-7 · версия 0.3.2</title>
+<title>ТИШИНА — Север-7 · версия 0.3.3</title>
 <style>
 :root{color-scheme:dark;--panel:rgba(13,18,17,.94);--line:rgba(205,215,207,.22);--ink:#e2e7df;--muted:#9ca79e}
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#171d1c;color:var(--ink);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;touch-action:none;overscroll-behavior:none}
@@ -74,8 +74,8 @@
 #itemChoice .panel{width:min(360px,calc(100vw - 28px));padding:16px 18px;border-radius:10px}
 #itemChoice .panel h2{font-size:19px;margin:6px 0 7px}
 #itemChoice .panel p{font-size:11px;line-height:1.4;margin:4px 0}
-#itemChoice .menuActions{grid-template-columns:1fr 1fr;gap:7px;margin-top:10px}
-#itemChoice .menuActions .wide{height:38px;margin:0;padding:0 6px;font-size:8px;min-width:0}
+#itemChoice .menuActions{grid-template-columns:1fr;gap:7px;margin-top:10px}
+#itemChoice .menuActions .wide{height:40px;margin:0;padding:0 6px;font-size:9px;min-width:0}
 #top .stats{font-size:9px}
 @media(max-width:740px) and (orientation:landscape){
  #controls{left:8px;right:8px;bottom:calc(6px + env(safe-area-inset-bottom));gap:6px}
@@ -91,7 +91,7 @@
 }
 @media(max-width:390px) and (orientation:landscape){#actions{gap:3px}.btn.iconBtn{width:36px;height:36px;min-width:36px}.btn.sprintBtn{width:43px;height:43px;min-width:43px}#stick{width:76px;height:76px;flex-basis:76px}#nub{left:19px;top:19px}}
 
-/* TISHINA 0.3.2 — industrial editorial interface system */
+/* TISHINA 0.3.3 — camera-only controls, flashlight and item actions */
 :root{
   --panel:rgba(12,17,16,.95);
   --line:rgba(210,218,202,.24);
@@ -213,6 +213,7 @@ body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;font-f
   </div>
  </div>
  <div id="actions">
+  <button class="btn iconBtn" id="flashlight" aria-label="Фонарик" title="Включить фонарик" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8l1 4-2 2v7l-3 3-3-3v-7L7 8l1-4Z"/><path d="M9 8h6M10 11h4M10 14h4M12 20v1"/></svg></button>
   <button class="btn iconBtn" id="bag" aria-label="Инвентарь" title="Инвентарь"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l1.4 12H3.6L5 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2M9 13h6"/></svg></button>
   <button class="btn iconBtn" id="jump" aria-label="Прыжок" title="Прыжок"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20V5M6 11l6-6 6 6M5 20h14"/></svg></button>
   <button class="btn iconBtn" id="fullscreen" aria-label="Полный экран" title="Полный экран"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4H4v4M16 4h4v4M4 16v4h4M20 16v4h-4"/></svg></button>
@@ -220,12 +221,12 @@ body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;font-f
   <button class="btn iconBtn sprintBtn" id="sprint" aria-label="Удерживать для бега" title="Удерживать для бега" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="15.5" cy="4.2" r="2"/><path d="m12.8 7.2-3.1 4.1 4.4 2.1 2.7-2.7 3.5 1.4M9.7 11.3l-3.8.2M13.8 13.4 11 18.8l-4.2 1.5M14 13.5l3.1 5.4 3 .6"/></svg></button>
  </div>
 </div>
-<div id="intro"><div class="panel"><div class="eyebrow">ГРАФИКА И ИНТЕРФЕЙС · 0.3.2</div><h1>ТИШИНА</h1><div class="eyebrow">ПОСЛЕ КАТАСТРОФЫ МИР НЕ ИСЧЕЗ.</div><p class="desc">Северный промышленный регион. 18 ноября 2034 года.<br>Комплекс «Север-7» эвакуирован четыре дня назад.<br>На аварийной частоте снова появился сигнал.</p><div class="menuActions"><button class="btn primary wide" id="continueTitle" disabled>ПРОДОЛЖИТЬ</button><button class="btn wide" id="start">НОВАЯ ИГРА</button><button class="btn wide menuSecondary" id="titleLoad" disabled>ЗАГРУЗИТЬ СОХРАНЕНИЕ</button></div><div class="menuStatus" id="titleStatus"></div><div class="foot">ЛЕВЫЙ СТИК — ДВИЖЕНИЕ · ПРАВАЯ ЧАСТЬ — ОБЗОР ВВЕРХ / ВНИЗ / ПО СТОРОНАМ</div></div></div>
+<div id="intro"><div class="panel"><div class="eyebrow">ГРАФИКА И УПРАВЛЕНИЕ · 0.3.3</div><h1>ТИШИНА</h1><div class="eyebrow">ПОСЛЕ КАТАСТРОФЫ МИР НЕ ИСЧЕЗ.</div><p class="desc">Северный промышленный регион. 18 ноября 2034 года.<br>Комплекс «Север-7» эвакуирован четыре дня назад.<br>На аварийной частоте снова появился сигнал.</p><div class="menuActions"><button class="btn primary wide" id="continueTitle" disabled>ПРОДОЛЖИТЬ</button><button class="btn wide" id="start">НОВАЯ ИГРА</button><button class="btn wide menuSecondary" id="titleLoad" disabled>ЗАГРУЗИТЬ СОХРАНЕНИЕ</button></div><div class="menuStatus" id="titleStatus"></div><div class="foot">ЛЕВЫЙ СТИК — ДВИЖЕНИЕ · ПРАВАЯ ЧАСТЬ — ОБЗОР ВВЕРХ / ВНИЗ / ПО СТОРОНАМ</div></div></div>
 <div id="rotate"><div class="panel"><div class="symbol">↻</div><h2>ПОВЕРНИТЕ УСТРОЙСТВО</h2><p>«ТИШИНА» рассчитана на горизонтальный экран.</p></div></div>
 <div id="inspect"><div class="panel"><button class="closeX" id="closeInspect" aria-label="Закрыть">×</button><div class="eyebrow" id="inspectType">ОСМОТР</div><h2 id="inspectTitle">Предмет</h2><p id="inspectText"></p><div class="foot" id="inspectFoot">ОСМОТРЕННЫЙ ОБЪЕКТ СОХРАНЁН В ЖУРНАЛЕ</div></div></div>
-<div id="itemChoice"><div class="panel"><div class="eyebrow" id="choiceType">НАЙДЕННЫЙ ПРЕДМЕТ</div><h2 id="choiceTitle">Предмет</h2><p id="choiceText">Осмотреть предмет?</p><div class="menuActions"><button class="btn primary wide" id="choiceTake">ВЗЯТЬ В РУКИ</button><button class="btn wide" id="choiceLeave">ОСТАВИТЬ НА МЕСТЕ</button></div></div></div>
+<div id="itemChoice"><div class="panel"><div class="eyebrow" id="choiceType">НАЙДЕННЫЙ ПРЕДМЕТ</div><h2 id="choiceTitle">Предмет</h2><p id="choiceText">Выбери действие.</p><div class="menuActions itemChoiceActions"><button class="btn primary wide" id="choiceInspect">ОСМОТРЕТЬ ПРЕДМЕТ</button><button class="btn wide" id="choiceInventory">В ИНВЕНТАРЬ</button><button class="btn wide" id="choiceLeave">ОСТАВИТЬ НА МЕСТЕ</button></div></div></div>
 <div id="motionPanel"><div class="panel"><button class="closeX" id="motionClosePanel" aria-label="Закрыть">×</button><div class="eyebrow">ВЗАИМОДЕЙСТВИЕ</div><h2 id="motionTitle">МЕХАНИЗМ</h2><p id="motionDescription">Выбери действие.</p><div class="motionActions"><button class="btn" id="motionAjar">ЩЕЛЬ</button><button class="btn" id="motionPeek">ЗАГЛЯНУТЬ</button><button class="btn primary" id="motionSlowOpen">ТИХО ОТКР.</button><button class="btn" id="motionFastOpen">РЕЗКО ОТКР.</button><button class="btn" id="motionSlowClose">ТИХО ЗАКР.</button><button class="btn" id="motionFastClose">РЕЗКО ЗАКР.</button><button class="btn primary" id="motionHoldOpen">ДЕРЖАТЬ +</button><button class="btn" id="motionHoldClose">ДЕРЖАТЬ −</button></div><div class="foot">УДЕРЖИВАЙ — ДЛЯ ТОЧНОГО ПОЛОЖЕНИЯ.</div></div></div>
-<div id="itemExamine"><div id="itemStage"></div><div id="itemStageHint">ПЕРЕТАСКИВАЙ ПРЕДМЕТ ПАЛЬЦЕМ, ЧТОБЫ ПОВЕРНУТЬ</div><div id="itemHud"><div class="itemTop"><div class="itemMeta" id="heldType">ОСМОТР ПРЕДМЕТА</div><div class="itemMeta" id="heldWeight"></div></div><h2 id="heldTitle">Предмет</h2><p id="heldDescription"></p><div id="itemSpecialActions" class="itemSpecialActions" style="display:none"></div><div class="itemActions"><button class="btn primary" id="takeToInventory">ЗАБРАТЬ С СОБОЙ</button><button class="btn" id="putBack">ПОЛОЖИТЬ НА МЕСТО</button></div></div></div>
+<div id="itemExamine"><div id="itemStage"></div><div id="itemStageHint">ПЕРЕТАСКИВАЙ ПРЕДМЕТ ПАЛЬЦЕМ, ЧТОБЫ ПОВЕРНУТЬ</div><div id="itemHud"><div class="itemTop"><div class="itemMeta" id="heldType">ОСМОТР ПРЕДМЕТА</div><div class="itemMeta" id="heldWeight"></div></div><h2 id="heldTitle">Предмет</h2><p id="heldDescription"></p><div id="itemSpecialActions" class="itemSpecialActions" style="display:none"></div><div class="itemActions"><button class="btn primary" id="takeToInventory">В ИНВЕНТАРЬ</button><button class="btn" id="putBack">ПОЛОЖИТЬ НА МЕСТО</button></div></div></div>
 <div id="inventory"><div class="panel"><button class="closeX" id="closeBag">×</button><div class="eyebrow">ЛИЧНЫЕ ЗАПИСИ И СНАРЯЖЕНИЕ</div><h2>ИНВЕНТАРЬ</h2><div class="inventorySection"><h3>НАЙДЕННЫЕ ЗАПИСИ</h3><div id="inventoryWeight">ВЕС: 0 / 8 КГ · ЯЧЕЙКИ: 0 / 8</div><div id="items" class="inventoryGrid">Пока пусто</div></div><div class="inventorySection"><h3>РАСХОДНИКИ</h3><div class="supplyRow"><span>Аптечка · <b id="medkitCount">0</b></span><button class="btn" id="useMedkit">ИСПОЛЬЗОВАТЬ</button></div><div class="supplyRow"><span>Энергетик · <b id="energyCount">0</b></span><button class="btn" id="useEnergy">ИСПОЛЬЗОВАТЬ</button></div></div><div id="hintline">Сохранения хранятся на этом устройстве.</div></div></div>
 <div id="pause"><div class="panel"><button class="closeX" id="closeMenu">×</button><div class="eyebrow">СЕВЕР-7 · ПАУЗА</div><h2>ГЛАВНОЕ МЕНЮ</h2><p>Прогресс можно сохранить на устройстве и продолжить позже.</p><div class="menuActions"><button class="btn primary wide" id="continueGame">ПРОДОЛЖИТЬ</button><button class="btn wide" id="saveGame">СОХРАНИТЬ ИГРУ</button><button class="btn wide" id="loadGame">ЗАГРУЗИТЬ ИГРУ</button><button class="btn wide" id="newGame">НОВАЯ ИГРА</button><button class="btn wide menuSecondary" id="exitGame">ВЫЙТИ ИЗ ИГРЫ</button></div><div class="menuStatus" id="menuStatus"></div></div></div>
 <div id="confirmNew"><div class="panel"><div class="eyebrow">ПОДТВЕРЖДЕНИЕ</div><h2>НАЧАТЬ ЗАНОВО?</h2><p>Текущий прогресс останется в последнем сохранении, но несохранённые изменения будут потеряны.</p><div class="menuActions"><button class="btn primary wide" id="confirmNewYes">НАЧАТЬ НОВУЮ ИГРУ</button><button class="btn wide" id="confirmNewNo">ОТМЕНА</button></div></div></div>

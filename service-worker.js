@@ -1,6 +1,4 @@
-
-const CACHE_NAME = 'tishina-0-3-2-static-v2';
-
+const CACHE_NAME = 'tishina-0-3-3-camera-flashlight-hangar';
 const APP_SHELL = [
   './',
   './index.html',
@@ -25,62 +23,48 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(
-        keys.filter(key => key !== CACHE_NAME)
-          .map(key => caches.delete(key))
-      ))
+      .then(keys => Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))))
       .then(() => self.clients.claim())
   );
 });
 
 self.addEventListener('fetch', event => {
   const request = event.request;
-
   if (request.method !== 'GET') return;
 
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
+  // HTML navigation is network-first; only navigations may fall back to index.html.
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request)
-        .then(response => {
-          if (response && response.ok) {
-            const copy = response.clone();
-            caches.open(CACHE_NAME)
-              .then(cache => cache.put('./index.html', copy));
-          }
-          return response;
-        })
-        .catch(async () => {
-          const cached = await caches.match('./index.html');
-
-          return cached || new Response(
-            'Страница недоступна офлайн. Подключитесь к интернету и обновите игру.',
-            {
-              status: 503,
-              headers: {
-                'Content-Type': 'text/plain; charset=utf-8'
-              }
-            }
-          );
-        })
+      fetch(request).then(response => {
+        if (response && response.ok) {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put('./index.html', copy));
+        }
+        return response;
+      }).catch(async () => {
+        const cached = await caches.match('./index.html');
+        return cached || new Response('Страница недоступна офлайн. Подключитесь к интернету и обновите игру.', {
+          status: 503,
+          headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+        });
+      })
     );
-
     return;
   }
 
+  // Static assets are cache-first. A missing JS module stays a failed JS request,
+  // it is never replaced by an HTML document.
   event.respondWith(
     caches.match(request).then(cached => {
       if (cached) return cached;
-
       return fetch(request).then(response => {
         if (response && response.ok) {
           const copy = response.clone();
-          caches.open(CACHE_NAME)
-            .then(cache => cache.put(request, copy));
+          caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
         }
-
         return response;
       });
     })
