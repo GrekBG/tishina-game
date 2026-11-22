@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="ТИШИНА">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>ТИШИНА — Север-7 · версия 0.4.1</title>
+<title>ТИШИНА — Север-7 · версия 0.4.2</title>
 <style>
 :root{color-scheme:dark;--panel:rgba(13,18,17,.94);--line:rgba(205,215,207,.22);--ink:#e2e7df;--muted:#9ca79e}
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#171d1c;color:var(--ink);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;overscroll-behavior:none}
@@ -195,7 +195,7 @@ body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;font-f
 }
 
 
-/* TISHINA 0.4.1 — mobile viewport and start-menu fit */
+/* TISHINA 0.4.2 — mobile viewport and start-menu fit */
 html,body{min-height:100%;min-height:100dvh;}
 #scene{width:100vw;height:100vh;height:100dvh;}
 #intro{inset:0;width:100vw;min-height:100vh;min-height:100dvh;height:100vh;height:100dvh;padding:calc(env(safe-area-inset-top,0px) + 8px) max(12px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 8px) max(12px,env(safe-area-inset-left,0px));overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
@@ -228,7 +228,7 @@ html,body{min-height:100%;min-height:100dvh;}
 }
 @media (orientation:portrait){#intro{display:none;}}
 
-/* TISHINA 0.4.1 — use the live Safari visual viewport; the menu may scroll rather than clip. */
+/* TISHINA 0.4.2 — use the live Safari visual viewport; the menu may scroll rather than clip. */
 html,body{width:100%;height:var(--tishina-app-height,100dvh);min-height:var(--tishina-app-height,100dvh);}
 #scene{position:fixed;left:var(--tishina-app-left,0px);top:var(--tishina-app-top,0px);width:var(--tishina-app-width,100vw);height:var(--tishina-app-height,100dvh);}
 #intro{left:var(--tishina-app-left,0px);top:var(--tishina-app-top,0px);right:auto;bottom:auto;width:var(--tishina-app-width,100vw);height:var(--tishina-app-height,100dvh);min-height:var(--tishina-app-height,100dvh);max-height:var(--tishina-app-height,100dvh);display:flex;align-items:center;justify-content:center;touch-action:pan-y;overflow-x:hidden;overflow-y:auto;padding:8px 12px;padding-top:max(8px,env(safe-area-inset-top,0px));padding-right:max(12px,env(safe-area-inset-right,0px));padding-bottom:max(8px,env(safe-area-inset-bottom,0px));padding-left:max(12px,env(safe-area-inset-left,0px));overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
@@ -299,7 +299,7 @@ html,body{width:100%;height:var(--tishina-app-height,100dvh);min-height:var(--ti
   <button class="btn iconBtn sprintBtn" id="sprint" aria-label="Удерживать для бега" title="Удерживать для бега" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="15.5" cy="4.2" r="2"/><path d="m12.8 7.2-3.1 4.1 4.4 2.1 2.7-2.7 3.5 1.4M9.7 11.3l-3.8.2M13.8 13.4 11 18.8l-4.2 1.5M14 13.5l3.1 5.4 3 .6"/></svg></button>
  </div>
 </div>
-<div id="intro"><div class="panel"><div class="eyebrow">ГРАФИКА И УПРАВЛЕНИЕ · 0.4.1</div><h1>ТИШИНА</h1><div class="eyebrow">ПОСЛЕ КАТАСТРОФЫ МИР НЕ ИСЧЕЗ.</div><p class="desc">Северный промышленный регион. 18 ноября 2034 года.<br>Комплекс «Север-7» эвакуирован четыре дня назад.<br>На аварийной частоте снова появился сигнал.</p><div class="menuActions"><button class="btn primary wide" id="continueTitle" disabled>ПРОДОЛЖИТЬ</button><button class="btn wide" id="start">НОВАЯ ИГРА</button><button class="btn wide menuSecondary" id="titleLoad" disabled>ЗАГРУЗИТЬ СОХРАНЕНИЕ</button></div><div class="menuStatus" id="titleStatus"></div><div class="foot">ЛЕВЫЙ СТИК — ДВИЖЕНИЕ · ПРАВАЯ ЧАСТЬ — ОБЗОР ВВЕРХ / ВНИЗ / ПО СТОРОНАМ</div></div></div>
+<div id="intro"><div class="panel"><div class="eyebrow">ГРАФИКА И УПРАВЛЕНИЕ · 0.4.2</div><h1>ТИШИНА</h1><div class="eyebrow">ПОСЛЕ КАТАСТРОФЫ МИР НЕ ИСЧЕЗ.</div><p class="desc">Северный промышленный регион. 18 ноября 2034 года.<br>Комплекс «Север-7» эвакуирован четыре дня назад.<br>На аварийной частоте снова появился сигнал.</p><div class="menuActions"><button class="btn primary wide" id="continueTitle" disabled>ПРОДОЛЖИТЬ</button><button class="btn wide" id="start">НОВАЯ ИГРА</button><button class="btn wide menuSecondary" id="titleLoad" disabled>ЗАГРУЗИТЬ СОХРАНЕНИЕ</button></div><div class="menuStatus" id="titleStatus"></div><div class="foot">ЛЕВЫЙ СТИК — ДВИЖЕНИЕ · ПРАВАЯ ЧАСТЬ — ОБЗОР ВВЕРХ / ВНИЗ / ПО СТОРОНАМ</div></div></div>
 <div id="rotate"><div class="panel"><div class="symbol">↻</div><h2>ПОВЕРНИТЕ УСТРОЙСТВО</h2><p>«ТИШИНА» рассчитана на горизонтальный экран.</p></div></div>
 <div id="inspect"><div class="panel"><button class="closeX" id="closeInspect" aria-label="Закрыть">×</button><div class="eyebrow" id="inspectType">ОСМОТР</div><h2 id="inspectTitle">Предмет</h2><p id="inspectText"></p><div class="foot" id="inspectFoot">ОСМОТРЕННЫЙ ОБЪЕКТ СОХРАНЁН В ЖУРНАЛЕ</div></div></div>
 <div id="itemChoice"><div class="panel"><div class="eyebrow" id="choiceType">НАЙДЕННЫЙ ПРЕДМЕТ</div><h2 id="choiceTitle">Предмет</h2><p id="choiceText">Выбери действие.</p><div class="menuActions itemChoiceActions"><button class="btn primary wide" id="choiceInspect">ОСМОТРЕТЬ ПРЕДМЕТ</button><button class="btn wide" id="choiceInventory">В ИНВЕНТАРЬ</button><button class="btn wide" id="choiceLeave">ОСТАВИТЬ НА МЕСТЕ</button></div></div></div>
@@ -315,7 +315,7 @@ html,body{width:100%;height:var(--tishina-app-height,100dvh);min-height:var(--ti
   let queuedStart = false;
   const statusNode = () => document.getElementById('titleStatus');
   const shortError = value => String(value || 'Неизвестная ошибка').split('\n')[0].slice(0, 180);
-  const currentCacheName = 'tishina-0-4-1-safari-safe-boot';
+  const currentCacheName = 'tishina-0-4-2-darksteel-fix';
   const threeSources = [
     'https://cdn.jsdelivr.net/npm/three@0.187.0/build/three.module.js',
     'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.187.0/three.module.js'

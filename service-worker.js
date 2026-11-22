@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tishina-0-4-1-safari-safe-boot';
+const CACHE_NAME = 'tishina-0-4-2-darksteel-fix';
 const APP_SHELL = [
   './',
   './index.html',
