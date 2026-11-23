@@ -175,14 +175,14 @@ function floor(name,x,z,w,d,material=floorMat,y=0){return box(scene,name,[w,.18,
 function addInteract(obj, title, description, type='ОБЪЕКТ', action=null){obj.userData.interaction={title,description,type,action};interactables.push(obj);return obj;}
 
 // Rain-darkened forecourt and approach.
-floor('Мокрый асфальт',0,17,96,88,forecourtMat,-.12);
+floor('Мокрый асфальт',0,4,120,140,forecourtMat,-.12);
 for(let i=0;i<9;i++){
  const puddle=new THREE.Mesh(new THREE.CircleGeometry(1.1+(i%3)*.45,24),new THREE.MeshStandardMaterial({color:0x7c8881,roughness:.42,metalness:.015,transparent:true,opacity:.24}));puddle.rotation.x=-Math.PI/2;puddle.position.set(-13+i*3.4,-.018,8+(i%2)*5);puddle.scale.y=.45;scene.add(puddle);
 }
 // Distant industrial silhouettes.
 for(let i=0;i<6;i++){
- const x=-25+i*10; wall('Дальний корпус',x,5,-28,7,10,5,darkConcrete,false);
- const chimney= new THREE.Mesh(new THREE.CylinderGeometry(.55,.72,17,8),rust);chimney.position.set(x+2,8,-31);scene.add(chimney);
+ const x=-25+i*10; wall('Дальний корпус',x,5,-64,7,10,5,darkConcrete,false);
+ const chimney= new THREE.Mesh(new THREE.CylinderGeometry(.55,.72,17,8),rust);chimney.position.set(x+2,8,-67);scene.add(chimney);
 }
 // Exterior warehouse shell, with a central entrance opening.
 wall('Тентовый фасад слева',-6.2,4,-1,5.6,8,.7,hangarFabric);
@@ -369,7 +369,7 @@ function makeCabinet(x,z){
  addInteract(upper,'Верхний ящик','Небольшой ящик для канцелярии. Направляющие заедают, внутри лежат старые скрепки и пыль.','ЯЩИК',()=>openMotionPanel(upper));
  upper.userData={...upper.userData,open:false,ajar:false,target:-.4,targetFraction:0,motion:'slide',motionKind:'drawer',motionLabel:'Верхний ящик',motionDescription:'Небольшой ящик на тугих направляющих. Можно оставить его чуть выдвинутым или вытащить полностью.',closedValue:-.4,openedValue:-.78,speed:7,slowSpeed:1.6,fastSpeed:12,velocity:0,manualHold:0,manualHoldSpeed:.42};motionObjects.push(upper);
 }
-makeCabinet(-6.5,-11.2);
+makeCabinet(-25.4,-43.5);
 // Item catalogue: each collectible has its own recognizable shape, material and readable description.
 const itemCatalog={
  radio:{name:'Старая рация',type:'РАДИОСТАНЦИЯ',weight:1.4,icon:'📻',description:'Тяжёлая портативная радиостанция с треснувшим корпусом, антенной и механическими регуляторами. На задней крышке маркером написано: «Канал 04. Не отвечать после 22:00». При повороте видны потёртая маркировка и крышка батарейного отсека.'},
@@ -379,7 +379,7 @@ const itemCatalog={
  medkit:{name:'Аптечка',type:'МЕДИЦИНСКИЙ НАБОР',weight:.65,icon:'🩹',description:'Индивидуальная аптечка в тканевом подсумке с красной медицинской маркировкой. Можно забрать с собой и использовать из инвентаря.'},
  energy:{name:'Энергетик',type:'НАПИТОК',weight:.35,icon:'🥫',description:'Металлическая банка энергетического напитка. Можно забрать с собой и использовать из инвентаря.'}
 };
-const deskX=-5.8,deskZ=-5.0;
+const deskX=-25.6,deskZ=-40.9;
 box(scene,'Стойка охраны',[3.1,1.05,.9],[deskX,.55,deskZ],wood,{solid:true});
 box(scene,'Столешница',[3.25,.12,1.02],[deskX,1.12,deskZ],dirtyWhite,{solid:true});
 function makeRadio(x,y,z){const g=new THREE.Group();g.position.set(x,y,z);scene.add(g);
@@ -418,31 +418,31 @@ function makeNote(x,y,z){const g=new THREE.Group();g.position.set(x,y,z);scene.a
  for(let i=0;i<4;i++){const line=box(flap,'Продолжение рукописной записки',[.23-(i%2)*.025,.004,.006],[.015,.009,.025+i*.023],mat(0x454b48));line.rotation.y=(i%2?.025:-.018);}
  box(g,'Сгиб записки',[.012,.014,.012],[0,.012,0],mat(0x8c8878));
  const root=g;const hit=addInteract(sheet,'Служебная записка',itemCatalog.note.description,'ПРЕДМЕТ',()=>offerItem('note'));hit.userData.pickupGroup=root;root.userData.pickupId='note';pickupObjects.note=root;return root;}
-makeRadio(-6.2,1.3,-5.0);makePass(-5.25,1.205,-5.0);
-box(scene,'Рабочий стол',[2.5,.9,1.1],[1.9,.48,-12.5],wood,{solid:true});box(scene,'Папки',[.45,.22,.32],[1.25,1.05,-12.35],yellow);
-makePhoto(2.4,.95,-12.3);makeNote(1.1,1.05,-12.32);
+makeRadio(-26.1,1.3,-40.9);makePass(-24.9,1.205,-40.9);
+box(scene,'Рабочий стол',[2.5,.9,1.1],[-25.3,.48,-46.0],wood,{solid:true});box(scene,'Папки',[.45,.22,.32],[-26.0,1.05,-46.0],yellow);
+makePhoto(-24.7,.95,-46.0);makeNote(-25.8,1.05,-46.0);
 // Supplies have recognizable silhouettes and are collected with one interaction.
-const medkitGroup=new THREE.Group();medkitGroup.position.set(-4.85,1.28,-5.0);scene.add(medkitGroup);
+const medkitGroup=new THREE.Group();medkitGroup.position.set(-27.0,1.28,-40.9);scene.add(medkitGroup);
 const medkitMesh=box(medkitGroup,'Аптечка',[.42,.22,.28],[0,0,0],mat(0xb5b6aa,.8));
 box(medkitGroup,'Красная полоса аптечки',[.09,.225,.285],[0,0,0],mat(0x8d3834,.8));box(medkitGroup,'Крест аптечки',[.16,.035,.02],[0,.02,-.151],mat(0xe3e4d8,.8));
 medkitMesh.userData.pickupGroup=medkitGroup;medkitMesh.userData.pickupId='medkit';pickupObjects.medkit=medkitGroup;
 addInteract(medkitMesh,'Аптечка',itemCatalog.medkit.description,'ПРЕДМЕТ',()=>offerItem('medkit'));
-const energyGroup=new THREE.Group();energyGroup.position.set(1.12,.93,-12.45);scene.add(energyGroup);
+const energyGroup=new THREE.Group();energyGroup.position.set(-24.4,.93,-46.05);scene.add(energyGroup);
 const energyMesh=new THREE.Mesh(new THREE.CylinderGeometry(.105,.105,.34,12),mat(0x6d8580,.32,.35));energyMesh.position.y=.18;energyGroup.add(energyMesh);energyMesh.name='Энергетик';
 const energyStripe=new THREE.Mesh(new THREE.CylinderGeometry(.108,.108,.075,12),mat(0xb6a36b,.35,.3));energyStripe.position.y=.18;energyGroup.add(energyStripe);
 const energyTop=new THREE.Mesh(new THREE.CylinderGeometry(.07,.07,.012,12),metal);energyTop.position.y=.35;energyGroup.add(energyTop);
 energyMesh.userData.pickupGroup=energyGroup;energyMesh.userData.pickupId='energy';pickupObjects.energy=energyGroup;
 addInteract(energyMesh,'Энергетик',itemCatalog.energy.description,'ПРЕДМЕТ',()=>offerItem('energy'));
 // Wall-mounted electrical panel: one interaction reports its current state.
-const panel=box(scene,'Электрощит',[.95,1.5,.18],[3.3,2.1,-16.1],metal,{solid:true});
+const panel=box(scene,'Электрощит',[.95,1.5,.18],[-27.5,2.1,-48.5],metal,{solid:true});
 addInteract(panel,'Электрощит','Питание отключено. На схеме отмечен резервный контур, уходящий в подвал.','ОБОРУДОВАНИЕ');
 // Damaged insulation has left a live cable in a shallow puddle. It is visible and avoidable.
-const liveWater=new THREE.Mesh(new THREE.CircleGeometry(.72,28),new THREE.MeshStandardMaterial({color:0x354a4b,roughness:.2,metalness:.28,transparent:true,opacity:.82}));liveWater.rotation.x=-Math.PI/2;liveWater.position.set(2.55,.012,-14.35);liveWater.scale.set(1.15,.72,1);scene.add(liveWater);
-const cableCurve=new THREE.CatmullRomCurve3([new THREE.Vector3(3.3,1.5,-16.0),new THREE.Vector3(3.05,.18,-15.5),new THREE.Vector3(2.85,.08,-15.0),new THREE.Vector3(2.55,.06,-14.35)]);
+const liveWater=new THREE.Mesh(new THREE.CircleGeometry(.72,28),new THREE.MeshStandardMaterial({color:0x354a4b,roughness:.2,metalness:.28,transparent:true,opacity:.82}));liveWater.rotation.x=-Math.PI/2;liveWater.position.set(-27.6,.012,-46.5);liveWater.scale.set(1.15,.72,1);scene.add(liveWater);
+const cableCurve=new THREE.CatmullRomCurve3([new THREE.Vector3(-27.0,1.5,-48.4),new THREE.Vector3(-27.2,.18,-47.5),new THREE.Vector3(-27.4,.08,-47.0),new THREE.Vector3(-27.6,.06,-46.5)]);
 const liveCable=new THREE.Mesh(new THREE.TubeGeometry(cableCurve,18,.035,6,false),mat(0x292e2c,.7,.25));scene.add(liveCable);
-const cableCore=new THREE.PointLight(0x8cc4c9,1.1,3.2,2);cableCore.position.set(2.55,.22,-14.35);scene.add(cableCore);
+const cableCore=new THREE.PointLight(0x8cc4c9,1.1,3.2,2);cableCore.position.set(-27.6,.22,-46.5);scene.add(cableCore);
 const warningStripe=mat(0xb18a45,.85,.1);
-for(let i=0;i<4;i++){const mark=box(scene,'Предупреждение об электричестве',[.09,.018,.28],[1.72+i*.12,.012,-14.35],warningStripe,{cast:false});mark.rotation.y=-.25;}
+for(let i=0;i<4;i++){const mark=box(scene,'Предупреждение об электричестве',[.09,.018,.28],[-27.45+i*.12,.012,-46.5],warningStripe,{cast:false});mark.rotation.y=-.25;}
 // Props: pipes, crates, rubble, pallets and weeds.
 for(let i=0;i<7;i++){
  const pipe=new THREE.Mesh(new THREE.CylinderGeometry(.09,.09,5.5,10),rust);pipe.rotation.z=Math.PI/2;pipe.position.set(-2.5,3.45,-3-i*2.2);scene.add(pipe);
@@ -465,10 +465,16 @@ function loadHangarModel() {
     loader.load(HANGAR_GLB_URL, gltf => {
       const model = gltf.scene;
       model.name = 'Тентовый ангар — GLB game asset';
-      // Fit the uploaded aircraft hangar to the existing playable footprint:
-      // about 19.8 m wide × 9.7 m high × 18.0 m deep; entrance faces +Z.
-      model.scale.set(0.32, 0.52, 0.34);
-      model.position.set(0, 0.047, -11.02);
+      // 0.5.16: use the GLB at its authored real-world size and keep its proportions.
+      // Native bounds are approximately 60 × 18.7 × 51.9 m; entrance faces +Z.
+      // Move the deeper footprint back so the original player spawn retains a clear forecourt.
+      model.scale.setScalar(1.0);
+      model.position.set(0, 0.08, -30.0);
+      model.updateMatrixWorld(true);
+      const hangarBounds = new THREE.Box3().setFromObject(model);
+      const hangarSize = hangarBounds.getSize(new THREE.Vector3());
+      console.info('[ТИШИНА] Full-size hangar dimensions (m):',
+        hangarSize.toArray().map(value => Number(value.toFixed(2))));
       model.traverse(node => {
         if (!node.isMesh) return;
         node.castShadow = !isMobileDevice;
@@ -496,20 +502,28 @@ function loadHangarModel() {
       scene.traverse(node => {
         if (node.isMesh && oldShellPrefixes.some(prefix => node.name.startsWith(prefix))) node.visible = false;
       });
-      // 0.5.14: clear the old playable room from inside the replacement hangar.
-      // Keep the hangar GLB, its exterior, and the concrete floor; remove all legacy interior meshes.
-      const isOldInteriorPoint = p =>
-        p.x > -8.85 && p.x < 8.85 &&
-        p.z > -18.8 && p.z < -1.2 &&
-        p.y > -0.05 && p.y < 8.9;
+      // 0.5.16: clear the full-size hangar footprint of obsolete room geometry.
+      // Preserve one compact service corner along the left/rear wall for story objects.
+      const inHangarFootprint = p =>
+        p.x > -29.6 && p.x < 29.6 &&
+        p.z > -52.5 && p.z < -1.45 &&
+        p.y > -0.12 && p.y < 18.8;
+      const inServiceCorner = p =>
+        p.x > -28.8 && p.x < -22.2 &&
+        p.z > -49.8 && p.z < -38.2 &&
+        p.y > -0.12 && p.y < 4.2;
+      const clearLegacyPoint = p => inHangarFootprint(p) && !inServiceCorner(p);
+
       scene.updateMatrixWorld(true);
       const cleanupPoint = new THREE.Vector3();
       scene.traverse(node => {
-        if (!node.isMesh || node.name === 'Пол первого этажа') return;
+        if (!node.isMesh) return;
         node.getWorldPosition(cleanupPoint);
-        if (isOldInteriorPoint(cleanupPoint)) node.visible = false;
+        if (clearLegacyPoint(cleanupPoint)) node.visible = false;
       });
-      // Remove invisible collision boxes and interaction targets too.
+
+      // Remove all legacy colliders overlapping the expanded interior/entry,
+      // except the relocated service corner itself. This opens the right-side route.
       for (let i = colliders.length - 1; i >= 0; i--) {
         const c = colliders[i];
         const center = {
@@ -517,21 +531,28 @@ function loadHangarModel() {
           y: (c.minY + c.maxY) / 2,
           z: (c.minZ + c.maxZ) / 2
         };
-        if (isOldInteriorPoint(center)) colliders.splice(i, 1);
+        const overlapsHangar =
+          c.maxX > -30.25 && c.minX < 30.25 &&
+          c.maxZ > -53.2 && c.minZ < -0.75;
+        if (overlapsHangar && !inServiceCorner(center)) colliders.splice(i, 1);
       }
+
+      // Drop hidden interaction/motion targets from the old room, but retain
+      // the cabinet and drawers in the relocated utility corner.
       for (let i = interactables.length - 1; i >= 0; i--) {
         interactables[i].getWorldPosition(cleanupPoint);
-        if (isOldInteriorPoint(cleanupPoint)) interactables.splice(i, 1);
+        if (clearLegacyPoint(cleanupPoint)) interactables.splice(i, 1);
       }
       for (let i = motionObjects.length - 1; i >= 0; i--) {
         motionObjects[i].getWorldPosition(cleanupPoint);
-        if (isOldInteriorPoint(cleanupPoint)) motionObjects.splice(i, 1);
+        if (clearLegacyPoint(cleanupPoint)) motionObjects.splice(i, 1);
       }
-      // 0.5.15: remove the obsolete front doorway/vestibule from the old procedural room.
-      // The replacement GLB supplies the visible hangar shell; keep its entrance unobstructed.
+
+      // Hide the last pieces of the old narrow front doorway (its centre is just
+      // outside the new hangar bounds, so it must be removed explicitly).
       const obsoleteEntryNames = [
-        'Тамбур левая', 'Тамбур правая', 'Тамбур задняя левая', 'Тамбур задняя правая',
-        'Тент — заполнение слева от входа', 'Тент — заполнение справа от входа',
+        'Тент — заполнение слева от входа',
+        'Тент — заполнение справа от входа',
         'Тент — перемычка над входной дверью'
       ];
       scene.traverse(node => {
@@ -539,28 +560,28 @@ function loadHangarModel() {
           node.visible = false;
         }
       });
-      // Remove collision boxes left by the old front door/vestibule and side fabric walls.
-      // Side openings are intentionally passable so the player can enter from either side.
-      for (let i = colliders.length - 1; i >= 0; i--) {
-        const c = colliders[i];
-        const cx = (c.minX + c.maxX) / 2;
-        const cz = (c.minZ + c.maxZ) / 2;
-        const oldFrontEntry = cx > -4.5 && cx < 4.5 && cz > -6.2 && cz < -0.35;
-        const oldSideWall = Math.abs(cx) > 8.7 && Math.abs(cx) < 10.2 && cz > -20.2 && cz < -0.35;
-        if (oldFrontEntry || oldSideWall) colliders.splice(i, 1);
+      for (let i = motionObjects.length - 1; i >= 0; i--) {
+        if (motionObjects[i].name === 'door:Входная дверь') motionObjects.splice(i, 1);
       }
-      // The former collapsed beam and electrical puddle no longer exist in the cleared room.
+      for (let i = interactables.length - 1; i >= 0; i--) {
+        const item = interactables[i];
+        if (item.name === 'Входная дверь' || item.userData?.interaction?.title === 'Входная дверь') {
+          interactables.splice(i, 1);
+        }
+      }
+
+      // The replacement GLB owns the hangar shell; all old crawl hazards are obsolete.
       lowClearanceZones.splice(0, lowClearanceZones.length);
       scene.add(model);
-      console.info('[ТИШИНА] Legacy hangar interior cleared.');
+      console.info('[ТИШИНА] Full-size hangar loaded; legacy interior cleared.');
       console.info('[ТИШИНА] GLB hangar loaded:', HANGAR_GLB_URL);
     }, undefined, error => {
       console.warn('[ТИШИНА] Hangar GLB failed; keeping local hangar fallback.', error);
     });
   }).catch(error => console.warn('[ТИШИНА] Hangar GLB loader error:', error));
 }
-// 0.5.15: replace the temporary procedural fabric hangar with the bundled aircraft-hangar GLB.
-// The procedural shell remains as a fallback until the compressed GLB and its textures load.
+// 0.5.16: load the full-size, uniformly scaled aircraft-hangar GLB.
+// The procedural shell remains as a fallback until the GLB and its textures load.
 loadHangarModel();
 
 const story = createStoryController({ onObjective: value => { const el = $('objective'); if (el) el.textContent = value; }, notify });
@@ -663,7 +684,7 @@ function applySnapshot(data){
  inventory.splice(0,inventory.length,...(Array.isArray(data.inventory)?data.inventory.filter(x=>typeof x==='string'):Array.isArray(data.items)?data.items.filter(x=>typeof x==='string'):[]));
  medkits=Math.max(0,Math.min(20,Number(data.medkits)||0));energyItems=Math.max(0,Math.min(20,Number(data.energyItems)||0));
  health=Math.max(1,Math.min(100,Number.isFinite(Number(data.health))?Number(data.health):100));stamina=Math.max(0,Math.min(100,Number(data.stamina??100)||0));sprintLocked=stamina<STAMINA_RESTART;sprintHeld=false;sprintBlend=0;staminaRecoveryDelay=0;
- const px=Number(data.player?.x),pz=Number(data.player?.z);camera.position.set(Number.isFinite(px)?THREE.MathUtils.clamp(px,-44,44):0,postures.stand.eye,Number.isFinite(pz)?THREE.MathUtils.clamp(pz,-25,60):10.5);yaw=Number.isFinite(Number(data.player?.yaw))?Number(data.player.yaw):0;pitch=Number.isFinite(Number(data.player?.pitch))?THREE.MathUtils.clamp(Number(data.player.pitch),-1.05,.8):0;look(0,0);
+ const px=Number(data.player?.x),pz=Number(data.player?.z);camera.position.set(Number.isFinite(px)?THREE.MathUtils.clamp(px,-57,57):0,postures.stand.eye,Number.isFinite(pz)?THREE.MathUtils.clamp(pz,-63,71):10.5);yaw=Number.isFinite(Number(data.player?.yaw))?Number(data.player.yaw):0;pitch=Number.isFinite(Number(data.player?.pitch))?THREE.MathUtils.clamp(Number(data.player.pitch),-1.05,.8):0;look(0,0);
  posture='stand';stanceFrom=null;stanceElapsed=1;Object.assign(stance,postures.stand);jumpHeight=0;jumpVelocity=0;grounded=true;
  story.restore(data.story, inventory);
  skyWeather.restore(data.sky);
@@ -754,7 +775,7 @@ function updateTarget(){raycaster.setFromCamera(new THREE.Vector2(0,0),camera);c
 function lowZoneAt(x,z,radius=0){return lowClearanceZones.find(zone=>x+radius>zone.minX&&x-radius<zone.maxX&&z+radius>zone.minZ&&z-radius<zone.maxZ)||null;}
 function canFitAt(x,z,mode=posture){const zone=lowZoneAt(x,z,postures[mode].radius);return !zone||postures[mode].height<=zone.clearance;}
 function canOccupyAt(x,z){const zone=lowZoneAt(x,z,stance.radius);return !zone||stance.height<=zone.clearance;}
-function collides(x,z){if(x < -46 || x > 46 || z < -25 || z > 61)return true;const radius=stance.radius,feetY=Math.max(0,camera.position.y-stance.eye),headY=feetY+stance.height;for(const c of colliders){const verticalOverlap=feetY<c.maxY&&headY>c.minY;if(verticalOverlap&&x+radius>c.minX&&x-radius<c.maxX&&z+radius>c.minZ&&z-radius<c.maxZ)return true;}for(const obj of motionObjects){if(!obj.userData.blocksPassage||currentMotionFraction(obj)>=.98)continue;const leaf=obj.userData.leaf;if(!leaf)continue;const b=new THREE.Box3().setFromObject(leaf);const verticalOverlap=feetY<b.max.y&&headY>b.min.y;if(verticalOverlap&&x+radius>b.min.x&&x-radius<b.max.x&&z+radius>b.min.z&&z-radius<b.max.z)return true;}return false;}
+function collides(x,z){if(x < -58 || x > 58 || z < -64 || z > 72)return true;const radius=stance.radius,feetY=Math.max(0,camera.position.y-stance.eye),headY=feetY+stance.height;for(const c of colliders){const verticalOverlap=feetY<c.maxY&&headY>c.minY;if(verticalOverlap&&x+radius>c.minX&&x-radius<c.maxX&&z+radius>c.minZ&&z-radius<c.maxZ)return true;}for(const obj of motionObjects){if(!obj.userData.blocksPassage||currentMotionFraction(obj)>=.98)continue;const leaf=obj.userData.leaf;if(!leaf)continue;const b=new THREE.Box3().setFromObject(leaf);const verticalOverlap=feetY<b.max.y&&headY>b.min.y;if(verticalOverlap&&x+radius>b.min.x&&x-radius<b.max.x&&z+radius>b.min.z&&z-radius<b.max.z)return true;}return false;}
 function updatePostureUI(){const crouch=$('crouch'),prone=$('prone');crouch.classList.toggle('active',posture==='crouch');prone.classList.toggle('active',posture==='prone');crouch.setAttribute('aria-pressed',String(posture==='crouch'));prone.setAttribute('aria-pressed',String(posture==='prone'));$('postureStatus').textContent=`ПОЗА: ${postures[posture].label}`;}
 function setPosture(next){if(!started||modalOpen)return;if(!grounded){notify('Сначала приземлись.');return;}if(next===posture)return;const x=camera.position.x,z=camera.position.z;if(!canFitAt(x,z,next)){notify('Над головой слишком мало места. Здесь можно только лечь.');return;}stanceFrom={eye:stance.eye,height:stance.height,radius:stance.radius,speed:stance.speed};stanceElapsed=0;posture=next;sprintHeld=false;updatePostureUI();notify(next==='stand'?'Поднимаешься на ноги.':next==='crouch'?'Плавно приседаешь.':'Опускаешься на землю.');}
 function updateStaminaUI(force=false){const value=Math.max(0,Math.min(100,Math.round(stamina)));if(!force&&value===lastStaminaShown)return;lastStaminaShown=value;const fill=$('staminaFill'),label=$('staminaValue');if(fill)fill.style.width=value+'%';if(label)label.textContent=value+'%';const track=$('staminaTrack');if(track)track.setAttribute('aria-valuenow',String(value));track?.classList.toggle('low',value<=20);const sprint=$('sprint');if(sprint){sprint.classList.toggle('active',sprintHeld&&sprintBlend>.08);sprint.classList.toggle('depleted',sprintLocked);sprint.setAttribute('aria-pressed',String(sprintHeld));}}

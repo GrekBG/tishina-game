@@ -140,7 +140,7 @@ export function installWorldExpansion({ THREE, scene, camera, isMobileDevice = f
   // 0.4.7 — imported, textured UAZ-452 asset. Preserve its original upright orientation.
   // COLLADA source declares Z_UP; ColladaLoader converts it to Three.js Y_UP.
   // Do not apply an additional Z-axis half-turn: it flips the complete vehicle upside down.
-  const vanX = -28, vanZ = 28;
+  const vanX = -42, vanZ = 28;
   const uazAnchor = new THREE.Group();
   uazAnchor.name = 'УАЗ-452 — импортированная модель';
   uazAnchor.position.set(vanX, 0, vanZ);
@@ -234,10 +234,10 @@ export function installWorldExpansion({ THREE, scene, camera, isMobileDevice = f
 
 
   // Transformer enclosure and a visible warning lamp near the eastern service lane.
-  solid('Трансформаторная будка', [7.2, 4.1, 6.2], [28, 2.05, 5], darkSteel);
-  for (let x = 24.9; x <= 31.1; x += 1.25) detail('Решётка трансформаторной', [0.055, 2.5, 0.08], [x, 1.8, 1.84], steel);
-  detail('Знак высокого напряжения', [0.72, 0.78, 0.06], [28, 2.6, 1.78], hazard);
-  const transformerLamp = new THREE.PointLight(0xd18b55, 1.6, 9, 2); transformerLamp.position.set(28, 3.2, 0.6); scene.add(transformerLamp);
+  solid('Трансформаторная будка', [7.2, 4.1, 6.2], [44, 2.05, 5], darkSteel);
+  for (let x = 40.9; x <= 47.1; x += 1.25) detail('Решётка трансформаторной', [0.055, 2.5, 0.08], [x, 1.8, 1.84], steel);
+  detail('Знак высокого напряжения', [0.72, 0.78, 0.06], [44, 2.6, 1.78], hazard);
+  const transformerLamp = new THREE.PointLight(0xd18b55, 1.6, 9, 2); transformerLamp.position.set(44, 3.2, 0.6); scene.add(transformerLamp);
   lamps.push({ light: transformerLamp, base: 1.6, seed: 2.1, pulse: 0.035 });
 
   // Open drainage channel, pipes and wet grates along the edge of the service yard.
@@ -267,7 +267,7 @@ export function installWorldExpansion({ THREE, scene, camera, isMobileDevice = f
 
   // TISHINA 0.5.8 — create the chapel directly with Three.js on phones.
   // Mobile rendering no longer depends on a remote/large GLB request; the original optimized GLB remains for desktop.
-  const chapelX = 29.4, chapelZ = 25.0, chapelScale = 0.65;
+  const chapelX = 45.0, chapelZ = 25.0, chapelScale = 0.65;
   const chapelUrl = new URL('../village-chapel.glb', import.meta.url).href;
   const chapelPad = detail('Площадка у заброшенной часовни', [9.8, 0.045, 11.8], [chapelX, -0.006, chapelZ], earthGround);
   chapelPad.receiveShadow = true;
