@@ -527,6 +527,28 @@ function loadHangarModel() {
         motionObjects[i].getWorldPosition(cleanupPoint);
         if (isOldInteriorPoint(cleanupPoint)) motionObjects.splice(i, 1);
       }
+      // 0.5.15: remove the obsolete front doorway/vestibule from the old procedural room.
+      // The replacement GLB supplies the visible hangar shell; keep its entrance unobstructed.
+      const obsoleteEntryNames = [
+        'Тамбур левая', 'Тамбур правая', 'Тамбур задняя левая', 'Тамбур задняя правая',
+        'Тент — заполнение слева от входа', 'Тент — заполнение справа от входа',
+        'Тент — перемычка над входной дверью'
+      ];
+      scene.traverse(node => {
+        if (node.name === 'door:Входная дверь' || obsoleteEntryNames.includes(node.name)) {
+          node.visible = false;
+        }
+      });
+      // Remove collision boxes left by the old front door/vestibule and side fabric walls.
+      // Side openings are intentionally passable so the player can enter from either side.
+      for (let i = colliders.length - 1; i >= 0; i--) {
+        const c = colliders[i];
+        const cx = (c.minX + c.maxX) / 2;
+        const cz = (c.minZ + c.maxZ) / 2;
+        const oldFrontEntry = cx > -4.5 && cx < 4.5 && cz > -6.2 && cz < -0.35;
+        const oldSideWall = Math.abs(cx) > 8.7 && Math.abs(cx) < 10.2 && cz > -20.2 && cz < -0.35;
+        if (oldFrontEntry || oldSideWall) colliders.splice(i, 1);
+      }
       // The former collapsed beam and electrical puddle no longer exist in the cleared room.
       lowClearanceZones.splice(0, lowClearanceZones.length);
       scene.add(model);
@@ -537,7 +559,7 @@ function loadHangarModel() {
     });
   }).catch(error => console.warn('[ТИШИНА] Hangar GLB loader error:', error));
 }
-// 0.5.13: replace the temporary procedural fabric hangar with the bundled aircraft-hangar GLB.
+// 0.5.15: replace the temporary procedural fabric hangar with the bundled aircraft-hangar GLB.
 // The procedural shell remains as a fallback until the compressed GLB and its textures load.
 loadHangarModel();
 
