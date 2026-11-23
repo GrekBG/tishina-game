@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tishina-0-5-3-chapel-mobile-opt';
+const CACHE_NAME = 'tishina-0-5-4-chapel-yard';
 const APP_SHELL = [
   './',
   './index.html',
@@ -78,7 +78,7 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Other static assets, including the local detailed hangar, are cache-first.
+  // Other static assets, including the hangar and chapel GLB, are cache-first and cached after first successful download.
   event.respondWith(
     caches.match(request).then(cached => {
       if (cached) return cached;
