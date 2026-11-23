@@ -465,7 +465,7 @@ function loadHangarModel() {
     loader.load(HANGAR_GLB_URL, gltf => {
       const model = gltf.scene;
       model.name = 'Тентовый ангар — GLB game asset';
-      // 0.5.17: use the GLB at its authored real-world size and keep its proportions.
+      // 0.5.18: use the GLB at its authored real-world size and keep its proportions.
       // Native bounds are approximately 60 × 18.7 × 51.9 m; entrance faces +Z.
       // Move the deeper footprint back so the original player spawn retains a clear forecourt.
       model.scale.setScalar(1.0);
@@ -502,7 +502,7 @@ function loadHangarModel() {
       scene.traverse(node => {
         if (node.isMesh && oldShellPrefixes.some(prefix => node.name.startsWith(prefix))) node.visible = false;
       });
-      // 0.5.17: clear the full-size hangar footprint of obsolete room geometry.
+      // 0.5.18: clear the full-size hangar footprint of obsolete room geometry.
       // Preserve one compact service corner along the left/rear wall for story objects.
       // The supplied hangar is placed in the open apron beside the UAZ.
       // Its native footprint is about 60 x 52 m; entrance faces +Z.
@@ -540,6 +540,14 @@ function loadHangarModel() {
           c.maxZ > -28.0 && c.minZ < 27.0;
         if (overlapsHangar && !inServiceCorner(center)) colliders.splice(i, 1);
       }
+      // 0.5.18: collision shell for the full-size hangar; main entrance remains open.
+      const addHangarWallCollider = (minX,maxX,minZ,maxZ) =>
+        colliders.push({minX,maxX,minZ,maxZ,minY:0,maxY:18.7});
+      addHangarWallCollider(-40.5,-39.7,-26.5,26.5);
+      addHangarWallCollider(19.7,20.5,-26.5,26.5);
+      addHangarWallCollider(-40.5,20.5,-26.5,-25.7);
+      addHangarWallCollider(-40.5,-18.0,25.7,26.5);
+      addHangarWallCollider(-2.0,20.5,25.7,26.5);
 
       // Drop hidden interaction/motion targets from the old room, but retain
       // the cabinet and drawers in the relocated utility corner.
@@ -584,9 +592,47 @@ function loadHangarModel() {
     });
   }).catch(error => console.warn('[ТИШИНА] Hangar GLB loader error:', error));
 }
-// 0.5.17: load the full-size, uniformly scaled aircraft-hangar GLB.
+// 0.5.18: load the full-size, uniformly scaled aircraft-hangar GLB.
 // The procedural shell remains as a fallback until the GLB and its textures load.
 loadHangarModel();
+
+// 0.5.18: climbable maintenance ladder inside the hangar.
+// The ladder leads to a small inspection platform; interaction toggles climb mode.
+let hangarLadderClimbing = false;
+const hangarLadder = new THREE.Group();
+hangarLadder.name = 'Лестница технического обслуживания ангара';
+hangarLadder.position.set(16.5, 0, -8.0);
+scene.add(hangarLadder);
+const ladderMetal = new THREE.MeshStandardMaterial({ color: 0x68716e, metalness: 0.78, roughness: 0.42 });
+const ladderDark = new THREE.MeshStandardMaterial({ color: 0x343d3a, metalness: 0.68, roughness: 0.62 });
+for (const x of [-0.48, 0.48]) {
+  const rail = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 6.2, 8), ladderMetal);
+  rail.position.set(x, 3.1, 0); hangarLadder.add(rail);
+}
+for (let y = 0.35; y <= 5.95; y += 0.34) {
+  const rung = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 1.0, 8), ladderDark);
+  rung.rotation.z = Math.PI / 2; rung.position.set(0, y, 0); hangarLadder.add(rung);
+}
+const ladderPlatform = box(hangarLadder, 'Площадка обслуживания лестницы', [2.8, 0.18, 2.2], [0.9, 6.0, -0.95], metal, { cast: true });
+colliders.push({ minX: 16.0, maxX: 19.0, minY: 5.85, maxY: 6.15, minZ: -10.1, maxZ: -7.8 });
+const ladderPrompt = new THREE.Object3D();
+ladderPrompt.name = 'Точка подъёма по лестнице';
+ladderPrompt.position.set(0, 1.0, -0.9);
+hangarLadder.add(ladderPrompt);
+addInteract(ladderPrompt, 'Техническая лестница', 'Подняться на площадку обслуживания. Нажми кнопку взаимодействия ещё раз, чтобы спуститься.', 'ДЕЙСТВИЕ', () => {
+  hangarLadderClimbing = !hangarLadderClimbing;
+  if (hangarLadderClimbing) {
+    camera.position.x = 16.5;
+    camera.position.z = -9.0;
+    camera.position.y = Math.max(camera.position.y, 1.68);
+    grounded = true; jumpHeight = 0; jumpVelocity = 0;
+    notify('Ты на лестнице. Двигайся вперёд, чтобы подняться, назад — чтобы спуститься.');
+  } else {
+    camera.position.y = THREE.MathUtils.clamp(camera.position.y, 1.68, 6.8);
+    notify('Ты отошёл от лестницы.');
+  }
+});
+
 
 const story = createStoryController({ onObjective: value => { const el = $('objective'); if (el) el.textContent = value; }, notify });
 panel.userData.interaction.action = () => { story.markBreaker(); notify('ЭЛЕКТРОЩИТ: питание отключено. На схеме отмечен резервный контур в подвал.'); };
@@ -820,6 +866,15 @@ function move(dt){
  // Three.js camera looks along local -Z. Use the same yaw basis for forward and right,
  // so pushing the stick up always follows the view direction, even after turning.
  const speed=moveSpeed*dt;
+ if(hangarLadderClimbing){
+  // Forward climbs; backward descends. Side input is ignored while on the ladder.
+  camera.position.x=16.5; camera.position.z=-9.0;
+  camera.position.y=THREE.MathUtils.clamp(camera.position.y+forward*2.15*dt,1.68,7.65);
+  if(camera.position.y>=7.6){hangarLadderClimbing=false;notify('Ты поднялся на верхнюю площадку.');}
+  else if(camera.position.y<=1.69){hangarLadderClimbing=false;notify('Ты спустился с лестницы.');}
+  updateHazards(dt);updateBodyAnimation(dt,len,false);return;
+ }
+
  const forwardX=-Math.sin(yaw),forwardZ=-Math.cos(yaw);
  const rightX=Math.cos(yaw),rightZ=-Math.sin(yaw);
  const dx=(forwardX*forward+rightX*side)*speed;

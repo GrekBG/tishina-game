@@ -1,4 +1,4 @@
-// TISHINA 0.3.1 — procedural sky, sun/moon cycle and wind-driven clouds; exposure tuned in 0.3.3.
+// TISHINA 0.5.18 — daylight-balanced procedural sky, sun/moon cycle and wind-driven clouds; exposure tuned in 0.3.3.
 // No external textures or network requests. Kept intentionally lightweight for mobile GPUs.
 export function installSkyWeather({ THREE, scene, camera, sun, hemisphereLight, renderer, isMobileDevice = false, onHud = () => {} }) {
   const CONFIG = {
@@ -8,7 +8,7 @@ export function installSkyWeather({ THREE, scene, camera, sun, hemisphereLight, 
     dayOfYear: 322,             // 18 November 2034.
     windSpeed: 5.4,              // Mean wind speed in m/s; set to 0 for still air.
     windDirectionDeg: 255,       // Direction clouds travel toward, clockwise from +X in the sky map.
-    cloudCoverage: 0.76          // 0 = clear, 1 = fully overcast.
+    cloudCoverage: 0.58          // 0 = clear, 1 = fully overcast.
   };
 
   const clock = { hour: CONFIG.startHour, day: 1, elapsed: 0 };
@@ -198,7 +198,12 @@ export function installSkyWeather({ THREE, scene, camera, sun, hemisphereLight, 
     const latitude = THREE.MathUtils.degToRad(CONFIG.latitudeDeg);
     const declination = THREE.MathUtils.degToRad(23.44) * Math.sin((2 * Math.PI * (284 + CONFIG.dayOfYear)) / 365);
     const hourAngle = ((clock.hour - 12) * Math.PI) / 12;
-    const sinElevation = Math.sin(latitude) * Math.sin(declination) + Math.cos(latitude) * Math.cos(declination) * Math.cos(hourAngle);
+    const astronomicalElevation = Math.sin(latitude) * Math.sin(declination) + Math.cos(latitude) * Math.cos(declination) * Math.cos(hourAngle);
+    // Keep a readable overcast daytime at noon in the far north during November.
+    // The low real-world sun is preserved, but a minimum 17-degree visual elevation
+    // prevents the exterior from rendering like midnight at 12:00.
+    const daytimeWindow = clock.hour >= 8.5 && clock.hour <= 15.5;
+    const sinElevation = daytimeWindow ? Math.max(astronomicalElevation, Math.sin(THREE.MathUtils.degToRad(17))) : astronomicalElevation;
     const sunElevation = Math.asin(THREE.MathUtils.clamp(sinElevation, -1, 1));
     const east = -Math.cos(declination) * Math.sin(hourAngle);
     const north = Math.cos(latitude) * Math.sin(declination) - Math.sin(latitude) * Math.cos(declination) * Math.cos(hourAngle);
