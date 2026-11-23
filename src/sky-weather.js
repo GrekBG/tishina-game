@@ -2,7 +2,7 @@
 // No external textures or network requests. Kept intentionally lightweight for mobile GPUs.
 export function installSkyWeather({ THREE, scene, camera, sun, hemisphereLight, renderer, isMobileDevice = false, onHud = () => {} }) {
   const CONFIG = {
-    startHour: 7 + 50 / 60,       // The player arrives near the northern winter dawn; 04:17 is the recorded radio call.
+    startHour: 12,              // A new game begins at noon.
     fullDaySeconds: 60 * 60,     // One complete 24-hour game day in 60 real minutes.
     latitudeDeg: 61.0,          // Northern industrial region, approximately 61 degrees north.
     dayOfYear: 322,             // 18 November 2034.

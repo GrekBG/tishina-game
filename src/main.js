@@ -141,7 +141,7 @@ let flashlightOn=Boolean(autosaved.flashlightOn);
 let medkits=Math.max(0,Number(autosaved.medkits)||0),energyItems=Math.max(0,Number(autosaved.energyItems)||0);
 let yaw=0, pitch=0, started=false, activeTarget=null, modalOpen=false, joy={x:0,y:0}, joyTarget={x:0,y:0}, keys={}, drag=null, last=performance.now(), bob=0;
 let posture='stand', jumpHeight=0, jumpVelocity=0, grounded=true, lowSpaceBlocked=false,peekState=null;
-let handAction=null, soundContext=null, physicalFeedbackTimer=null;
+let handAction=null, soundContext=null, physicalFeedbackTimer=null, pendingPickupId=null;
 let stanceFrom=null, stanceElapsed=1, sprintHeld=false, sprintBlend=0, stamina=100, staminaRecoveryDelay=0, sprintLocked=false, lastStaminaShown=-1;
 const loadedHealth=Number(autosaved.health??100);
 let health=Number.isFinite(loadedHealth)?Math.max(0,Math.min(100,loadedHealth)):100,lastHealthShown=-1,hazardClock=0,hazardNotice=false,bodyTime=0;
@@ -583,6 +583,11 @@ function makeSnapshot(){
 }
 function storeJson(key,data){try{localStorage.setItem(key,JSON.stringify(data));return true;}catch(err){console.warn('Не удалось сохранить игру:',err);return false;}}
 function save(){const ok=storeJson('tishinaAutoV1',makeSnapshot());storeJson('tishina02', {items:inventory,health,stamina,medkits,energyItems});updateInventoryUI();const cont=$('continueTitle');if(cont&&ok)cont.disabled=false;}
+function refreshTitleMenuState(){
+ $('continueTitle').disabled=!(readStored('tishinaAutoV1')||readStored('tishina02'));
+ $('titleLoad').disabled=!readStored('tishinaManualSaveV1');
+ $('titleSave').disabled=false; $('titleExit').disabled=false;
+}
 function applySnapshot(data){
  if(!data||typeof data!=='object')return false;
  inventory.splice(0,inventory.length,...(Array.isArray(data.inventory)?data.inventory.filter(x=>typeof x==='string'):Array.isArray(data.items)?data.items.filter(x=>typeof x==='string'):[]));
@@ -606,8 +611,8 @@ function applySnapshot(data){
  }
  updatePostureUI();updateHealthUI(true);updateStaminaUI(true);updateInventoryUI();return true;
 }
-function saveManual(){const ok=storeJson('tishinaManualSaveV1',makeSnapshot());$('menuStatus').textContent=ok?'СОХРАНЕНИЕ ЗАПИСАНО НА ЭТОМ УСТРОЙСТВЕ':'ОШИБКА СОХРАНЕНИЯ';if(ok){$('titleLoad').disabled=false;notify('Игра сохранена.');}}
-function loadManual(){const data=readStored('tishinaManualSaveV1');if(!data){$('menuStatus').textContent='СОХРАНЕНИЕ НЕ НАЙДЕНО';$('titleStatus').textContent='СОХРАНЕНИЕ НЕ НАЙДЕНО';notify('Сохранение пока отсутствует.');return false;}const ok=applySnapshot(data);if(ok){started=true;modalOpen=false;$('pause').style.display='none';$('intro').style.display='none';$('confirmNew').style.display='none';$('downed').style.display='none';$('menuStatus').textContent='ИГРА ЗАГРУЖЕНА';$('titleStatus').textContent='';save();notify('Сохранение загружено.');}return ok;}
+function saveManual(){const ok=storeJson('tishinaManualSaveV1',makeSnapshot());const message=ok?'СОХРАНЕНИЕ ЗАПИСАНО НА ЭТОМ УСТРОЙСТВЕ':'ОШИБКА СОХРАНЕНИЯ';$('menuStatus').textContent=message;$('titleStatus').textContent=message;if(ok){$('titleLoad').disabled=false;notify('Игра сохранена.');}}
+function loadManual(){closeItemCard();const data=readStored('tishinaManualSaveV1');if(!data){$('menuStatus').textContent='СОХРАНЕНИЕ НЕ НАЙДЕНО';$('titleStatus').textContent='СОХРАНЕНИЕ НЕ НАЙДЕНО';notify('Сохранение пока отсутствует.');return false;}const ok=applySnapshot(data);if(ok){started=true;modalOpen=false;$('pause').style.display='none';$('intro').style.display='none';$('confirmNew').style.display='none';$('downed').style.display='none';$('menuStatus').textContent='ИГРА ЗАГРУЖЕНА';$('titleStatus').textContent='';save();notify('Сохранение загружено.');}return ok;}
 function itemRoot(id){return pickupObjects[id]||null;}
 function canCarry(id){const item=itemCatalog[id];if(!item)return false;const slotCount=inventory.length+medkits+energyItems;return slotCount<INVENTORY_MAX_SLOTS&&inventoryWeight()+item.weight<=INVENTORY_MAX_WEIGHT;}
 function openMotionPanel(obj){if(!obj?.userData?.motionKind)return;activeMotion=obj;const data=obj.userData;$('motionTitle').textContent=data.motionLabel||'МЕХАНИЗМ';$('motionDescription').textContent='Выбери действие.';$('motionPanel').style.display='flex';modalOpen=true;activeTarget=null;$('prompt').style.opacity='0';}
@@ -622,22 +627,60 @@ function closeMotionPanel(){if(activeMotion?.userData.manualHold)stopManualMotio
 function doMotionAction(action){if(!activeMotion)return;const d=activeMotion.userData;const name=d.motionLabel||'Механизм';if(action==='ajar')applyMotion(activeMotion,.16,d.slowSpeed||1.8,`${name}: оставлена узкая щель.`);else if(action==='slowOpen')applyMotion(activeMotion,1,d.slowSpeed||1.8,`${name}: медленно открывается.`);else if(action==='fastOpen')applyMotion(activeMotion,1,d.fastSpeed||13,`${name}: резко открывается.`);else if(action==='slowClose')applyMotion(activeMotion,0,d.slowSpeed||1.8,`${name}: медленно закрывается.`);else if(action==='fastClose')applyMotion(activeMotion,0,d.fastSpeed||13,`${name}: быстро закрывается.`);closeMotionPanel();}
 function endPeek(){if(!peekState||peekState.phase==='out')return;const p=peekState;p.phase='out';p.elapsed=0;p.duration=.34;p.fromX=camera.position.x;p.fromZ=camera.position.z;p.fromRoll=camera.rotation.z;p.fromYaw=yaw;p.fromPitch=pitch;p.toX=p.baseX;p.toZ=p.baseZ;p.toRoll=0;p.toYaw=yaw;p.toPitch=p.basePitch;releaseHandAction();$('peekExit').style.display='none';physicalSound('click',.65);showPhysicalFeedback('НАЗАД');}
 function doPeek(){if(!activeMotion)return;if(!(currentMotionFraction(activeMotion)>.02)){notify('Сначала оставь щель.');return;}const forwardX=-Math.sin(yaw),forwardZ=-Math.cos(yaw),rightX=Math.cos(yaw),rightZ=-Math.sin(yaw);const baseX=camera.position.x,baseZ=camera.position.z,baseYaw=yaw,basePitch=pitch;peekState={phase:'in',elapsed:0,duration:.36,baseX,baseZ,baseYaw,basePitch,fromX:baseX,fromZ:baseZ,fromYaw:baseYaw,fromPitch:basePitch,fromRoll:0,toX:baseX+rightX*.24+forwardX*.10,toZ:baseZ+rightZ*.24+forwardZ*.10,toYaw:baseYaw+.07,toPitch:basePitch,toRoll:-.055};drag=null;keys={};joy={x:0,y:0};joyTarget={x:0,y:0};nubReset();beginHandAction('peek',true);physicalSound('click',.75);closeMotionPanel();$('peekExit').style.display='block';showPhysicalFeedback('ЗАГЛЯДЫВАЕШЬ',true);}
+function closeItemCard(){
+ $('inspect').style.display='none';
+ pendingPickupId=null;
+ modalOpen=false;
+}
+function openItemCard(id){
+ const item=itemCatalog[id],source=itemRoot(id);
+ if(!item||!source||!source.visible)return;
+ pendingPickupId=id;
+ $('inspectType').textContent=item.type||'ПРЕДМЕТ';
+ $('inspectTitle').textContent=item.name;
+ $('inspectText').textContent=item.description;
+ const canTake=canCarry(id);
+ $('takeItem').disabled=!canTake;
+ $('takeItem').textContent=canTake?'ВЗЯТЬ':'НЕТ МЕСТА В ИНВЕНТАРЕ';
+ $('inspectFoot').textContent=`ВЕС: ${item.weight.toFixed(2)} КГ · ${canTake?'ГОТОВ К ПОДБОРУ':'ОСВОБОДИ МЕСТО В ИНВЕНТАРЕ'}`;
+ stopSprint(); joy={x:0,y:0}; joyTarget={x:0,y:0}; nubReset();
+ activeTarget=null; $('prompt').style.opacity='0';
+ $('inspect').style.display='flex';
+ modalOpen=true;
+}
 function offerItem(id){
  const item=itemCatalog[id],source=itemRoot(id);
- if(!item||!source)return;
- if(!canCarry(id)){notify('ИНВЕНТАРЬ ПЕРЕПОЛНЕН. Освободи место перед подбором.');return;}
+ if(!item||!source||!source.visible)return;
+ if(!canCarry(id)){
+  $('takeItem').disabled=true;
+  $('takeItem').textContent='НЕТ МЕСТА В ИНВЕНТАРЕ';
+  $('inspectFoot').textContent='ИНВЕНТАРЬ ПЕРЕПОЛНЕН. ОСВОБОДИ МЕСТО.';
+  notify('ИНВЕНТАРЬ ПЕРЕПОЛНЕН. Освободи место перед подбором.');
+  return;
+ }
+ closeItemCard();
  beginHandAction('pickup',false);physicalSound('click',.6);
  if(id==='medkit')medkits=Math.min(20,medkits+1);
  else if(id==='energy')energyItems=Math.min(20,energyItems+1);
  else if(!inventory.includes(item.name))inventory.push(item.name);
  source.visible=false;activeTarget=null;
  updateInventoryUI();save();
- notify(`${item.name} добавлен в инвентарь. ${item.description}`);
+ notify(`${item.name} добавлен в инвентарь.`);
 }
-function interact(){if(peekState){endPeek();return;}if(modalOpen)return;if(!activeTarget){notify('Нечего использовать рядом.');return;}const d=activeTarget.userData.interaction;if(d.action){d.action();}else{physicalSound('click',.25);notify(d.description||d.title||'Здесь ничего не происходит.');}}
+function interact(){
+ if(peekState){endPeek();return;}
+ if(modalOpen)return;
+ if(!activeTarget){notify('Нечего использовать рядом.');return;}
+ const d=activeTarget.userData.interaction;
+ if(d.type==='ПРЕДМЕТ'){
+  const id=activeTarget.userData.pickupId||activeTarget.userData.pickupGroup?.userData?.pickupId;
+  if(id){openItemCard(id);return;}
+ }
+ if(d.action){d.action();}else{physicalSound('click',.25);notify(d.description||d.title||'Здесь ничего не происходит.');}
+}
 const raycaster=new THREE.Raycaster();
 function isEffectivelyVisible(obj){for(let node=obj;node;node=node.parent){if(!node.visible)return false;}return true;}
-function updateTarget(){raycaster.setFromCamera(new THREE.Vector2(0,0),camera);const hits=raycaster.intersectObjects(interactables,false).filter(h=>h.distance<3.7&&isEffectivelyVisible(h.object));activeTarget=hits.length?hits[0].object:null;const interaction=activeTarget?.userData.interaction;const hint=interaction?.type==='ДВЕРЬ'?' · ОТКРЫТЬ / ЗАКРЫТЬ':interaction?.type==='ПРЕДМЕТ'?' · ПОДОБРАТЬ':'';$('prompt').textContent=interaction?`◉ ${interaction.title}${hint}`:'';$('prompt').style.opacity=activeTarget?'1':'0';}
+function updateTarget(){raycaster.setFromCamera(new THREE.Vector2(0,0),camera);const hits=raycaster.intersectObjects(interactables,false).filter(h=>h.distance<3.7&&isEffectivelyVisible(h.object));activeTarget=hits.length?hits[0].object:null;const interaction=activeTarget?.userData.interaction;const hint=interaction?.type==='ДВЕРЬ'?' · ОТКРЫТЬ / ЗАКРЫТЬ':interaction?.type==='ПРЕДМЕТ'?' · ОСМОТРЕТЬ':'';$('prompt').textContent=interaction?`◉ ${interaction.title}${hint}`:'';$('prompt').style.opacity=activeTarget?'1':'0';}
 function lowZoneAt(x,z,radius=0){return lowClearanceZones.find(zone=>x+radius>zone.minX&&x-radius<zone.maxX&&z+radius>zone.minZ&&z-radius<zone.maxZ)||null;}
 function canFitAt(x,z,mode=posture){const zone=lowZoneAt(x,z,postures[mode].radius);return !zone||postures[mode].height<=zone.clearance;}
 function canOccupyAt(x,z){const zone=lowZoneAt(x,z,stance.radius);return !zone||stance.height<=zone.clearance;}
@@ -762,7 +805,7 @@ function beginNewGame(){
   story.begin(()=>{
    modalOpen=false;
    save();
-   notify('Проходная комплекса «Север-7». Двери открываются одной кнопкой. Найденные предметы подбираются сразу.');
+   notify('Проходная комплекса «Север-7». Двери открываются одной кнопкой. Найденные предметы можно осмотреть и забрать кнопкой «ВЗЯТЬ».');
   });
   save();
  }catch(error){
@@ -778,7 +821,8 @@ function openMainMenu(){if(!started)return;stopSprint();joy={x:0,y:0};joyTarget=
 function closeMainMenu(){ $('pause').style.display='none';modalOpen=false;}
 function continueAuto(){const data=readStored('tishinaAutoV1')||autosaved;if(!data){$('titleStatus').textContent='АВТОСОХРАНЕНИЕ НЕ НАЙДЕНО';return;}applySnapshot(data);started=true;modalOpen=false;$('intro').style.display='none';$('downed').style.display='none';save();notify('Продолжаем с последней автосохранённой позиции.');}
 function exitGame(){save();started=false;stopSprint();joy={x:0,y:0};joyTarget={x:0,y:0};nubReset();modalOpen=true;$('pause').style.display='none';$('intro').style.display='flex';document.querySelector('#intro .foot').textContent='ИГРА ОСТАНОВЛЕНА · В БРАУЗЕРЕ МОЖНО ЗАКРЫТЬ ВКЛАДКУ ВРУЧНУЮ';if(document.fullscreenElement)document.exitFullscreen?.().catch(()=>{});}
-$('start').onclick=beginNewGame;$('continueTitle').onclick=continueAuto;$('titleLoad').onclick=()=>{if(!loadManual()){$('titleStatus').textContent='Сначала сохраните игру в главном меню.';}};
+$('start').onclick=beginNewGame;$('continueTitle').onclick=continueAuto;$('titleLoad').onclick=()=>{if(!loadManual()){$('titleStatus').textContent='СОХРАНЕНИЕ НЕ НАЙДЕНО';}};$('titleSave').onclick=saveManual;$('titleExit').onclick=()=>{if(started)exitGame();else $('titleStatus').textContent='Чтобы выйти, закройте вкладку браузера.';};
+$('closeInspect').onclick=closeItemCard;$('takeItem').onclick=()=>{if(pendingPickupId)offerItem(pendingPickupId);};
 $('use').onclick=interact;$('flashlight').onclick=toggleFlashlight;setFlashlightState(flashlightOn,false);
 $('motionAjar').onclick=()=>doMotionAction('ajar');$('motionPeek').onclick=doPeek;$('motionSlowOpen').onclick=()=>doMotionAction('slowOpen');$('motionFastOpen').onclick=()=>doMotionAction('fastOpen');$('motionSlowClose').onclick=()=>doMotionAction('slowClose');$('motionFastClose').onclick=()=>doMotionAction('fastClose');$('motionClosePanel').onclick=closeMotionPanel;
 function bindMotionHold(id,direction){const el=$(id);el.addEventListener('pointerdown',e=>{e.preventDefault();if(!activeMotion)return;el.setPointerCapture(e.pointerId);startManualMotion(direction);});const end=()=>stopManualMotion();el.addEventListener('pointerup',end);el.addEventListener('pointercancel',end);el.addEventListener('lostpointercapture',end);el.addEventListener('contextmenu',e=>e.preventDefault());}
@@ -787,7 +831,7 @@ bindMotionHold('motionHoldOpen',1);bindMotionHold('motionHoldClose',-1);$('peekE
 $('bag').onclick=()=>{$('inventory').style.display='flex';modalOpen=true;updateInventoryUI();};$('closeBag').onclick=()=>{$('inventory').style.display='none';modalOpen=false;};
 $('useMedkit').onclick=useMedkit;$('useEnergy').onclick=useEnergy;
 $('openMenu').onclick=openMainMenu;$('closeMenu').onclick=closeMainMenu;$('continueGame').onclick=closeMainMenu;$('saveGame').onclick=saveManual;$('loadGame').onclick=()=>loadManual();$('newGame').onclick=()=>{$('confirmNew').style.display='flex';};$('confirmNewNo').onclick=()=>{$('confirmNew').style.display='none';};$('confirmNewYes').onclick=beginNewGame;$('exitGame').onclick=exitGame;
-$('jump').onclick=jump;$('crouch').onclick=()=>setPosture(posture==='crouch'?'stand':'crouch');$('prone').onclick=()=>setPosture(posture==='prone'?'stand':'prone');$('recover').onclick=()=>{health=65;stamina=70;sprintLocked=false;sprintHeld=false;posture='stand';stanceFrom=null;stanceElapsed=1;Object.assign(stance,postures.stand);jumpHeight=0;jumpVelocity=0;grounded=true;camera.position.set(0,1.68,10.5);yaw=0;pitch=0;look(0,0);$('downed').style.display='none';modalOpen=false;updatePostureUI();updateStaminaUI(true);updateHealthUI(true);save();notify('Ты пришёл в себя у проходной. Будь осторожнее.');};updatePostureUI();updateStaminaUI(true);updateHealthUI(true);updateInventoryUI();
+$('jump').onclick=jump;$('crouch').onclick=()=>setPosture(posture==='crouch'?'stand':'crouch');$('prone').onclick=()=>setPosture(posture==='prone'?'stand':'prone');$('recover').onclick=()=>{health=65;stamina=70;sprintLocked=false;sprintHeld=false;posture='stand';stanceFrom=null;stanceElapsed=1;Object.assign(stance,postures.stand);jumpHeight=0;jumpVelocity=0;grounded=true;camera.position.set(0,1.68,10.5);yaw=0;pitch=0;look(0,0);$('downed').style.display='none';modalOpen=false;updatePostureUI();updateStaminaUI(true);updateHealthUI(true);save();notify('Ты пришёл в себя у проходной. Будь осторожнее.');};updatePostureUI();updateStaminaUI(true);updateHealthUI(true);updateInventoryUI();refreshTitleMenuState();
 const sprintButton=$('sprint');sprintButton.addEventListener('pointerdown',e=>{e.preventDefault();sprintButton.setPointerCapture(e.pointerId);startSprint();});sprintButton.addEventListener('pointerup',e=>{e.preventDefault();stopSprint();});sprintButton.addEventListener('pointercancel',stopSprint);sprintButton.addEventListener('lostpointercapture',stopSprint);sprintButton.addEventListener('contextmenu',e=>e.preventDefault());
 $('fullscreen').onclick=async()=>{try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen();else await document.exitFullscreen();}catch{notify('Открой игру через «На экран Домой» для более полного режима.');}};
 const stick=$('stick'),nub=$('nub');let stickPointerId=null;
@@ -810,6 +854,6 @@ stick.addEventListener('pointermove',e=>{if(stickPointerId===e.pointerId){e.prev
 stick.addEventListener('pointerup',e=>{if(stickPointerId===e.pointerId)resetJoy();});
 stick.addEventListener('pointercancel',resetJoy);stick.addEventListener('lostpointercapture',resetJoy);
 canvas.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'&&e.clientX<innerWidth*.42&&e.clientY>innerHeight*.52)return;if(modalOpen)return;drag={x:e.clientX,y:e.clientY,id:e.pointerId};try{canvas.setPointerCapture(e.pointerId);}catch{}});canvas.addEventListener('pointermove',e=>{if(drag&&drag.id===e.pointerId&&!modalOpen&&(!peekState||peekState.phase==='hold')){const dx=e.clientX-drag.x,dy=e.clientY-drag.y;look(dx,dy);drag={x:e.clientX,y:e.clientY,id:e.pointerId};}});const stopLook=e=>{if(drag&&drag.id===e.pointerId)drag=null;};canvas.addEventListener('pointerup',stopLook);canvas.addEventListener('pointercancel',stopLook);canvas.addEventListener('lostpointercapture',stopLook);
-addEventListener('keydown',e=>{const key=e.key.toLowerCase();if(key==='escape'){if(peekState){endPeek();return;}if($('motionPanel').style.display==='flex')closeMotionPanel();else if($('confirmNew').style.display==='flex')$('confirmNew').style.display='none';else if(started&&!modalOpen)openMainMenu();else if(modalOpen&&$('pause').style.display==='flex')closeMainMenu();else if(modalOpen&&$('inventory').style.display==='flex'){$('inventory').style.display='none';modalOpen=false;}return;}if(e.code==='ShiftLeft'||e.code==='ShiftRight'){startSprint();return;}if(e.code==='Space'){e.preventDefault();jump();return;}if(key==='f'&&!e.repeat){toggleFlashlight();return;}if(key==='c'){setPosture(posture==='crouch'?'stand':'crouch');return;}if(key==='z'){setPosture(posture==='prone'?'stand':'prone');return;}keys[key]=true;if(key==='e')interact();});addEventListener('keyup',e=>{if(e.code==='ShiftLeft'||e.code==='ShiftRight'){stopSprint();return;}keys[e.key.toLowerCase()]=false;});
+addEventListener('keydown',e=>{const key=e.key.toLowerCase();if(key==='escape'){if(peekState){endPeek();return;}if($('motionPanel').style.display==='flex')closeMotionPanel();else if($('confirmNew').style.display==='flex')$('confirmNew').style.display='none';else if($('inspect').style.display==='flex')closeItemCard();else if(started&&!modalOpen)openMainMenu();else if(modalOpen&&$('pause').style.display==='flex')closeMainMenu();else if(modalOpen&&$('inventory').style.display==='flex'){$('inventory').style.display='none';modalOpen=false;}return;}if(e.code==='ShiftLeft'||e.code==='ShiftRight'){startSprint();return;}if(e.code==='Space'){e.preventDefault();jump();return;}if(key==='f'&&!e.repeat){toggleFlashlight();return;}if(key==='c'){setPosture(posture==='crouch'?'stand':'crouch');return;}if(key==='z'){setPosture(posture==='prone'?'stand':'prone');return;}keys[key]=true;if(key==='e')interact();});addEventListener('keyup',e=>{if(e.code==='ShiftLeft'||e.code==='ShiftRight'){stopSprint();return;}keys[e.key.toLowerCase()]=false;});
 addEventListener('blur',()=>{stopSprint();if(started)save();});document.addEventListener('visibilitychange',()=>{if(document.hidden){stopSprint();if(started)save();}});addEventListener('pagehide',()=>{if(started)save();});setInterval(()=>{if(started&&!modalOpen)save();},12000);
 window.__TISHINA_BOOT__?.ready?.();
