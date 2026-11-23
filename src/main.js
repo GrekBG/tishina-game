@@ -465,11 +465,11 @@ function loadHangarModel() {
     loader.load(HANGAR_GLB_URL, gltf => {
       const model = gltf.scene;
       model.name = 'Тентовый ангар — GLB game asset';
-      // 0.5.16: use the GLB at its authored real-world size and keep its proportions.
+      // 0.5.17: use the GLB at its authored real-world size and keep its proportions.
       // Native bounds are approximately 60 × 18.7 × 51.9 m; entrance faces +Z.
       // Move the deeper footprint back so the original player spawn retains a clear forecourt.
       model.scale.setScalar(1.0);
-      model.position.set(0, 0.08, -30.0);
+      model.position.set(-10.0, 0.08, 0.0);
       model.updateMatrixWorld(true);
       const hangarBounds = new THREE.Box3().setFromObject(model);
       const hangarSize = hangarBounds.getSize(new THREE.Vector3());
@@ -502,15 +502,19 @@ function loadHangarModel() {
       scene.traverse(node => {
         if (node.isMesh && oldShellPrefixes.some(prefix => node.name.startsWith(prefix))) node.visible = false;
       });
-      // 0.5.16: clear the full-size hangar footprint of obsolete room geometry.
+      // 0.5.17: clear the full-size hangar footprint of obsolete room geometry.
       // Preserve one compact service corner along the left/rear wall for story objects.
+      // The supplied hangar is placed in the open apron beside the UAZ.
+      // Its native footprint is about 60 x 52 m; entrance faces +Z.
       const inHangarFootprint = p =>
-        p.x > -29.6 && p.x < 29.6 &&
-        p.z > -52.5 && p.z < -1.45 &&
+        p.x > -40.5 && p.x < 20.5 &&
+        p.z > -27.5 && p.z < 26.5 &&
         p.y > -0.12 && p.y < 18.8;
+      // Keep the small story/service cluster outside the hangar footprint,
+      // at the far rear-left edge rather than in the vehicle approach.
       const inServiceCorner = p =>
-        p.x > -28.8 && p.x < -22.2 &&
-        p.z > -49.8 && p.z < -38.2 &&
+        p.x > -39.5 && p.x < -34.0 &&
+        p.z > -24.5 && p.z < -17.0 &&
         p.y > -0.12 && p.y < 4.2;
       const clearLegacyPoint = p => inHangarFootprint(p) && !inServiceCorner(p);
 
@@ -532,8 +536,8 @@ function loadHangarModel() {
           z: (c.minZ + c.maxZ) / 2
         };
         const overlapsHangar =
-          c.maxX > -30.25 && c.minX < 30.25 &&
-          c.maxZ > -53.2 && c.minZ < -0.75;
+          c.maxX > -41.0 && c.minX < 21.0 &&
+          c.maxZ > -28.0 && c.minZ < 27.0;
         if (overlapsHangar && !inServiceCorner(center)) colliders.splice(i, 1);
       }
 
@@ -580,7 +584,7 @@ function loadHangarModel() {
     });
   }).catch(error => console.warn('[ТИШИНА] Hangar GLB loader error:', error));
 }
-// 0.5.16: load the full-size, uniformly scaled aircraft-hangar GLB.
+// 0.5.17: load the full-size, uniformly scaled aircraft-hangar GLB.
 // The procedural shell remains as a fallback until the GLB and its textures load.
 loadHangarModel();
 
