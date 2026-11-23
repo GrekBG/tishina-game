@@ -1,7 +1,8 @@
-// TISHINA 0.3.3 — 1024px procedural PBR material library.
+// TISHINA 0.3.3 — selected-size procedural PBR material library.
 // Generates tileable albedo, normal and roughness maps locally; no texture downloads.
 export async function installPbrSurfaces(THREE, surfaces, options = {}) {
   const quality = options.quality || 'ultra';
+  const textureResolution = Math.max(256, Math.min(1024, Math.floor(Number(options.resolution) || 1024)));
   const renderer = options.renderer || null;
   const maxAnisotropy = Math.max(1, Math.min(16, Number(options.maxAnisotropy) || renderer?.capabilities?.getMaxAnisotropy?.() || 8));
   const yieldToMain = () => new Promise(resolve => setTimeout(resolve, 0));
@@ -250,7 +251,7 @@ export async function installPbrSurfaces(THREE, surfaces, options = {}) {
   for (const [name, config] of Object.entries(configs)) {
     const material = surfaces[name];
     if (!material) continue;
-    const resolution = 1024;
+    const resolution = textureResolution;
     let maps;
     try {
       maps = await buildMaps(name, material, config, resolution);

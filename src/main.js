@@ -13,7 +13,7 @@ const gltfLoaderPromise = import('three/addons/loaders/GLTFLoader.js')
   .then(({ GLTFLoader }) => new GLTFLoader())
   .catch(error => { console.warn('[ТИШИНА] GLTFLoader unavailable; using local fallback meshes.', error); return null; });
 const isMobileDevice = matchMedia('(pointer: coarse)').matches || Math.min(innerWidth, innerHeight) < 700;
-const pixelRatioLimit = isMobileDevice ? 1.2 : 1.5;
+const pixelRatioLimit = isMobileDevice ? 1.0 : 1.5;
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x9aa39e);
 scene.fog = new THREE.FogExp2(0x9aa39e, 0.018);
@@ -52,7 +52,7 @@ flashlightFill.position.set(0, -0.06, -0.24);
 camera.add(flashlightFill);
 
 function grungeTexture(base, seed=1){
- const size=1024,c=document.createElement('canvas');c.width=c.height=size;const g=c.getContext('2d',{alpha:false});g.fillStyle=base;g.fillRect(0,0,size,size);
+ const size=isMobileDevice?512:1024,c=document.createElement('canvas');c.width=c.height=size;const g=c.getContext('2d',{alpha:false});g.fillStyle=base;g.fillRect(0,0,size,size);
  let n=seed;const rand=()=>{n=(n*1664525+1013904223)>>>0;return n/4294967296;};
  const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(2,2);t.colorSpace=THREE.SRGBColorSpace;t.generateMipmaps=true;t.minFilter=THREE.LinearMipmapLinearFilter;t.magFilter=THREE.LinearFilter;t.anisotropy=Math.min(isMobileDevice?4:8,renderer.capabilities.getMaxAnisotropy());
  // Draw the existing 1024px grain in small batches, so the menu and input handlers can boot first.
@@ -76,7 +76,7 @@ const darkSteel = darkConcrete.clone(); darkSteel.color.setHex(0x202927); darkSt
 
 // Weathered olive textile used by the fabric-covered service hangar.
 function makeFabricTexture(base = '#687164', seed = 17) {
- const size = 1024, canvas = document.createElement('canvas');
+ const size = isMobileDevice ? 512 : 1024, canvas = document.createElement('canvas');
  canvas.width = canvas.height = size;
  const ctx = canvas.getContext('2d', { alpha: false });
  ctx.fillStyle = base; ctx.fillRect(0, 0, size, size);
@@ -127,7 +127,9 @@ const hangarRoofFabric = hangarFabric.clone();
 hangarRoofFabric.color.setHex(0x858779);
 const fabricSeam = new THREE.MeshStandardMaterial({ color: 0x444b40, roughness: 0.98, metalness: 0.02 });
 const pbrBuild = installPbrSurfaces(THREE, { concrete, darkConcrete, plaster, dirtyWhite, metal, rust, floorMat, wood, paper, yellow, gravel:gravelMat, earth:earthMat, driveConcrete:driveConcreteMat }, {
- renderer, quality: 'ultra', maxAnisotropy: isMobileDevice ? 4 : 8, rowsPerYield: isMobileDevice ? 12 : 24
+ renderer, quality: isMobileDevice ? 'mobile' : 'ultra',
+ resolution: isMobileDevice ? 512 : 1024,
+ maxAnisotropy: isMobileDevice ? 2 : 8, rowsPerYield: isMobileDevice ? 8 : 24
 }).catch(error => { console.error('[ТИШИНА] HD PBR generation failed; keeping base 1024px maps.', error); });
 const colliders=[]; const interactables=[]; const inventory=[]; const motionObjects=[]; const pickupObjects={};
 let activeMotion=null;const INVENTORY_MAX_SLOTS=8,INVENTORY_MAX_WEIGHT=8;
