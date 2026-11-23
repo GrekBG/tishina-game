@@ -2,7 +2,7 @@ import { ColladaLoader } from 'three/addons/loaders/ColladaLoader.js';
 
 // Exterior service yard extension for ТИШИНА 0.3.0, polished in 0.3.3.
 // Designed for mobile WebGL: low-poly geometry, shared materials, modest light count.
-export function installWorldExpansion({ THREE, scene, box, floor, mat, addInteract, colliders, surfaces, notify = () => {} }) {
+export function installWorldExpansion({ THREE, scene, box, floor, mat, addInteract, colliders, gltfLoaderPromise, surfaces, notify = () => {} }) {
   const toned = (base, color, roughness, metalness) => { const m = base.clone(); m.color.setHex(color); m.roughness = roughness; m.metalness = metalness; return m; };
   const steel = toned(surfaces.metal, 0x303a37, 0.72, 0.72);
   const darkSteel = toned(surfaces.darkConcrete, 0x202927, 0.82, 0.58);
@@ -257,6 +257,67 @@ export function installWorldExpansion({ THREE, scene, box, floor, mat, addIntera
     const x = -34 + ((i * 17) % 68), z = 12 + ((i * 11) % 43);
     const stain = new THREE.Mesh(new THREE.CircleGeometry(0.45 + (i % 4) * 0.22, 16), new THREE.MeshStandardMaterial({ color: i % 3 ? 0x555951 : 0x45483f, roughness: 0.96, metalness: 0.0, transparent: true, opacity: 0.34 }));
     stain.rotation.x = -Math.PI / 2; stain.position.set(x, -0.012, z); stain.scale.set(1.6, 0.62, 1); scene.add(stain);
+  }
+
+
+  // TISHINA 0.5.2 — remote village chapel on the eastern edge of the playable yard.
+  // The supplied GLB is CC0 1.0. Keep it local so iPhone Safari can cache it with the game.
+  const chapelUrl = new URL('../village-chapel.glb', import.meta.url).href;
+  const chapelPad = detail('Площадка у заброшенной часовни', [10.5, 0.045, 16.5], [33, -0.006, 43], earthGround);
+  chapelPad.receiveShadow = true;
+  const chapelPath = detail('Грунтовая тропа к часовне', [2.5, 0.04, 25], [21.5, 0.006, 28], gravelGround);
+  chapelPath.rotation.y = 0.76;
+  chapelPath.receiveShadow = true;
+
+  if (gltfLoaderPromise) {
+    gltfLoaderPromise.then(loader => {
+      if (!loader) return;
+      loader.load(chapelUrl, gltf => {
+        const chapel = gltf.scene;
+        chapel.name = 'Сельская часовня — край карты';
+        chapel.scale.setScalar(0.9);
+        chapel.rotation.y = Math.PI; // entrance faces back toward the industrial complex
+        chapel.position.set(33, 0.015, 43);
+        chapel.traverse(node => {
+          if (!node.isMesh) return;
+          node.castShadow = !('ontouchstart' in window);
+          node.receiveShadow = true;
+          node.frustumCulled = true;
+          const materials = Array.isArray(node.material) ? node.material : [node.material];
+          for (const material of materials) {
+            if (!material) continue;
+            for (const texture of [material.map, material.normalMap, material.roughnessMap, material.metalnessMap]) {
+              if (texture) texture.anisotropy = Math.min(4, rendererMaxAnisotropy());
+            }
+            material.needsUpdate = true;
+          }
+          if (node.name === 'Doors' || node.name.startsWith('Doors')) {
+            addInteract(node, 'Дверь сельской часовни',
+              'Старая дверь заперта. На железной накладке видны следы недавнего прикосновения.',
+              'ОБЪЕКТ');
+          }
+        });
+        scene.add(chapel);
+        scene.updateMatrixWorld(true);
+
+        // Simple wall colliders with a narrow opening at the entrance.
+        const wallY = 2.05, wallH = 4.1, wallT = 0.34;
+        colliders.push(
+          { minX: 29.75, maxX: 30.10, minY: 0, maxY: wallH, minZ: 37.8, maxZ: 49.0 },
+          { minX: 35.90, maxX: 36.25, minY: 0, maxY: wallH, minZ: 37.8, maxZ: 49.0 },
+          { minX: 30.0, maxX: 36.0, minY: 0, maxY: wallH, minZ: 48.75, maxZ: 49.1 },
+          { minX: 30.0, maxX: 32.25, minY: 0, maxY: wallH, minZ: 37.65, maxZ: 38.0 },
+          { minX: 33.75, maxX: 36.0, minY: 0, maxY: wallH, minZ: 37.65, maxZ: 38.0 }
+        );
+        console.info('[ТИШИНА] Часовня загружена на восточной окраине карты:', chapelUrl);
+      }, undefined, error => {
+        console.warn('[ТИШИНА] Не удалось загрузить часовню:', error);
+      });
+    }).catch(error => console.warn('[ТИШИНА] Ошибка GLTFLoader часовни:', error));
+  }
+
+  function rendererMaxAnisotropy() {
+    return scene.userData.maxAnisotropy || 4;
   }
 
   return {

@@ -489,7 +489,7 @@ function loadHangarModel() {
   }).catch(error => console.warn('[ТИШИНА] Hangar GLB loader error:', error));
 }
 // 0.5.1: отключена внешняя GLB-подмена — сохраняем закрытый процедурный тентовый ангар.
-// loadHangarModel();
+// // 0.5.2: keep the closed local procedural hangar; do not replace it with the open external GLB.
 
 const story = createStoryController({ onObjective: value => { const el = $('objective'); if (el) el.textContent = value; }, notify });
 panel.userData.interaction.action = () => { story.markBreaker(); notify('ЭЛЕКТРОЩИТ: питание отключено. На схеме отмечен резервный контур в подвал.'); };
