@@ -35,7 +35,7 @@ export function installWorldExpansion({ THREE, scene, camera, isMobileDevice = f
   detail('Дорога — шероховатый мокрый асфальт', [10, 0.035, 82], [0, -0.012, 27], wetAsphalt);
   // Distinct, non-mirrored ground zones: concrete apron, loose gravel shoulders and compacted earth.
   detail('Бетонный подъезд к ангару', [20.5, 0.045, 8.5], [0, -0.008, -2.4], apronConcrete);
-  detail('Бетонная зона разгрузки', [20, 0.045, 8.0], [25, -0.008, 13.5], apronConcrete);
+  detail('Бетонная зона разгрузки', [20, 0.045, 8.0], [8.5, -0.008, 13.5], apronConcrete);
   function terrainShoulder(name, xCenter, material, seed) {
     const geometry = new THREE.PlaneGeometry(14, 72, 48, 160);
     geometry.rotateX(-Math.PI / 2);
@@ -118,9 +118,9 @@ export function installWorldExpansion({ THREE, scene, camera, isMobileDevice = f
 
   // Eastern logistics area: containers, loading platform, transformer and a wrecked service van.
   // Keep the loading ramp on the left loading bay; its previous width crossed the chapel porch.
-  solid('Погрузочная рампа', [12, 0.72, 5.2], [20, 0.28, 18], mat(0x515953, 0.94, 0.04));
+  solid('Погрузочная рампа', [12, 0.72, 5.2], [8.5, 0.28, 18], mat(0x515953, 0.94, 0.04));
   for (let i = 0; i < 4; i++) {
-    const x = 17 + i * 2.5;
+    const x = 5.5 + i * 2.5;
     solid('Отбойник рампы', [0.18, 0.52, 0.18], [x, 0.28, 15.25], steel);
     detail('Жёлто-чёрная маркировка рампы', [0.12, 0.028, 0.52], [x, 0.66, 15.2], hazard);
   }
@@ -128,7 +128,7 @@ export function installWorldExpansion({ THREE, scene, camera, isMobileDevice = f
   for (let i = 0; i < 4; i++) {
     // The front-right container is replaced by the chapel. Move the rear-right
     // container east so it no longer blocks the route behind the chapel.
-    if (i === 1) continue;
+    if (i === 1 || i === 3) continue;
     const x = i === 3 ? 39.0 : 20 + (i % 2) * 9.4;
     const z = 25 + Math.floor(i / 2) * 7.2;
     solid('Грузовой контейнер', [8.4, 2.65, 6.2], [x, 1.34, z], containerColors[i % 3]);
@@ -265,125 +265,238 @@ export function installWorldExpansion({ THREE, scene, camera, isMobileDevice = f
   }
 
 
-  // TISHINA 0.5.6 — pre-optimized stone chapel replaces the front-right cargo container.
-  // Keep the supplied GLB unchanged; only its world transform and mobile texture residency are adjusted.
+  // TISHINA 0.5.8 — create the chapel directly with Three.js on phones.
+  // Mobile rendering no longer depends on a remote/large GLB request; the original optimized GLB remains for desktop.
   const chapelX = 29.4, chapelZ = 25.0, chapelScale = 0.65;
   const chapelUrl = new URL('../village-chapel.glb', import.meta.url).href;
-  const chapelPad = detail('Площадка у заброшенной часовни', [9.2, 0.045, 11.0], [chapelX, -0.006, chapelZ], earthGround);
+  const chapelPad = detail('Площадка у заброшенной часовни', [9.8, 0.045, 11.8], [chapelX, -0.006, chapelZ], earthGround);
   chapelPad.receiveShadow = true;
-  const chapelPath = detail('Грунтовая тропа к часовне', [2.6, 0.04, 5.8], [chapelX, 0.006, 22.4], gravelGround);
+  const chapelPath = detail('Грунтовая тропа к часовне', [4.8, 0.04, 7.4], [chapelX, 0.006, 19.7], gravelGround);
   chapelPath.receiveShadow = true;
 
-  // Load the original detailed chapel when it enters the mobile view range.
-  // The model is not added to the install precache: the service worker caches it after the first successful request.
-  let chapelLoadStarted = false;
+  let chapelCollidersAdded = false;
+  let chapelFallbackAdded = false;
+  function addChapelColliders() {
+    if (chapelCollidersAdded) return;
+    chapelCollidersAdded = true;
+    const halfWallWidth = 2.22;
+    const halfWallDepth = 3.70;
+    const wallT = 0.28;
+    const sideInnerX = 1.94;
+    const frontZ = chapelZ - halfWallDepth;
+    const rearZ = chapelZ + halfWallDepth;
+    const openingHalf = 0.68; // 1.36 m visual opening; the door itself is the only centre blocker.
+    const addWall = (minX, maxX, minZ, maxZ, maxY = 5.8) => colliders.push({
+      minX, maxX, minY: 0, maxY, minZ, maxZ
+    });
+    // Colliders trace only the real masonry footprint. No extended invisible slabs at front or rear.
+    addWall(chapelX-halfWallWidth, chapelX-sideInnerX, frontZ, rearZ);
+    addWall(chapelX+sideInnerX, chapelX+halfWallWidth, frontZ, rearZ);
+    addWall(chapelX-halfWallWidth, chapelX+halfWallWidth, rearZ-wallT/2, rearZ+wallT/2);
+    addWall(chapelX-halfWallWidth, chapelX-openingHalf, frontZ-wallT/2, frontZ+wallT/2);
+    addWall(chapelX+openingHalf, chapelX+halfWallWidth, frontZ-wallT/2, frontZ+wallT/2);
+    // Closed wooden door: it stops the player at the threshold but does not fill the approach area.
+    addWall(chapelX-0.56, chapelX+0.56, frontZ-0.10, frontZ+0.10, 2.12);
+  }
+
+  function createChapelTexture(kind = 'stone') {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256; canvas.height = 256;
+    const ctx = canvas.getContext('2d', { alpha: false });
+    if (!ctx) return null;
+    let seed = kind === 'stone' ? 24058 : kind === 'roof' ? 5808 : 118;
+    const random = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+    if (kind === 'stone') {
+      ctx.fillStyle = '#514f49'; ctx.fillRect(0, 0, 256, 256);
+      const rowH = 32;
+      for (let row = 0; row < 8; row++) {
+        const offset = row % 2 ? -24 : 0;
+        for (let x = offset; x < 280; ) {
+          const width = 34 + Math.floor(random() * 29);
+          const tone = 103 + Math.floor(random() * 38);
+          ctx.fillStyle = `rgb(${tone},${tone-2},${tone-8})`;
+          ctx.fillRect(x+1, row*rowH+1, width-2, rowH-2);
+          ctx.fillStyle = 'rgba(225,218,199,.10)';
+          ctx.fillRect(x+3, row*rowH+3, width-7, 1);
+          ctx.fillStyle = 'rgba(20,22,19,.20)';
+          ctx.fillRect(x+2, row*rowH+rowH-4, width-4, 2);
+          x += width;
+        }
+      }
+      for (let i=0;i<1450;i++) {
+        const a=.025+random()*.10;
+        ctx.fillStyle = random()>.5 ? `rgba(235,229,211,${a})` : `rgba(17,19,17,${a})`;
+        ctx.fillRect(random()*256, random()*256, 1+random()*2.5, 1+random()*2);
+      }
+    } else if (kind === 'roof') {
+      ctx.fillStyle = '#303a38'; ctx.fillRect(0,0,256,256);
+      for(let y=0;y<256;y+=32) for(let x=0;x<256;x+=42) {
+        const tone=42+Math.floor(random()*20);
+        ctx.fillStyle=`rgb(${tone},${tone+7},${tone+5})`;
+        ctx.fillRect(x+(y/32%2)*10+1,y+1,39,29);
+        ctx.strokeStyle='rgba(190,194,177,.12)';ctx.strokeRect(x+(y/32%2)*10+1,y+1,39,29);
+      }
+    } else {
+      ctx.fillStyle = '#493a2e'; ctx.fillRect(0,0,256,256);
+      for(let x=0;x<256;x+=30){ctx.fillStyle='rgba(205,177,135,.10)';ctx.fillRect(x,0,2,256);}
+      for(let y=22;y<256;y+=54){ctx.fillStyle='rgba(12,13,12,.24)';ctx.fillRect(0,y,256,2);}
+      for(let i=0;i<450;i++){ctx.fillStyle=`rgba(8,8,7,${.025+random()*.09})`;ctx.fillRect(random()*256,random()*256,1+random()*3,1+random()*5);}
+    }
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(kind === 'stone' ? 2.2 : 1.5, kind === 'stone' ? 1.7 : 2.0);
+    texture.generateMipmaps = true;
+    texture.minFilter = THREE.LinearMipmapLinearFilter;
+    texture.magFilter = THREE.LinearFilter;
+    texture.anisotropy = Math.min(isMobileDevice ? 2 : 4, rendererMaxAnisotropy());
+    return texture;
+  }
+
+  function createInlineChapel() {
+    if (chapelFallbackAdded) return;
+    chapelFallbackAdded = true;
+    const group = new THREE.Group();
+    group.name = 'Каменная сельская часовня — встроенная модель';
+    group.position.set(chapelX, 0.015, chapelZ);
+    const stoneMap = createChapelTexture('stone');
+    const roofMap = createChapelTexture('roof');
+    const woodMap = createChapelTexture('wood');
+    const stone = new THREE.MeshStandardMaterial({ color: 0xb0ada2, map: stoneMap, roughness: .96, metalness: 0 });
+    const trim = new THREE.MeshStandardMaterial({ color: 0x858176, map: stoneMap, roughness: .97, metalness: 0 });
+    const roof = new THREE.MeshStandardMaterial({ color: 0x858b83, map: roofMap, roughness: .92, metalness: .04, side: THREE.DoubleSide });
+    const wood = new THREE.MeshStandardMaterial({ color: 0x9a8061, map: woodMap, roughness: .94, metalness: 0 });
+    const dark = new THREE.MeshStandardMaterial({ color: 0x17201e, roughness: .78, metalness: .02 });
+    const metalwork = new THREE.MeshStandardMaterial({ color: 0x343b37, roughness: .72, metalness: .55 });
+    const add = (name, geometry, material, position, rotation = [0,0,0]) => {
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.name = name; mesh.position.set(...position); mesh.rotation.set(...rotation);
+      mesh.castShadow = !isMobileDevice; mesh.receiveShadow = !isMobileDevice;
+      group.add(mesh); return mesh;
+    };
+
+    // Foundation and stone nave. The front wall is built in sections so the door is a true opening.
+    add('Фундамент часовни', new THREE.BoxGeometry(4.55,.30,7.55), trim, [0,.18,0]);
+    add('Левая каменная стена', new THREE.BoxGeometry(.30,3.05,7.35), stone, [-2.05,1.82,0]);
+    add('Правая каменная стена', new THREE.BoxGeometry(.30,3.05,7.35), stone, [2.05,1.82,0]);
+    add('Задняя каменная стена', new THREE.BoxGeometry(4.35,3.05,.30), stone, [0,1.82,3.55]);
+    add('Передняя стена слева от двери', new THREE.BoxGeometry(1.46,3.05,.30), stone, [-1.32,1.82,-3.55]);
+    add('Передняя стена справа от двери', new THREE.BoxGeometry(1.46,3.05,.30), stone, [1.32,1.82,-3.55]);
+    add('Каменная перемычка над дверью', new THREE.BoxGeometry(1.20,.83,.32), stone, [0,2.94,-3.55]);
+    add('Внутренний пол часовни', new THREE.BoxGeometry(4.02,.12,7.0), trim, [0,.36,0]);
+
+    // Front and rear triangular gables under the pitched roof.
+    const gableShape = new THREE.Shape();
+    gableShape.moveTo(-2.12,0); gableShape.lineTo(2.12,0); gableShape.lineTo(0,1.48); gableShape.closePath();
+    const gableGeo = new THREE.ShapeGeometry(gableShape);
+    const gableMat = stone.clone(); gableMat.side = THREE.DoubleSide;
+    add('Фронтон над фасадом', gableGeo, gableMat, [0,3.34,-3.70]);
+    add('Фронтон задней стены', gableGeo, gableMat, [0,3.34,3.70]);
+
+    // Slate roof, ridge cap and fascia.
+    add('Левый скат каменной крыши', new THREE.BoxGeometry(2.72,.22,7.95), roof, [-1.13,3.92,0], [0,0,.49]);
+    add('Правый скат каменной крыши', new THREE.BoxGeometry(2.72,.22,7.95), roof, [1.13,3.92,0], [0,0,-.49]);
+    add('Конёк крыши', new THREE.BoxGeometry(.18,.14,8.08), trim, [0,4.55,0]);
+    add('Карниз слева', new THREE.BoxGeometry(.20,.22,8.02), trim, [-2.25,3.30,0]);
+    add('Карниз справа', new THREE.BoxGeometry(.20,.22,8.02), trim, [2.25,3.30,0]);
+
+    // Small bell tower with open belfry, bell, steep cap and a metal cross.
+    add('Основание колокольни', new THREE.BoxGeometry(1.48,.34,1.48), trim, [0,4.58,-1.45]);
+    for (const x of [-.53,.53]) for (const z of [-1.98,-.92])
+      add('Столб колокольни', new THREE.BoxGeometry(.16,1.22,.16), stone, [x,5.30,z]);
+    add('Верхняя обвязка колокольни', new THREE.BoxGeometry(1.32,.16,1.32), trim, [0,5.94,-1.45]);
+    add('Колокол', new THREE.CylinderGeometry(.14,.24,.34,10), metalwork, [0,5.45,-1.45]);
+    add('Крыша колокольни', new THREE.ConeGeometry(.95,1.02,4), roof, [0,6.48,-1.45], [0,Math.PI/4,0]);
+    add('Крест часовни — стойка', new THREE.BoxGeometry(.10,.92,.10), metalwork, [0,7.40,-1.45]);
+    add('Крест часовни — перекладина', new THREE.BoxGeometry(.62,.11,.11), metalwork, [0,7.55,-1.45]);
+
+    // Wooden entrance, stone surround, iron straps and two small front windows.
+    const door = add('Doors — входная дверь часовни', new THREE.BoxGeometry(1.08,2.12,.10), wood, [0,1.42,-3.77]);
+    add('Косяк двери слева', new THREE.BoxGeometry(.14,2.25,.38), trim, [-.64,1.48,-3.58]);
+    add('Косяк двери справа', new THREE.BoxGeometry(.14,2.25,.38), trim, [.64,1.48,-3.58]);
+    add('Перемычка дверной рамы', new THREE.BoxGeometry(1.42,.16,.38), trim, [0,2.60,-3.58]);
+    for(const y of [.78,1.42,2.04]) add('Железная полоса двери',new THREE.BoxGeometry(.94,.045,.025),metalwork,[0,y,-3.835]);
+    add('Дверная ручка',new THREE.SphereGeometry(.065,8,6),metalwork,[.38,1.40,-3.85]);
+    for(const x of [-1.45,1.45]) {
+      add('Рама витража фасада',new THREE.BoxGeometry(.52,1.08,.10),trim,[x,2.0,-3.76]);
+      add('Стекло витража фасада',new THREE.BoxGeometry(.34,.88,.035),dark,[x,2.0,-3.825]);
+    }
+    // Narrow side windows make the structure readable from oblique and rear views.
+    for(const z of [-2.05,1.55]) for(const side of [-1,1]) {
+      add('Обрамление бокового витража',new THREE.BoxGeometry(.12,1.08,.58),trim,[side*2.23,2.0,z],[0,side*Math.PI/2,0]);
+      add('Стекло бокового витража',new THREE.BoxGeometry(.04,.86,.36),dark,[side*2.29,2.0,z],[0,side*Math.PI/2,0]);
+    }
+
+    // Broad two-step stone porch, aligned with the clear entrance corridor.
+    add('Верхняя ступень часовни',new THREE.BoxGeometry(1.72,.18,.48),trim,[0,.21,-4.03]);
+    add('Нижняя ступень часовни',new THREE.BoxGeometry(2.18,.16,.54),stone,[0,.08,-4.48]);
+    addInteract(door, 'Дверь сельской часовни',
+      'Старая дверь заперта. На железных полосах заметны следы недавнего прикосновения.', 'ОБЪЕКТ');
+    scene.add(group);
+    addChapelColliders();
+    console.info('[ТИШИНА] Встроенная мобильная часовня создана без загрузки GLB.');
+  }
+
   function loadChapel() {
-    if (chapelLoadStarted || !gltfLoaderPromise) return;
-    chapelLoadStarted = true;
+    if (!gltfLoaderPromise) { createInlineChapel(); return; }
     gltfLoaderPromise.then(loader => {
-      if (!loader) return;
+      if (!loader) { createInlineChapel(); return; }
       loader.load(chapelUrl, gltf => {
+        if (chapelFallbackAdded) return;
         const chapel = gltf.scene;
         chapel.name = 'Сельская каменная часовня';
         chapel.scale.setScalar(chapelScale);
-        chapel.rotation.y = Math.PI; // entrance faces the main yard
+        chapel.rotation.y = Math.PI;
         chapel.position.set(chapelX, 0.015, chapelZ);
         chapel.traverse(node => {
           if (!node.isMesh) return;
-          // Preserve the original geometry and materials; skip costly chapel shadow maps on phones.
           node.castShadow = !isMobileDevice;
           node.receiveShadow = !isMobileDevice;
           node.frustumCulled = true;
           const materials = Array.isArray(node.material) ? node.material : [node.material];
           for (const material of materials) {
             if (!material) continue;
-            // Mobile Safari: disable the extra transmission render pass for leaded glass.
-            // Keep the glass texture and a simple translucent appearance instead.
             if (isMobileDevice && Number(material.transmission) > 0) {
-              material.transmission = 0;
-              material.transparent = true;
-              material.opacity = 0.62;
-              material.roughness = 0.48;
-              material.depthWrite = false;
-              material.needsUpdate = true;
+              material.transmission = 0; material.transparent = true;
+              material.opacity = 0.62; material.roughness = 0.48;
+              material.depthWrite = false; material.needsUpdate = true;
             }
-            const textures = [
-              material.map, material.normalMap, material.roughnessMap,
-              material.metalnessMap, material.aoMap, material.emissiveMap
-            ];
+            const textures = [material.map, material.normalMap, material.roughnessMap,
+              material.metalnessMap, material.aoMap, material.emissiveMap];
             for (const texture of textures) {
               if (!texture) continue;
-              if (texture === material.map || texture === material.emissiveMap) {
-                texture.colorSpace = THREE.SRGBColorSpace;
-              }
+              if (texture === material.map || texture === material.emissiveMap) texture.colorSpace = THREE.SRGBColorSpace;
               texture.anisotropy = Math.min(isMobileDevice ? 2 : 4, rendererMaxAnisotropy());
               texture.generateMipmaps = true;
               texture.minFilter = THREE.LinearMipmapLinearFilter;
               texture.magFilter = THREE.LinearFilter;
-
-              // GLB source maps are pre-resized before download (768px albedo / 512px normal maps).
-              // Avoid post-decode canvas copies which briefly double memory use on iPhone Safari.
               texture.needsUpdate = true;
             }
             material.needsUpdate = true;
           }
           if (node.name === 'Doors' || node.name.startsWith('Doors')) {
             addInteract(node, 'Дверь сельской часовни',
-              'Старая дверь заперта. На железной накладке видны следы недавнего прикосновения.',
-              'ОБЪЕКТ');
+              'Старая дверь заперта. На железной накладке видны следы недавнего прикосновения.', 'ОБЪЕКТ');
           }
         });
         scene.add(chapel);
         scene.updateMatrixWorld(true);
-
-        // Accurate walkable perimeter derived from the original GLB bounds:
-        // walls are +/-3.4 X and +/-5.8 Z at local scale; entrance is local +Z,
-        // which faces world -Z after the 180-degree Y rotation.
-        const halfWallWidth = 3.4 * chapelScale;   // 2.21 m
-        const halfWallDepth = 5.8 * chapelScale;   // 3.77 m
-        const wallThickness = 0.24;
-        const sideInnerX = 2.9 * chapelScale;      // inner edge of side-wall masonry
-        const frontWallZ = chapelZ - halfWallDepth;
-        const rearWallZ = chapelZ + halfWallDepth;
-        const wallHeight = 5.7;
-        const frontOpeningHalf = 0.92;             // 1.84 m clear entrance
-        const addWall = (minX, maxX, minZ, maxZ, maxY = wallHeight) => colliders.push({
-          minX, maxX, minY: 0, maxY, minZ, maxZ
-        });
-
-        // Side walls: stop exactly at the building's real footprint, not beyond it.
-        addWall(chapelX - halfWallWidth, chapelX - sideInnerX,
-          frontWallZ, rearWallZ);
-        addWall(chapelX + sideInnerX, chapelX + halfWallWidth,
-          frontWallZ, rearWallZ);
-
-        // Rear wall. No oversized invisible slab behind the chapel.
-        addWall(chapelX - halfWallWidth, chapelX + halfWallWidth,
-          rearWallZ - wallThickness / 2, rearWallZ + wallThickness / 2);
-
-        // Front facade split around the porch/door approach.
-        addWall(chapelX - halfWallWidth, chapelX - frontOpeningHalf,
-          frontWallZ - wallThickness / 2, frontWallZ + wallThickness / 2);
-        addWall(chapelX + frontOpeningHalf, chapelX + halfWallWidth,
-          frontWallZ - wallThickness / 2, frontWallZ + wallThickness / 2);
-
-        // The closed door itself blocks entry, but the player can walk right up to it.
-        // Door local Z centre is 5.415 m in the supplied GLB.
-        const doorWorldZ = chapelZ - 5.415 * chapelScale;
-        addWall(chapelX - frontOpeningHalf, chapelX + frontOpeningHalf,
-          doorWorldZ - 0.075, doorWorldZ + 0.075, 2.1);
-        console.info('[ТИШИНА] Оригинальная каменная часовня загружена:', chapelUrl);
+        addChapelColliders();
+        console.info('[ТИШИНА] Детализированная часовня загружена:', chapelUrl);
       }, undefined, error => {
-        chapelLoadStarted = false;
-        console.warn('[ТИШИНА] Не удалось загрузить часовню:', error);
+        console.warn('[ТИШИНА] GLB часовни не загрузился; создаю встроенную модель:', error);
+        createInlineChapel();
       });
     }).catch(error => {
-      chapelLoadStarted = false;
-      console.warn('[ТИШИНА] Ошибка GLTFLoader часовни:', error);
+      console.warn('[ТИШИНА] GLTFLoader часовни недоступен; создаю встроенную модель:', error);
+      createInlineChapel();
     });
   }
 
-  // The optimized GLB is small enough to load at startup on phones too, matching the UAZ behaviour.\n  // This keeps the chapel visible from the first distant view instead of popping in near the player.\n  loadChapel();
+  // On phones create the chapel synchronously during world setup. It is visible from the first frame.
+  // Desktop keeps the original optimized GLB, with the same built-in model as a failure fallback.
+  if (isMobileDevice) createInlineChapel();
+  else loadChapel();
 
   function rendererMaxAnisotropy() {
     return scene.userData.maxAnisotropy || 4;
