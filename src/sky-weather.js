@@ -1,4 +1,4 @@
-// TISHINA 0.5.19 — direct clock-driven daylight sky, sun/moon cycle and wind-driven clouds; exposure tuned in 0.3.3.
+// TISHINA 0.5.23 — direct clock-driven sky with a reliable daylight fallback for mobile startup.
 // No external textures or network requests. Kept intentionally lightweight for mobile GPUs.
 export function installSkyWeather({ THREE, scene, camera, sun, hemisphereLight, renderer, isMobileDevice = false, onHud = () => {} }) {
   const CONFIG = {
@@ -38,8 +38,9 @@ export function installSkyWeather({ THREE, scene, camera, sun, hemisphereLight, 
     uCloudOffset: { value: cloudOffset.clone() },
     uCloudCoverage: { value: wind.coverage },
     uCloudSpeed: { value: wind.speed },
-    uNight: { value: 1 },
-    uDaylight: { value: 0 },
+    // Avoid a one-frame midnight flash before the first clock update.
+    uNight: { value: 0 },
+    uDaylight: { value: 1 },
   };
 
   const vertexShader = /* glsl */`
@@ -164,7 +165,9 @@ export function installSkyWeather({ THREE, scene, camera, sun, hemisphereLight, 
   skyDome.frustumCulled = false;
   skyDome.renderOrder = -1000;
   scene.add(skyDome);
-  scene.background = null;
+  // Keep a real background color behind the sky dome. If the shader is late to
+  // compile or fails on a mobile GPU, WebGL shows a cloudy daytime sky, not black.
+  scene.background = new THREE.Color(0x9ba9ab);
 
   let hudTimer = 0;
   let lastHudSignature = '';
@@ -248,6 +251,8 @@ export function installSkyWeather({ THREE, scene, camera, sun, hemisphereLight, 
       currentFog.lerp(overcastFog, wind.coverage * 0.22);
       scene.fog.color.copy(currentFog);
       scene.fog.density = 0.010 + wind.coverage * 0.003 + nightAmount * 0.001;
+      // Keep the fallback background synchronized with the world clock.
+      if (scene.background && scene.background.isColor) scene.background.copy(currentFog);
     }
 
     hudTimer += safeDt;
