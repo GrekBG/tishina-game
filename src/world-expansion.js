@@ -368,7 +368,70 @@ export function installWorldExpansion({ THREE, scene, camera, isMobileDevice = f
     });
   }
 
-  if (!isMobileDevice) loadChapel();
+  // iPhone/iPad Safari: avoid decoding the 22.9 MB GLB at runtime.
+  // Desktop keeps the original detailed model; mobile uses a lightweight native Three.js version.
+  function addMobileChapel() {
+    const group = new THREE.Group();
+    group.name = 'Сельская каменная часовня — облегчённая мобильная модель';
+    group.position.set(chapelX, 0.015, chapelZ);
+    scene.add(group);
+
+    const stone = mat(0x77766d, 0.96, 0.015);
+    const stoneDark = mat(0x55584f, 0.98, 0);
+    const roof = mat(0x343b38, 0.88, 0.12);
+    const wood = mat(0x493b30, 0.95, 0);
+    const glassDark = new THREE.MeshStandardMaterial({ color: 0x18211f, roughness: 0.72 });
+    const add = (name, geometry, material, position, rotation = null) => {
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.name = name;
+      mesh.position.set(...position);
+      if (rotation) mesh.rotation.set(...rotation);
+      mesh.castShadow = false;
+      mesh.receiveShadow = false;
+      group.add(mesh);
+      return mesh;
+    };
+
+    add('Каменный корпус часовни', new THREE.BoxGeometry(4.9, 3.35, 9.4), stone, [0, 1.72, 0]);
+    add('Скат крыши часовни левый', new THREE.BoxGeometry(3.05, 0.22, 10.0), roof, [-1.35, 3.42, 0], [0, 0, -0.57]);
+    add('Скат крыши часовни правый', new THREE.BoxGeometry(3.05, 0.22, 10.0), roof, [1.35, 3.42, 0], [0, 0, 0.57]);
+    const gableShape = new THREE.Shape();
+    gableShape.moveTo(-2.45, 0);
+    gableShape.lineTo(2.45, 0);
+    gableShape.lineTo(0, 2.05);
+    gableShape.closePath();
+    add('Фронтон часовни', new THREE.ShapeGeometry(gableShape), stone, [0, 3.05, -4.72]);
+    add('Колокольня часовни', new THREE.BoxGeometry(1.35, 2.35, 1.45), stoneDark, [0, 4.45, -2.7]);
+    add('Крыша колокольни', new THREE.ConeGeometry(1.05, 1.25, 4), roof, [0, 6.25, -2.7], [0, Math.PI / 4, 0]);
+    add('Крест часовни вертикальный', new THREE.BoxGeometry(0.10, 0.95, 0.10), wood, [0, 7.22, -2.7]);
+    add('Крест часовни перекладина', new THREE.BoxGeometry(0.62, 0.10, 0.10), wood, [0, 7.42, -2.7]);
+
+    const door = add('Дверь сельской часовни', new THREE.BoxGeometry(1.05, 2.05, 0.12), wood, [0, 1.05, -4.79]);
+    addInteract(door, 'Дверь сельской часовни',
+      'Старая дверь заперта. На железной накладке видны следы недавнего прикосновения.',
+      'ОБЪЕКТ');
+    add('Окно фасада левое', new THREE.BoxGeometry(0.42, 1.05, 0.08), glassDark, [-1.55, 1.95, -4.79]);
+    add('Окно фасада правое', new THREE.BoxGeometry(0.42, 1.05, 0.08), glassDark, [1.55, 1.95, -4.79]);
+    for (const z of [-2.8, 0, 2.8]) {
+      add('Боковое окно часовни', new THREE.BoxGeometry(0.08, 1.0, 0.48), glassDark, [2.47, 1.95, z]);
+      add('Боковое окно часовни', new THREE.BoxGeometry(0.08, 1.0, 0.48), glassDark, [-2.47, 1.95, z]);
+    }
+
+    // Wall colliders leave the entrance open.
+    const wallH = 5.2, halfW = 2.45, sideX = 2.5, wallT = 0.24;
+    const front = -4.72, back = 4.72, doorHalf = 0.58;
+    const addWall = (minX, maxX, minZ, maxZ) => colliders.push({
+      minX, maxX, minY: 0, maxY: wallH, minZ, maxZ
+    });
+    addWall(chapelX - sideX - wallT / 2, chapelX - sideX + wallT / 2, chapelZ + front, chapelZ + back);
+    addWall(chapelX + sideX - wallT / 2, chapelX + sideX + wallT / 2, chapelZ + front, chapelZ + back);
+    addWall(chapelX - halfW, chapelX - doorHalf, chapelZ + front - wallT / 2, chapelZ + front + wallT / 2);
+    addWall(chapelX + doorHalf, chapelX + halfW, chapelZ + front - wallT / 2, chapelZ + front + wallT / 2);
+    addWall(chapelX - halfW, chapelX + halfW, chapelZ + back - wallT / 2, chapelZ + back + wallT / 2);
+  }
+
+  if (isMobileDevice) addMobileChapel();
+  else loadChapel();
 
   function rendererMaxAnisotropy() {
     return scene.userData.maxAnisotropy || 4;
@@ -377,11 +440,6 @@ export function installWorldExpansion({ THREE, scene, camera, isMobileDevice = f
   return {
     evacuationLog: book,
     update(dt, time) {
-      if (isMobileDevice && !chapelLoadStarted && camera) {
-        const dx = camera.position.x - chapelX;
-        const dz = camera.position.z - chapelZ;
-        if (dx * dx + dz * dz <= 40 * 40) loadChapel();
-      }
       for (const item of lamps) {
         const slow = Math.sin(time * 0.0011 + item.seed) * item.pulse;
         const flicker = Math.sin(time * 0.019 + item.seed * 2.3) > 0.985 ? 0.2 : 1;
