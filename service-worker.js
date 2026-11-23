@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tishina-0-5-9-side-windows';
+const CACHE_NAME = 'tishina-0-5-10-original-chapel';
 const APP_SHELL = [
   './',
   './index.html',
@@ -12,6 +12,7 @@ const APP_SHELL = [
   './uaz-body.webp',
   './uaz-details.webp',
   './hangar.glb',
+  './village-chapel.glb',
   './icon-192.png',
   './icon-512.png'
 ];
