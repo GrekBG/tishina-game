@@ -125,6 +125,8 @@ export function installWorldExpansion({ THREE, scene, camera, isMobileDevice = f
   }
   const containerColors = [mat(0x46564f, 0.9, 0.24), mat(0x4f4a40, 0.92, 0.18), mat(0x465052, 0.88, 0.22)];
   for (let i = 0; i < 4; i++) {
+    // The front-right container is replaced by the chapel in 0.5.4.
+    if (i === 1) continue;
     const x = 20 + (i % 2) * 9.4, z = 25 + Math.floor(i / 2) * 7.2;
     solid('Грузовой контейнер', [8.4, 2.65, 6.2], [x, 1.34, z], containerColors[i % 3]);
     for (let k = 0; k < 9; k++) detail('Рёбра контейнера', [0.07, 2.5, 0.07], [x - 3.8 + k * 0.95, 1.34, z - 3.14], steel);
@@ -260,17 +262,17 @@ export function installWorldExpansion({ THREE, scene, camera, isMobileDevice = f
   }
 
 
-  // TISHINA 0.5.2 — remote village chapel on the eastern edge of the playable yard.
-  // The supplied GLB is CC0 1.0. Keep it local so iPhone Safari can cache it with the game.
+  // TISHINA 0.5.4 — the original stone chapel replaces the front-right cargo container.
+  // Keep the supplied GLB unchanged; only its world transform and mobile texture residency are adjusted.
+  const chapelX = 29.4, chapelZ = 25.0, chapelScale = 0.65;
   const chapelUrl = new URL('../village-chapel.glb', import.meta.url).href;
-  const chapelPad = detail('Площадка у заброшенной часовни', [10.5, 0.045, 16.5], [33, -0.006, 43], earthGround);
+  const chapelPad = detail('Площадка у заброшенной часовни', [9.2, 0.045, 11.0], [chapelX, -0.006, chapelZ], earthGround);
   chapelPad.receiveShadow = true;
-  const chapelPath = detail('Грунтовая тропа к часовне', [2.5, 0.04, 25], [21.5, 0.006, 28], gravelGround);
-  chapelPath.rotation.y = 0.76;
+  const chapelPath = detail('Грунтовая тропа к часовне', [2.6, 0.04, 5.8], [chapelX, 0.006, 22.4], gravelGround);
   chapelPath.receiveShadow = true;
 
-  // Load the original detailed chapel only when it is relevant on phones.
-  // Desktop keeps the original immediate-loading behaviour.
+  // Load the original detailed chapel when it enters the mobile view range.
+  // The model is not added to the install precache: the service worker caches it after the first successful request.
   let chapelLoadStarted = false;
   function loadChapel() {
     if (chapelLoadStarted || !gltfLoaderPromise) return;
@@ -279,14 +281,13 @@ export function installWorldExpansion({ THREE, scene, camera, isMobileDevice = f
       if (!loader) return;
       loader.load(chapelUrl, gltf => {
         const chapel = gltf.scene;
-        chapel.name = 'Сельская часовня — край карты';
-        chapel.scale.setScalar(0.9);
-        chapel.rotation.y = Math.PI; // entrance faces back toward the industrial complex
-        chapel.position.set(33, 0.015, 43);
+        chapel.name = 'Сельская каменная часовня';
+        chapel.scale.setScalar(chapelScale);
+        chapel.rotation.y = Math.PI; // entrance faces the main yard
+        chapel.position.set(chapelX, 0.015, chapelZ);
         chapel.traverse(node => {
           if (!node.isMesh) return;
-          // The original geometry and materials are retained; mobile avoids
-          // expensive shadow-map work on this distant, detailed asset.
+          // Preserve the original geometry and materials; skip costly chapel shadow maps on phones.
           node.castShadow = !isMobileDevice;
           node.receiveShadow = !isMobileDevice;
           node.frustumCulled = true;
@@ -299,7 +300,6 @@ export function installWorldExpansion({ THREE, scene, camera, isMobileDevice = f
             ];
             for (const texture of textures) {
               if (!texture) continue;
-              // Match the imported UAZ texture setup.
               if (texture === material.map || texture === material.emissiveMap) {
                 texture.colorSpace = THREE.SRGBColorSpace;
               }
@@ -308,9 +308,7 @@ export function installWorldExpansion({ THREE, scene, camera, isMobileDevice = f
               texture.minFilter = THREE.LinearMipmapLinearFilter;
               texture.magFilter = THREE.LinearFilter;
 
-              // On phones, cap decoded GPU texture dimensions while keeping
-              // the same source artwork, UVs, geometry and material response.
-              // 1536px retains fine stone/roof detail at normal gameplay distance.
+              // Downscale only oversized decoded mobile textures; source GLB and its artwork remain untouched.
               if (isMobileDevice && texture.image && texture.image.width > 1536) {
                 const source = texture.image;
                 const scale = 1536 / Math.max(source.width, source.height);
@@ -336,16 +334,30 @@ export function installWorldExpansion({ THREE, scene, camera, isMobileDevice = f
         scene.add(chapel);
         scene.updateMatrixWorld(true);
 
-        // Simple wall colliders with a narrow opening at the entrance.
-        const wallY = 2.05, wallH = 4.1, wallT = 0.34;
-        colliders.push(
-          { minX: 29.75, maxX: 30.10, minY: 0, maxY: wallH, minZ: 37.8, maxZ: 49.0 },
-          { minX: 35.90, maxX: 36.25, minY: 0, maxY: wallH, minZ: 37.8, maxZ: 49.0 },
-          { minX: 30.0, maxX: 36.0, minY: 0, maxY: wallH, minZ: 48.75, maxZ: 49.1 },
-          { minX: 30.0, maxX: 32.25, minY: 0, maxY: wallH, minZ: 37.65, maxZ: 38.0 },
-          { minX: 33.75, maxX: 36.0, minY: 0, maxY: wallH, minZ: 37.65, maxZ: 38.0 }
-        );
-        console.info('[ТИШИНА] Оригинальная детализированная часовня загружена:', chapelUrl);
+        // Wall colliders scaled to the chapel footprint, with a narrow opening at the entrance.
+        const wallH = 7.5;
+        const halfW = 2.42;
+        const sideX = 2.05 * chapelScale / 0.65;
+        const wallT = 0.22;
+        const front = -5.15 * chapelScale / 0.9;
+        const back = 5.95 * chapelScale / 0.9;
+        const sideMinZ = -5.15 * chapelScale / 0.9;
+        const sideMaxZ = 5.95 * chapelScale / 0.9;
+        const doorHalf = 0.49 * chapelScale / 0.65;
+        const addWall = (minX, maxX, minZ, maxZ) => colliders.push({
+          minX, maxX, minY: 0, maxY: wallH, minZ, maxZ
+        });
+        addWall(chapelX - sideX - wallT / 2, chapelX - sideX + wallT / 2,
+          chapelZ + sideMinZ, chapelZ + sideMaxZ);
+        addWall(chapelX + sideX - wallT / 2, chapelX + sideX + wallT / 2,
+          chapelZ + sideMinZ, chapelZ + sideMaxZ);
+        addWall(chapelX - halfW, chapelX + halfW,
+          chapelZ + back - wallT / 2, chapelZ + back + wallT / 2);
+        addWall(chapelX - halfW, chapelX - doorHalf,
+          chapelZ + front - wallT / 2, chapelZ + front + wallT / 2);
+        addWall(chapelX + doorHalf, chapelX + halfW,
+          chapelZ + front - wallT / 2, chapelZ + front + wallT / 2);
+        console.info('[ТИШИНА] Оригинальная каменная часовня загружена:', chapelUrl);
       }, undefined, error => {
         chapelLoadStarted = false;
         console.warn('[ТИШИНА] Не удалось загрузить часовню:', error);
@@ -366,9 +378,9 @@ export function installWorldExpansion({ THREE, scene, camera, isMobileDevice = f
     evacuationLog: book,
     update(dt, time) {
       if (isMobileDevice && !chapelLoadStarted && camera) {
-        const dx = camera.position.x - 33;
-        const dz = camera.position.z - 43;
-        if (dx * dx + dz * dz <= 32 * 32) loadChapel();
+        const dx = camera.position.x - chapelX;
+        const dz = camera.position.z - chapelZ;
+        if (dx * dx + dz * dz <= 40 * 40) loadChapel();
       }
       for (const item of lamps) {
         const slow = Math.sin(time * 0.0011 + item.seed) * item.pulse;
