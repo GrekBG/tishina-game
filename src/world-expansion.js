@@ -117,17 +117,20 @@ export function installWorldExpansion({ THREE, scene, camera, isMobileDevice = f
   addInteract(book, 'Журнал эвакуации', 'Последние страницы вырваны. В сохранившейся записи указано, что 14 сотрудников прошли через КПП, но в списке возврата числится пятнадцать пропусков. Последняя строка написана другим почерком: «Не открывать нижний шлюз. Он отвечает изнутри».', 'СЮЖЕТ');
 
   // Eastern logistics area: containers, loading platform, transformer and a wrecked service van.
-  solid('Погрузочная рампа', [18, 0.72, 5.2], [25, 0.28, 18], mat(0x515953, 0.94, 0.04));
-  for (let i = 0; i < 6; i++) {
-    const x = 17 + i * 3.0;
+  // Keep the loading ramp on the left loading bay; its previous width crossed the chapel porch.
+  solid('Погрузочная рампа', [12, 0.72, 5.2], [20, 0.28, 18], mat(0x515953, 0.94, 0.04));
+  for (let i = 0; i < 4; i++) {
+    const x = 17 + i * 2.5;
     solid('Отбойник рампы', [0.18, 0.52, 0.18], [x, 0.28, 15.25], steel);
     detail('Жёлто-чёрная маркировка рампы', [0.12, 0.028, 0.52], [x, 0.66, 15.2], hazard);
   }
   const containerColors = [mat(0x46564f, 0.9, 0.24), mat(0x4f4a40, 0.92, 0.18), mat(0x465052, 0.88, 0.22)];
   for (let i = 0; i < 4; i++) {
-    // The front-right container is replaced by the chapel in 0.5.4.
+    // The front-right container is replaced by the chapel. Move the rear-right
+    // container east so it no longer blocks the route behind the chapel.
     if (i === 1) continue;
-    const x = 20 + (i % 2) * 9.4, z = 25 + Math.floor(i / 2) * 7.2;
+    const x = i === 3 ? 39.0 : 20 + (i % 2) * 9.4;
+    const z = 25 + Math.floor(i / 2) * 7.2;
     solid('Грузовой контейнер', [8.4, 2.65, 6.2], [x, 1.34, z], containerColors[i % 3]);
     for (let k = 0; k < 9; k++) detail('Рёбра контейнера', [0.07, 2.5, 0.07], [x - 3.8 + k * 0.95, 1.34, z - 3.14], steel);
     detail('Маркировочная табличка контейнера', [1.1, 0.38, 0.045], [x, 1.9, z - 3.18], fadedPaint);
@@ -333,29 +336,42 @@ export function installWorldExpansion({ THREE, scene, camera, isMobileDevice = f
         scene.add(chapel);
         scene.updateMatrixWorld(true);
 
-        // Wall colliders scaled to the chapel footprint, with a narrow opening at the entrance.
-        const wallH = 7.5;
-        const halfW = 2.42;
-        const sideX = 2.05 * chapelScale / 0.65;
-        const wallT = 0.22;
-        const front = -5.15 * chapelScale / 0.9;
-        const back = 5.95 * chapelScale / 0.9;
-        const sideMinZ = -5.15 * chapelScale / 0.9;
-        const sideMaxZ = 5.95 * chapelScale / 0.9;
-        const doorHalf = 0.49 * chapelScale / 0.65;
-        const addWall = (minX, maxX, minZ, maxZ) => colliders.push({
-          minX, maxX, minY: 0, maxY: wallH, minZ, maxZ
+        // Accurate walkable perimeter derived from the original GLB bounds:
+        // walls are +/-3.4 X and +/-5.8 Z at local scale; entrance is local +Z,
+        // which faces world -Z after the 180-degree Y rotation.
+        const halfWallWidth = 3.4 * chapelScale;   // 2.21 m
+        const halfWallDepth = 5.8 * chapelScale;   // 3.77 m
+        const wallThickness = 0.24;
+        const sideInnerX = 2.9 * chapelScale;      // inner edge of side-wall masonry
+        const frontWallZ = chapelZ - halfWallDepth;
+        const rearWallZ = chapelZ + halfWallDepth;
+        const wallHeight = 5.7;
+        const frontOpeningHalf = 0.92;             // 1.84 m clear entrance
+        const addWall = (minX, maxX, minZ, maxZ, maxY = wallHeight) => colliders.push({
+          minX, maxX, minY: 0, maxY, minZ, maxZ
         });
-        addWall(chapelX - sideX - wallT / 2, chapelX - sideX + wallT / 2,
-          chapelZ + sideMinZ, chapelZ + sideMaxZ);
-        addWall(chapelX + sideX - wallT / 2, chapelX + sideX + wallT / 2,
-          chapelZ + sideMinZ, chapelZ + sideMaxZ);
-        addWall(chapelX - halfW, chapelX + halfW,
-          chapelZ + back - wallT / 2, chapelZ + back + wallT / 2);
-        addWall(chapelX - halfW, chapelX - doorHalf,
-          chapelZ + front - wallT / 2, chapelZ + front + wallT / 2);
-        addWall(chapelX + doorHalf, chapelX + halfW,
-          chapelZ + front - wallT / 2, chapelZ + front + wallT / 2);
+
+        // Side walls: stop exactly at the building's real footprint, not beyond it.
+        addWall(chapelX - halfWallWidth, chapelX - sideInnerX,
+          frontWallZ, rearWallZ);
+        addWall(chapelX + sideInnerX, chapelX + halfWallWidth,
+          frontWallZ, rearWallZ);
+
+        // Rear wall. No oversized invisible slab behind the chapel.
+        addWall(chapelX - halfWallWidth, chapelX + halfWallWidth,
+          rearWallZ - wallThickness / 2, rearWallZ + wallThickness / 2);
+
+        // Front facade split around the porch/door approach.
+        addWall(chapelX - halfWallWidth, chapelX - frontOpeningHalf,
+          frontWallZ - wallThickness / 2, frontWallZ + wallThickness / 2);
+        addWall(chapelX + frontOpeningHalf, chapelX + halfWallWidth,
+          frontWallZ - wallThickness / 2, frontWallZ + wallThickness / 2);
+
+        // The closed door itself blocks entry, but the player can walk right up to it.
+        // Door local Z centre is 5.415 m in the supplied GLB.
+        const doorWorldZ = chapelZ - 5.415 * chapelScale;
+        addWall(chapelX - frontOpeningHalf, chapelX + frontOpeningHalf,
+          doorWorldZ - 0.075, doorWorldZ + 0.075, 2.1);
         console.info('[ТИШИНА] Оригинальная каменная часовня загружена:', chapelUrl);
       }, undefined, error => {
         chapelLoadStarted = false;
@@ -367,7 +383,7 @@ export function installWorldExpansion({ THREE, scene, camera, isMobileDevice = f
     });
   }
 
-  if (!isMobileDevice) loadChapel();
+  // The optimized GLB is small enough to load at startup on phones too, matching the UAZ behaviour.\n  // This keeps the chapel visible from the first distant view instead of popping in near the player.\n  loadChapel();
 
   function rendererMaxAnisotropy() {
     return scene.userData.maxAnisotropy || 4;
@@ -376,11 +392,6 @@ export function installWorldExpansion({ THREE, scene, camera, isMobileDevice = f
   return {
     evacuationLog: book,
     update(dt, time) {
-      if (isMobileDevice && !chapelLoadStarted && camera) {
-        const dx = camera.position.x - chapelX;
-        const dz = camera.position.z - chapelZ;
-        if (dx * dx + dz * dz <= 26 * 26) loadChapel();
-      }
       for (const item of lamps) {
         const slow = Math.sin(time * 0.0011 + item.seed) * item.pulse;
         const flicker = Math.sin(time * 0.019 + item.seed * 2.3) > 0.985 ? 0.2 : 1;
