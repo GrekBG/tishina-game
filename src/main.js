@@ -496,7 +496,41 @@ function loadHangarModel() {
       scene.traverse(node => {
         if (node.isMesh && oldShellPrefixes.some(prefix => node.name.startsWith(prefix))) node.visible = false;
       });
+      // 0.5.14: clear the old playable room from inside the replacement hangar.
+      // Keep the hangar GLB, its exterior, and the concrete floor; remove all legacy interior meshes.
+      const isOldInteriorPoint = p =>
+        p.x > -8.85 && p.x < 8.85 &&
+        p.z > -18.8 && p.z < -1.2 &&
+        p.y > -0.05 && p.y < 8.9;
+      scene.updateMatrixWorld(true);
+      const cleanupPoint = new THREE.Vector3();
+      scene.traverse(node => {
+        if (!node.isMesh || node.name === 'Пол первого этажа') return;
+        node.getWorldPosition(cleanupPoint);
+        if (isOldInteriorPoint(cleanupPoint)) node.visible = false;
+      });
+      // Remove invisible collision boxes and interaction targets too.
+      for (let i = colliders.length - 1; i >= 0; i--) {
+        const c = colliders[i];
+        const center = {
+          x: (c.minX + c.maxX) / 2,
+          y: (c.minY + c.maxY) / 2,
+          z: (c.minZ + c.maxZ) / 2
+        };
+        if (isOldInteriorPoint(center)) colliders.splice(i, 1);
+      }
+      for (let i = interactables.length - 1; i >= 0; i--) {
+        interactables[i].getWorldPosition(cleanupPoint);
+        if (isOldInteriorPoint(cleanupPoint)) interactables.splice(i, 1);
+      }
+      for (let i = motionObjects.length - 1; i >= 0; i--) {
+        motionObjects[i].getWorldPosition(cleanupPoint);
+        if (isOldInteriorPoint(cleanupPoint)) motionObjects.splice(i, 1);
+      }
+      // The former collapsed beam and electrical puddle no longer exist in the cleared room.
+      lowClearanceZones.splice(0, lowClearanceZones.length);
       scene.add(model);
+      console.info('[ТИШИНА] Legacy hangar interior cleared.');
       console.info('[ТИШИНА] GLB hangar loaded:', HANGAR_GLB_URL);
     }, undefined, error => {
       console.warn('[ТИШИНА] Hangar GLB failed; keeping local hangar fallback.', error);
@@ -704,7 +738,7 @@ function setPosture(next){if(!started||modalOpen)return;if(!grounded){notify('С
 function updateStaminaUI(force=false){const value=Math.max(0,Math.min(100,Math.round(stamina)));if(!force&&value===lastStaminaShown)return;lastStaminaShown=value;const fill=$('staminaFill'),label=$('staminaValue');if(fill)fill.style.width=value+'%';if(label)label.textContent=value+'%';const track=$('staminaTrack');if(track)track.setAttribute('aria-valuenow',String(value));track?.classList.toggle('low',value<=20);const sprint=$('sprint');if(sprint){sprint.classList.toggle('active',sprintHeld&&sprintBlend>.08);sprint.classList.toggle('depleted',sprintLocked);sprint.setAttribute('aria-pressed',String(sprintHeld));}}
 function updateHealthUI(force=false){const value=Math.max(0,Math.min(HEALTH_MAX,Math.round(health)));if(!force&&value===lastHealthShown)return;lastHealthShown=value;const fill=$('healthFill'),label=$('healthValue'),track=$('healthTrack');if(fill)fill.style.width=value+'%';if(label)label.textContent=value+'%';if(track){track.setAttribute('aria-valuenow',String(value));track.classList.toggle('low',value<=25);}}
 function damagePlayer(amount,reason){if(!started||health<=0||modalOpen)return;health=Math.max(0,health-amount);updateHealthUI(true);save();const fx=$('damageFx');if(fx){fx.style.opacity='.85';clearTimeout(damageFlashTimer);damageFlashTimer=setTimeout(()=>{fx.style.opacity='0';},240);}if(health<=0){sprintHeld=false;modalOpen=true;$('downed').style.display='flex';$('prompt').style.opacity='0';notify('Сознание постепенно угасает...');}else notify(reason||'Ты получил повреждение.');}
-function updateHazards(dt){hazardClock=Math.max(0,hazardClock-dt);const x=camera.position.x,z=camera.position.z;const inLiveWater=x>1.95&&x<3.3&&z>-14.95&&z<-13.72;if(inLiveWater){if(!hazardNotice){notify('ОПАСНО: оголённый провод в воде. Обойди лужу.');hazardNotice=true;}if(hazardClock<=0){damagePlayer(HEALTH_HAZARD_DAMAGE,'Удар током! Отойди от повреждённого кабеля.');hazardClock=HEALTH_HAZARD_INTERVAL;}}else hazardNotice=false;}
+function updateHazards(dt){hazardClock=Math.max(0,hazardClock-dt);const x=camera.position.x,z=camera.position.z;const inLiveWater=false; // Removed with the legacy hangar interior in 0.5.14.if(inLiveWater){if(!hazardNotice){notify('ОПАСНО: оголённый провод в воде. Обойди лужу.');hazardNotice=true;}if(hazardClock<=0){damagePlayer(HEALTH_HAZARD_DAMAGE,'Удар током! Отойди от повреждённого кабеля.');hazardClock=HEALTH_HAZARD_INTERVAL;}}else hazardNotice=false;}
 function startSprint(){if(!started||modalOpen)return;if(posture!=='stand'||stanceElapsed<1){notify('Чтобы бежать, сначала полностью встань.');return;}if(sprintLocked||stamina<2){notify('Нужно восстановить выносливость.');return;}sprintHeld=true;updateStaminaUI(true);}
 function stopSprint(){sprintHeld=false;updateStaminaUI(true);}
 function jump(){if(!started||modalOpen||!grounded)return;if(posture!=='stand'||stanceElapsed<1){notify('Для прыжка нужно полностью встать.');return;}if(!canFitAt(camera.position.x,camera.position.z,'stand')){notify('Здесь слишком низкий потолок для прыжка.');return;}jumpVelocity=5.0;grounded=false;notify('Прыжок.');}
