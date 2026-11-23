@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tishina-0-5-21-level-threshold';
+const CACHE_NAME = 'tishina-0-5-22-gate-collision';
 const APP_SHELL = [
   './',
   './index.html',
