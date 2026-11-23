@@ -216,14 +216,9 @@ function pointTriangleDistanceSqXZ(px,pz,t){
   );
 }
 function hangarMeshCollides(x,z,radius,feetY,headY){
-  // The GLB's main entrance is a wide open portal on the +Z end.
-  // Keep the central doorway free of collision triangles so the player can leave.
-  // The two door assemblies remain collidable at the far left/right edges.
-  // Main entrance transition: clear the full lower portal and its sill.
-  // The GLB entrance is slightly above the exterior asphalt; use the world floor
-  // as the continuous walking surface instead of forcing the player to jump.
-  const inMainDoorway = x > -38.0 && x < 18.0 && z > 19.0 && z < 32.0;
-  if (inMainDoorway) return false;
+  // Keep the doorway threshold walkable, but restore collisions for the actual
+  // gate leaves, hinges, side frames and other structural triangles.
+  const inDoorThreshold = x > -38.0 && x < 18.0 && z > 19.0 && z < 32.0;
   const gx0=Math.floor((x-radius)/HANGAR_COLLISION_CELL),gx1=Math.floor((x+radius)/HANGAR_COLLISION_CELL);
   const gz0=Math.floor((z-radius)/HANGAR_COLLISION_CELL),gz1=Math.floor((z+radius)/HANGAR_COLLISION_CELL);
   const tested=new Set(),r2=radius*radius;
@@ -233,6 +228,9 @@ function hangarMeshCollides(x,z,radius,feetY,headY){
     for(const t of bucket){
       if(tested.has(t))continue;tested.add(t);
       if(feetY>=t.maxY||headY<=t.minY)continue;
+      // Ignore only the low sill/threshold lip inside the doorway; gate panels
+      // and frames remain solid because their triangles extend above 0.35 m.
+      if(inDoorThreshold && t.maxY <= 0.35)continue;
       if(x+radius<t.minX||x-radius>t.maxX||z+radius<t.minZ||z-radius>t.maxZ)continue;
       if(pointTriangleDistanceSqXZ(x,z,t)<r2)return true;
     }
@@ -559,7 +557,7 @@ function loadHangarModel() {
     loader.load(HANGAR_GLB_URL, gltf => {
       const model = gltf.scene;
       model.name = 'Тентовый ангар — GLB game asset';
-      // 0.5.21: use the GLB at its authored real-world size and keep its proportions.
+      // 0.5.22: use the GLB at its authored real-world size and keep its proportions.
       // Native bounds are approximately 60 × 18.7 × 51.9 m; entrance faces +Z.
       // Move the deeper footprint back so the original player spawn retains a clear forecourt.
       model.scale.setScalar(1.0);
@@ -596,7 +594,7 @@ function loadHangarModel() {
       scene.traverse(node => {
         if (node.isMesh && oldShellPrefixes.some(prefix => node.name.startsWith(prefix))) node.visible = false;
       });
-      // 0.5.21: clear the full-size hangar footprint of obsolete room geometry.
+      // 0.5.22: clear the full-size hangar footprint of obsolete room geometry.
       // Preserve one compact service corner along the left/rear wall for story objects.
       // The supplied hangar is placed in the open apron beside the UAZ.
       // Its native footprint is about 60 x 52 m; entrance faces +Z.
@@ -678,11 +676,11 @@ function loadHangarModel() {
     });
   }).catch(error => console.warn('[ТИШИНА] Hangar GLB loader error:', error));
 }
-// 0.5.21: load the full-size, uniformly scaled aircraft-hangar GLB.
+// 0.5.22: load the full-size, uniformly scaled aircraft-hangar GLB.
 // The procedural shell remains as a fallback until the GLB and its textures load.
 loadHangarModel();
 
-// 0.5.21: climbable maintenance ladder inside the hangar.
+// 0.5.22: climbable maintenance ladder inside the hangar.
 // The ladder leads to a small inspection platform; interaction toggles climb mode.
 let hangarLadderClimbing = false;
 const hangarLadder = new THREE.Group();
