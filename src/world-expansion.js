@@ -279,24 +279,26 @@ export function installWorldExpansion({ THREE, scene, camera, isMobileDevice = f
   function addChapelColliders() {
     if (chapelCollidersAdded) return;
     chapelCollidersAdded = true;
-    const halfWallWidth = 2.22;
-    const halfWallDepth = 3.70;
-    const wallT = 0.28;
-    const sideInnerX = 1.94;
+    const halfWallWidth = 3.4 * chapelScale;
+    const halfWallDepth = 5.8 * chapelScale;
+    const wallT = 0.5 * chapelScale;
+    const sideInnerX = 2.9 * chapelScale;
     const frontZ = chapelZ - halfWallDepth;
     const rearZ = chapelZ + halfWallDepth;
-    const openingHalf = 0.68; // 1.36 m visual opening; the door itself is the only centre blocker.
+    const openingHalf = 0.68; // 1.36 m clear facade opening around the original door.
     const addWall = (minX, maxX, minZ, maxZ, maxY = 5.8) => colliders.push({
       minX, maxX, minY: 0, maxY, minZ, maxZ
     });
-    // Colliders trace only the real masonry footprint. No extended invisible slabs at front or rear.
+    // Match the original GLB masonry footprint (outer walls +/-3.4 X, +/-5.8 Z at 0.65 scale).
+    // Colliders cover only stone, never the porch or the approach path.
     addWall(chapelX-halfWallWidth, chapelX-sideInnerX, frontZ, rearZ);
     addWall(chapelX+sideInnerX, chapelX+halfWallWidth, frontZ, rearZ);
     addWall(chapelX-halfWallWidth, chapelX+halfWallWidth, rearZ-wallT/2, rearZ+wallT/2);
     addWall(chapelX-halfWallWidth, chapelX-openingHalf, frontZ-wallT/2, frontZ+wallT/2);
     addWall(chapelX+openingHalf, chapelX+halfWallWidth, frontZ-wallT/2, frontZ+wallT/2);
-    // Closed wooden door: it stops the player at the threshold but does not fill the approach area.
-    addWall(chapelX-0.56, chapelX+0.56, frontZ-0.10, frontZ+0.10, 2.12);
+    // Door centre is taken from the original GLB node bounds, after the 180-degree Y rotation.
+    const originalDoorWorldZ = chapelZ - 5.415 * chapelScale;
+    addWall(chapelX-0.38, chapelX+0.38, originalDoorWorldZ-0.06, originalDoorWorldZ+0.06, 2.12);
   }
 
   function createChapelTexture(kind = 'stone') {
@@ -502,10 +504,10 @@ export function installWorldExpansion({ THREE, scene, camera, isMobileDevice = f
     });
   }
 
-  // On phones create the chapel synchronously during world setup. It is visible from the first frame.
-  // Desktop keeps the original optimized GLB, with the same built-in model as a failure fallback.
-  if (isMobileDevice) createInlineChapel();
-  else loadChapel();
+  // All devices load the original optimized GLB at world startup, like the UAZ asset.
+  // The small inline Three.js chapel is retained ONLY as a network/loader failure fallback.
+  // This restores the selected chapel's original geometry, materials, side glazing and silhouette on iPhone.
+  loadChapel();
 
   function rendererMaxAnisotropy() {
     return scene.userData.maxAnisotropy || 4;
