@@ -9,9 +9,22 @@ const $ = (id) => document.getElementById(id);
 const canvas = $('scene');
 // Real GLB game assets are loaded after the basic scene boots. If the asset CDN is
 // unavailable, the local fallback geometry remains visible and the game still runs.
-const gltfLoaderPromise = import('three/addons/loaders/GLTFLoader.js')
-  .then(({ GLTFLoader }) => new GLTFLoader())
-  .catch(error => { console.warn('[ТИШИНА] GLTFLoader unavailable; using local fallback meshes.', error); return null; });
+const gltfLoaderPromise = Promise.all([
+  import('three/addons/loaders/GLTFLoader.js'),
+  import('three/addons/libs/meshopt_decoder.module.js'),
+  import('three/addons/loaders/KTX2Loader.js')
+]).then(([{ GLTFLoader }, { MeshoptDecoder }, { KTX2Loader }]) => {
+  const loader = new GLTFLoader();
+  loader.setMeshoptDecoder(MeshoptDecoder);
+  const ktx2Loader = new KTX2Loader();
+  ktx2Loader.setTranscoderPath('https://cdn.jsdelivr.net/npm/three@0.187.0/examples/jsm/libs/basis/');
+  ktx2Loader.detectSupport(renderer);
+  loader.setKTX2Loader(ktx2Loader);
+  return loader;
+}).catch(error => {
+  console.warn('[ТИШИНА] GLTFLoader/meshopt/KTX2 unavailable; using local fallback meshes.', error);
+  return null;
+});
 const isMobileDevice = matchMedia('(pointer: coarse)').matches || Math.min(innerWidth, innerHeight) < 700;
 const pixelRatioLimit = isMobileDevice ? 1.0 : 1.5;
 const scene = new THREE.Scene();
@@ -445,17 +458,17 @@ for(let i=0;i<24;i++){
 // TISHINA_030_STORY_WORLD_UPGRADE
 // TISHINA_033_CAMERA_FLASHLIGHT_HANGAR_INTERACTION
 const expansion = installWorldExpansion({ THREE, scene, camera, isMobileDevice, box, floor, mat, addInteract, colliders, gltfLoaderPromise, surfaces: { metal, darkConcrete, plaster, yellow, floorMat, rust, gravel:gravelMat, earth:earthMat, driveConcrete:driveConcreteMat } });
-const HANGAR_GLB_URL = 'https://cdn.3dassets.dev/assets/17354/v1/model.glb';
+const HANGAR_GLB_URL = new URL('../lod0.glb', import.meta.url).href;
 function loadHangarModel() {
   gltfLoaderPromise.then(loader => {
     if (!loader) return;
     loader.load(HANGAR_GLB_URL, gltf => {
       const model = gltf.scene;
       model.name = 'Тентовый ангар — GLB game asset';
-      // The asset is authored in metres: 18.3 × 6.974 × 16.52 m.
-      // Fit the existing 19.8 × 9.7 × 19 m footprint and keep the opening toward +Z.
-      model.scale.set(1.08, 1.39, 1.15);
-      model.position.set(0, 0, -10.0);
+      // Fit the uploaded aircraft hangar to the existing playable footprint:
+      // about 19.8 m wide × 9.7 m high × 18.0 m deep; entrance faces +Z.
+      model.scale.set(0.32, 0.52, 0.34);
+      model.position.set(0, 0.047, -11.02);
       model.traverse(node => {
         if (!node.isMesh) return;
         node.castShadow = !isMobileDevice;
@@ -490,8 +503,9 @@ function loadHangarModel() {
     });
   }).catch(error => console.warn('[ТИШИНА] Hangar GLB loader error:', error));
 }
-// 0.5.1: отключена внешняя GLB-подмена — сохраняем закрытый процедурный тентовый ангар.
-// // 0.5.2: keep the closed local procedural hangar; do not replace it with the open external GLB.
+// 0.5.13: replace the temporary procedural fabric hangar with the bundled aircraft-hangar GLB.
+// The procedural shell remains as a fallback until the compressed GLB and its textures load.
+loadHangarModel();
 
 const story = createStoryController({ onObjective: value => { const el = $('objective'); if (el) el.textContent = value; }, notify });
 panel.userData.interaction.action = () => { story.markBreaker(); notify('ЭЛЕКТРОЩИТ: питание отключено. На схеме отмечен резервный контур в подвал.'); };
