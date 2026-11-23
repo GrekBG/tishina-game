@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tishina-0-5-18-ladder-daylight';
+const CACHE_NAME = 'tishina-0-5-19-mesh-collision-sky';
 const APP_SHELL = [
   './',
   './index.html',
