@@ -1,4 +1,4 @@
-// TISHINA 0.5.18 — daylight-balanced procedural sky, sun/moon cycle and wind-driven clouds; exposure tuned in 0.3.3.
+// TISHINA 0.5.19 — direct clock-driven daylight sky, sun/moon cycle and wind-driven clouds; exposure tuned in 0.3.3.
 // No external textures or network requests. Kept intentionally lightweight for mobile GPUs.
 export function installSkyWeather({ THREE, scene, camera, sun, hemisphereLight, renderer, isMobileDevice = false, onHud = () => {} }) {
   const CONFIG = {
@@ -39,6 +39,7 @@ export function installSkyWeather({ THREE, scene, camera, sun, hemisphereLight, 
     uCloudCoverage: { value: wind.coverage },
     uCloudSpeed: { value: wind.speed },
     uNight: { value: 1 },
+    uDaylight: { value: 0 },
   };
 
   const vertexShader = /* glsl */`
@@ -59,6 +60,7 @@ export function installSkyWeather({ THREE, scene, camera, sun, hemisphereLight, 
     uniform float uCloudCoverage;
     uniform float uCloudSpeed;
     uniform float uNight;
+    uniform float uDaylight;
 
     float hash21(vec2 p) {
       p = fract(p * vec2(123.34, 456.21));
@@ -89,7 +91,7 @@ export function installSkyWeather({ THREE, scene, camera, sun, hemisphereLight, 
     void main() {
       vec3 dir = normalize(vDirection);
       float horizon = pow(1.0 - max(dir.y, 0.0), 1.55);
-      float day = smoothstep(-0.14, 0.13, uSunDir.y);
+      float day = clamp(uDaylight, 0.0, 1.0);
       float twilight = exp(-abs(uSunDir.y) * 13.0) * (1.0 - day * 0.45);
 
       vec3 nightZenith = vec3(0.012, 0.021, 0.043);
@@ -224,6 +226,7 @@ export function installSkyWeather({ THREE, scene, camera, sun, hemisphereLight, 
     uniforms.uCloudSpeed.value = currentWind;
     uniforms.uCloudCoverage.value = wind.coverage;
     uniforms.uNight.value = nightAmount;
+    uniforms.uDaylight.value = dayAmount;
 
     skyDome.position.copy(camera.position);
     lightTarget.copy(camera.position);

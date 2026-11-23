@@ -145,6 +145,92 @@ const pbrBuild = installPbrSurfaces(THREE, { concrete, darkConcrete, plaster, di
  maxAnisotropy: isMobileDevice ? 2 : 8, rowsPerYield: isMobileDevice ? 8 : 24
 }).catch(error => { console.error('[ТИШИНА] HD PBR generation failed; keeping base 1024px maps.', error); });
 const colliders=[]; const interactables=[]; const inventory=[]; const motionObjects=[]; const pickupObjects={};
+const hangarCollisionGrid = new Map();
+const HANGAR_COLLISION_CELL = 1.0;
+function hangarCellKey(x,z){return `${x},${z}`;}
+function buildHangarTriangleColliders(model){
+  hangarCollisionGrid.clear();
+  model.updateMatrixWorld(true);
+  const vertex = new THREE.Vector3();
+  const edgeA = new THREE.Vector3();
+  const edgeB = new THREE.Vector3();
+  let triangleCount = 0;
+  model.traverse(node => {
+    if (!node.isMesh || !node.geometry?.attributes?.position) return;
+    // Ground markings and light fixtures are not solid structural parts.
+    if (node.name === 'floor_markings' || node.name === 'lights') return;
+    const geometry = node.geometry;
+    const positions = geometry.attributes.position;
+    const index = geometry.index;
+    const count = index ? index.count : positions.count;
+    for (let i = 0; i + 2 < count; i += 3) {
+      const ia = index ? index.getX(i) : i;
+      const ib = index ? index.getX(i + 1) : i + 1;
+      const ic = index ? index.getX(i + 2) : i + 2;
+      const a = new THREE.Vector3().fromBufferAttribute(positions, ia).applyMatrix4(node.matrixWorld);
+      const b = new THREE.Vector3().fromBufferAttribute(positions, ib).applyMatrix4(node.matrixWorld);
+      const c = new THREE.Vector3().fromBufferAttribute(positions, ic).applyMatrix4(node.matrixWorld);
+      edgeA.subVectors(b, a); edgeB.subVectors(c, a);
+      const normal = edgeA.clone().cross(edgeB);
+      if (normal.lengthSq() < 1e-9) continue;
+      normal.normalize();
+      // Only vertical / steep structural surfaces block walking. Floors and roof faces do not.
+      if (Math.abs(normal.y) > 0.72) continue;
+      const minX = Math.min(a.x,b.x,c.x), maxX = Math.max(a.x,b.x,c.x);
+      const minZ = Math.min(a.z,b.z,c.z), maxZ = Math.max(a.z,b.z,c.z);
+      const minY = Math.min(a.y,b.y,c.y), maxY = Math.max(a.y,b.y,c.y);
+      const tri = { ax:a.x, az:a.z, ay:a.y, bx:b.x, bz:b.z, by:b.y, cx:c.x, cz:c.z, cy:c.y,
+        minX,maxX,minZ,maxZ,minY,maxY };
+      const gx0=Math.floor(minX/HANGAR_COLLISION_CELL), gx1=Math.floor(maxX/HANGAR_COLLISION_CELL);
+      const gz0=Math.floor(minZ/HANGAR_COLLISION_CELL), gz1=Math.floor(maxZ/HANGAR_COLLISION_CELL);
+      for(let gx=gx0;gx<=gx1;gx++) for(let gz=gz0;gz<=gz1;gz++){
+        const key=hangarCellKey(gx,gz);
+        let bucket=hangarCollisionGrid.get(key);
+        if(!bucket){bucket=[];hangarCollisionGrid.set(key,bucket);}
+        bucket.push(tri);
+      }
+      triangleCount++;
+    }
+  });
+  console.info('[ТИШИНА] Hangar triangle colliders built:', triangleCount, 'triangles in', hangarCollisionGrid.size, 'cells');
+}
+function pointSegmentDistanceSq(px,pz,ax,az,bx,bz){
+  const dx=bx-ax,dz=bz-az,len=dx*dx+dz*dz;
+  const t=len>1e-10?THREE.MathUtils.clamp(((px-ax)*dx+(pz-az)*dz)/len,0,1):0;
+  const qx=ax+t*dx,qz=az+t*dz,ex=px-qx,ez=pz-qz;
+  return ex*ex+ez*ez;
+}
+function pointTriangleDistanceSqXZ(px,pz,t){
+  const {ax,az,bx,bz,cx,cz}=t;
+  const v0x=cx-ax,v0z=cz-az,v1x=bx-ax,v1z=bz-az,v2x=px-ax,v2z=pz-az;
+  const den=v0x*v1z-v1x*v0z;
+  if(Math.abs(den)>1e-9){
+    const u=(v2x*v1z-v1x*v2z)/den;
+    const v=(v0x*v2z-v2x*v0z)/den;
+    if(u>=0&&v>=0&&u+v<=1)return 0;
+  }
+  return Math.min(
+    pointSegmentDistanceSq(px,pz,ax,az,bx,bz),
+    pointSegmentDistanceSq(px,pz,bx,bz,cx,cz),
+    pointSegmentDistanceSq(px,pz,cx,cz,ax,az)
+  );
+}
+function hangarMeshCollides(x,z,radius,feetY,headY){
+  const gx0=Math.floor((x-radius)/HANGAR_COLLISION_CELL),gx1=Math.floor((x+radius)/HANGAR_COLLISION_CELL);
+  const gz0=Math.floor((z-radius)/HANGAR_COLLISION_CELL),gz1=Math.floor((z+radius)/HANGAR_COLLISION_CELL);
+  const tested=new Set(),r2=radius*radius;
+  for(let gx=gx0;gx<=gx1;gx++)for(let gz=gz0;gz<=gz1;gz++){
+    const bucket=hangarCollisionGrid.get(hangarCellKey(gx,gz));
+    if(!bucket)continue;
+    for(const t of bucket){
+      if(tested.has(t))continue;tested.add(t);
+      if(feetY>=t.maxY||headY<=t.minY)continue;
+      if(x+radius<t.minX||x-radius>t.maxX||z+radius<t.minZ||z-radius>t.maxZ)continue;
+      if(pointTriangleDistanceSqXZ(x,z,t)<r2)return true;
+    }
+  }
+  return false;
+}
 let activeMotion=null;const INVENTORY_MAX_SLOTS=8,INVENTORY_MAX_WEIGHT=8;
 function readStored(key){try{return JSON.parse(localStorage.getItem(key)||'null');}catch{return null;}}
 const legacySaved=readStored('tishina02')||{};
@@ -465,7 +551,7 @@ function loadHangarModel() {
     loader.load(HANGAR_GLB_URL, gltf => {
       const model = gltf.scene;
       model.name = 'Тентовый ангар — GLB game asset';
-      // 0.5.18: use the GLB at its authored real-world size and keep its proportions.
+      // 0.5.19: use the GLB at its authored real-world size and keep its proportions.
       // Native bounds are approximately 60 × 18.7 × 51.9 m; entrance faces +Z.
       // Move the deeper footprint back so the original player spawn retains a clear forecourt.
       model.scale.setScalar(1.0);
@@ -502,7 +588,7 @@ function loadHangarModel() {
       scene.traverse(node => {
         if (node.isMesh && oldShellPrefixes.some(prefix => node.name.startsWith(prefix))) node.visible = false;
       });
-      // 0.5.18: clear the full-size hangar footprint of obsolete room geometry.
+      // 0.5.19: clear the full-size hangar footprint of obsolete room geometry.
       // Preserve one compact service corner along the left/rear wall for story objects.
       // The supplied hangar is placed in the open apron beside the UAZ.
       // Its native footprint is about 60 x 52 m; entrance faces +Z.
@@ -540,15 +626,6 @@ function loadHangarModel() {
           c.maxZ > -28.0 && c.minZ < 27.0;
         if (overlapsHangar && !inServiceCorner(center)) colliders.splice(i, 1);
       }
-      // 0.5.18: collision shell for the full-size hangar; main entrance remains open.
-      const addHangarWallCollider = (minX,maxX,minZ,maxZ) =>
-        colliders.push({minX,maxX,minZ,maxZ,minY:0,maxY:18.7});
-      addHangarWallCollider(-40.5,-39.7,-26.5,26.5);
-      addHangarWallCollider(19.7,20.5,-26.5,26.5);
-      addHangarWallCollider(-40.5,20.5,-26.5,-25.7);
-      addHangarWallCollider(-40.5,-18.0,25.7,26.5);
-      addHangarWallCollider(-2.0,20.5,25.7,26.5);
-
       // Drop hidden interaction/motion targets from the old room, but retain
       // the cabinet and drawers in the relocated utility corner.
       for (let i = interactables.length - 1; i >= 0; i--) {
@@ -585,6 +662,7 @@ function loadHangarModel() {
       // The replacement GLB owns the hangar shell; all old crawl hazards are obsolete.
       lowClearanceZones.splice(0, lowClearanceZones.length);
       scene.add(model);
+      buildHangarTriangleColliders(model);
       console.info('[ТИШИНА] Full-size hangar loaded; legacy interior cleared.');
       console.info('[ТИШИНА] GLB hangar loaded:', HANGAR_GLB_URL);
     }, undefined, error => {
@@ -592,11 +670,11 @@ function loadHangarModel() {
     });
   }).catch(error => console.warn('[ТИШИНА] Hangar GLB loader error:', error));
 }
-// 0.5.18: load the full-size, uniformly scaled aircraft-hangar GLB.
+// 0.5.19: load the full-size, uniformly scaled aircraft-hangar GLB.
 // The procedural shell remains as a fallback until the GLB and its textures load.
 loadHangarModel();
 
-// 0.5.18: climbable maintenance ladder inside the hangar.
+// 0.5.19: climbable maintenance ladder inside the hangar.
 // The ladder leads to a small inspection platform; interaction toggles climb mode.
 let hangarLadderClimbing = false;
 const hangarLadder = new THREE.Group();
@@ -825,7 +903,7 @@ function updateTarget(){raycaster.setFromCamera(new THREE.Vector2(0,0),camera);c
 function lowZoneAt(x,z,radius=0){return lowClearanceZones.find(zone=>x+radius>zone.minX&&x-radius<zone.maxX&&z+radius>zone.minZ&&z-radius<zone.maxZ)||null;}
 function canFitAt(x,z,mode=posture){const zone=lowZoneAt(x,z,postures[mode].radius);return !zone||postures[mode].height<=zone.clearance;}
 function canOccupyAt(x,z){const zone=lowZoneAt(x,z,stance.radius);return !zone||stance.height<=zone.clearance;}
-function collides(x,z){if(x < -58 || x > 58 || z < -64 || z > 72)return true;const radius=stance.radius,feetY=Math.max(0,camera.position.y-stance.eye),headY=feetY+stance.height;for(const c of colliders){const verticalOverlap=feetY<c.maxY&&headY>c.minY;if(verticalOverlap&&x+radius>c.minX&&x-radius<c.maxX&&z+radius>c.minZ&&z-radius<c.maxZ)return true;}for(const obj of motionObjects){if(!obj.userData.blocksPassage||currentMotionFraction(obj)>=.98)continue;const leaf=obj.userData.leaf;if(!leaf)continue;const b=new THREE.Box3().setFromObject(leaf);const verticalOverlap=feetY<b.max.y&&headY>b.min.y;if(verticalOverlap&&x+radius>b.min.x&&x-radius<b.max.x&&z+radius>b.min.z&&z-radius<b.max.z)return true;}return false;}
+function collides(x,z){if(x < -58 || x > 58 || z < -64 || z > 72)return true;const radius=stance.radius,feetY=Math.max(0,camera.position.y-stance.eye),headY=feetY+stance.height;if(hangarMeshCollides(x,z,radius,feetY,headY))return true;for(const c of colliders){const verticalOverlap=feetY<c.maxY&&headY>c.minY;if(verticalOverlap&&x+radius>c.minX&&x-radius<c.maxX&&z+radius>c.minZ&&z-radius<c.maxZ)return true;}for(const obj of motionObjects){if(!obj.userData.blocksPassage||currentMotionFraction(obj)>=.98)continue;const leaf=obj.userData.leaf;if(!leaf)continue;const b=new THREE.Box3().setFromObject(leaf);const verticalOverlap=feetY<b.max.y&&headY>b.min.y;if(verticalOverlap&&x+radius>b.min.x&&x-radius<b.max.x&&z+radius>b.min.z&&z-radius<b.max.z)return true;}return false;}
 function updatePostureUI(){const crouch=$('crouch'),prone=$('prone');crouch.classList.toggle('active',posture==='crouch');prone.classList.toggle('active',posture==='prone');crouch.setAttribute('aria-pressed',String(posture==='crouch'));prone.setAttribute('aria-pressed',String(posture==='prone'));$('postureStatus').textContent=`ПОЗА: ${postures[posture].label}`;}
 function setPosture(next){if(!started||modalOpen)return;if(!grounded){notify('Сначала приземлись.');return;}if(next===posture)return;const x=camera.position.x,z=camera.position.z;if(!canFitAt(x,z,next)){notify('Над головой слишком мало места. Здесь можно только лечь.');return;}stanceFrom={eye:stance.eye,height:stance.height,radius:stance.radius,speed:stance.speed};stanceElapsed=0;posture=next;sprintHeld=false;updatePostureUI();notify(next==='stand'?'Поднимаешься на ноги.':next==='crouch'?'Плавно приседаешь.':'Опускаешься на землю.');}
 function updateStaminaUI(force=false){const value=Math.max(0,Math.min(100,Math.round(stamina)));if(!force&&value===lastStaminaShown)return;lastStaminaShown=value;const fill=$('staminaFill'),label=$('staminaValue');if(fill)fill.style.width=value+'%';if(label)label.textContent=value+'%';const track=$('staminaTrack');if(track)track.setAttribute('aria-valuenow',String(value));track?.classList.toggle('low',value<=20);const sprint=$('sprint');if(sprint){sprint.classList.toggle('active',sprintHeld&&sprintBlend>.08);sprint.classList.toggle('depleted',sprintLocked);sprint.setAttribute('aria-pressed',String(sprintHeld));}}
