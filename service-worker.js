@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tishina-0-5-7-chapel-visibility-access';
+const CACHE_NAME = 'tishina-0-5-8-inline-chapel';
 const APP_SHELL = [
   './',
   './index.html',
