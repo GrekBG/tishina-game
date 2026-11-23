@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tishina-0-5-20-doorway-exit';
+const CACHE_NAME = 'tishina-0-5-21-level-threshold';
 const APP_SHELL = [
   './',
   './index.html',
