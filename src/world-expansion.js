@@ -2,7 +2,7 @@ import { ColladaLoader } from 'three/addons/loaders/ColladaLoader.js';
 
 // Exterior service yard extension for ТИШИНА 0.3.0, polished in 0.3.3.
 // Designed for mobile WebGL: low-poly geometry, shared materials, modest light count.
-export function installWorldExpansion({ THREE, scene, box, floor, mat, addInteract, colliders, gltfLoaderPromise, surfaces, notify = () => {} }) {
+export function installWorldExpansion({ THREE, scene, camera, isMobileDevice = false, box, floor, mat, addInteract, colliders, gltfLoaderPromise, surfaces, notify = () => {} }) {
   const toned = (base, color, roughness, metalness) => { const m = base.clone(); m.color.setHex(color); m.roughness = roughness; m.metalness = metalness; return m; };
   const steel = toned(surfaces.metal, 0x303a37, 0.72, 0.72);
   const darkSteel = toned(surfaces.darkConcrete, 0x202927, 0.82, 0.58);
@@ -269,7 +269,12 @@ export function installWorldExpansion({ THREE, scene, box, floor, mat, addIntera
   chapelPath.rotation.y = 0.76;
   chapelPath.receiveShadow = true;
 
-  if (gltfLoaderPromise) {
+  // Load the original detailed chapel only when it is relevant on phones.
+  // Desktop keeps the original immediate-loading behaviour.
+  let chapelLoadStarted = false;
+  function loadChapel() {
+    if (chapelLoadStarted || !gltfLoaderPromise) return;
+    chapelLoadStarted = true;
     gltfLoaderPromise.then(loader => {
       if (!loader) return;
       loader.load(chapelUrl, gltf => {
@@ -280,14 +285,45 @@ export function installWorldExpansion({ THREE, scene, box, floor, mat, addIntera
         chapel.position.set(33, 0.015, 43);
         chapel.traverse(node => {
           if (!node.isMesh) return;
-          node.castShadow = !('ontouchstart' in window);
-          node.receiveShadow = true;
+          // The original geometry and materials are retained; mobile avoids
+          // expensive shadow-map work on this distant, detailed asset.
+          node.castShadow = !isMobileDevice;
+          node.receiveShadow = !isMobileDevice;
           node.frustumCulled = true;
           const materials = Array.isArray(node.material) ? node.material : [node.material];
           for (const material of materials) {
             if (!material) continue;
-            for (const texture of [material.map, material.normalMap, material.roughnessMap, material.metalnessMap]) {
-              if (texture) texture.anisotropy = Math.min(4, rendererMaxAnisotropy());
+            const textures = [
+              material.map, material.normalMap, material.roughnessMap,
+              material.metalnessMap, material.aoMap, material.emissiveMap
+            ];
+            for (const texture of textures) {
+              if (!texture) continue;
+              // Match the imported UAZ texture setup.
+              if (texture === material.map || texture === material.emissiveMap) {
+                texture.colorSpace = THREE.SRGBColorSpace;
+              }
+              texture.anisotropy = Math.min(4, rendererMaxAnisotropy());
+              texture.generateMipmaps = true;
+              texture.minFilter = THREE.LinearMipmapLinearFilter;
+              texture.magFilter = THREE.LinearFilter;
+
+              // On phones, cap decoded GPU texture dimensions while keeping
+              // the same source artwork, UVs, geometry and material response.
+              // 1536px retains fine stone/roof detail at normal gameplay distance.
+              if (isMobileDevice && texture.image && texture.image.width > 1536) {
+                const source = texture.image;
+                const scale = 1536 / Math.max(source.width, source.height);
+                const canvas = document.createElement('canvas');
+                canvas.width = Math.max(1, Math.round(source.width * scale));
+                canvas.height = Math.max(1, Math.round(source.height * scale));
+                const context = canvas.getContext('2d');
+                if (context) {
+                  context.drawImage(source, 0, 0, canvas.width, canvas.height);
+                  texture.image = canvas;
+                }
+              }
+              texture.needsUpdate = true;
             }
             material.needsUpdate = true;
           }
@@ -309,12 +345,18 @@ export function installWorldExpansion({ THREE, scene, box, floor, mat, addIntera
           { minX: 30.0, maxX: 32.25, minY: 0, maxY: wallH, minZ: 37.65, maxZ: 38.0 },
           { minX: 33.75, maxX: 36.0, minY: 0, maxY: wallH, minZ: 37.65, maxZ: 38.0 }
         );
-        console.info('[ТИШИНА] Часовня загружена на восточной окраине карты:', chapelUrl);
+        console.info('[ТИШИНА] Оригинальная детализированная часовня загружена:', chapelUrl);
       }, undefined, error => {
+        chapelLoadStarted = false;
         console.warn('[ТИШИНА] Не удалось загрузить часовню:', error);
       });
-    }).catch(error => console.warn('[ТИШИНА] Ошибка GLTFLoader часовни:', error));
+    }).catch(error => {
+      chapelLoadStarted = false;
+      console.warn('[ТИШИНА] Ошибка GLTFLoader часовни:', error);
+    });
   }
+
+  if (!isMobileDevice) loadChapel();
 
   function rendererMaxAnisotropy() {
     return scene.userData.maxAnisotropy || 4;
@@ -323,6 +365,11 @@ export function installWorldExpansion({ THREE, scene, box, floor, mat, addIntera
   return {
     evacuationLog: book,
     update(dt, time) {
+      if (isMobileDevice && !chapelLoadStarted && camera) {
+        const dx = camera.position.x - 33;
+        const dz = camera.position.z - 43;
+        if (dx * dx + dz * dz <= 32 * 32) loadChapel();
+      }
       for (const item of lamps) {
         const slow = Math.sin(time * 0.0011 + item.seed) * item.pulse;
         const flicker = Math.sin(time * 0.019 + item.seed * 2.3) > 0.985 ? 0.2 : 1;

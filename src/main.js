@@ -442,7 +442,7 @@ for(let i=0;i<24;i++){
 }
 // TISHINA_030_STORY_WORLD_UPGRADE
 // TISHINA_033_CAMERA_FLASHLIGHT_HANGAR_INTERACTION
-const expansion = installWorldExpansion({ THREE, scene, box, floor, mat, addInteract, colliders, gltfLoaderPromise, surfaces: { metal, darkConcrete, plaster, yellow, floorMat, rust, gravel:gravelMat, earth:earthMat, driveConcrete:driveConcreteMat } });
+const expansion = installWorldExpansion({ THREE, scene, camera, isMobileDevice, box, floor, mat, addInteract, colliders, gltfLoaderPromise, surfaces: { metal, darkConcrete, plaster, yellow, floorMat, rust, gravel:gravelMat, earth:earthMat, driveConcrete:driveConcreteMat } });
 const HANGAR_GLB_URL = 'https://cdn.3dassets.dev/assets/17354/v1/model.glb';
 function loadHangarModel() {
   gltfLoaderPromise.then(loader => {
