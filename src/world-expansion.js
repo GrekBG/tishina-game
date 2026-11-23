@@ -417,14 +417,23 @@ export function installWorldExpansion({ THREE, scene, camera, isMobileDevice = f
     add('Перемычка дверной рамы', new THREE.BoxGeometry(1.42,.16,.38), trim, [0,2.60,-3.58]);
     for(const y of [.78,1.42,2.04]) add('Железная полоса двери',new THREE.BoxGeometry(.94,.045,.025),metalwork,[0,y,-3.835]);
     add('Дверная ручка',new THREE.SphereGeometry(.065,8,6),metalwork,[.38,1.40,-3.85]);
-    for(const x of [-1.45,1.45]) {
-      add('Рама витража фасада',new THREE.BoxGeometry(.52,1.08,.10),trim,[x,2.0,-3.76]);
-      add('Стекло витража фасада',new THREE.BoxGeometry(.34,.88,.035),dark,[x,2.0,-3.825]);
-    }
-    // Narrow side windows make the structure readable from oblique and rear views.
-    for(const z of [-2.05,1.55]) for(const side of [-1,1]) {
-      add('Обрамление бокового витража',new THREE.BoxGeometry(.12,1.08,.58),trim,[side*2.23,2.0,z],[0,side*Math.PI/2,0]);
-      add('Стекло бокового витража',new THREE.BoxGeometry(.04,.86,.36),dark,[side*2.29,2.0,z],[0,side*Math.PI/2,0]);
+    // Windows are intentionally placed on BOTH long side walls, not on the front facade.
+    // A faint warm emissive tint keeps the stained glass readable in the game's night lighting.
+    const sideGlass = new THREE.MeshStandardMaterial({
+      color: 0x9bafa3, emissive: 0x493b25, emissiveIntensity: 0.22,
+      roughness: 0.48, metalness: 0.02
+    });
+    for(const side of [-1,1]) for(const z of [-2.0,1.35]) {
+      const xFrame = side * 2.17;
+      const xGlass = side * 2.245;
+      const xDetail = side * 2.275;
+      // Tall, wide window set flush into the side masonry.
+      add('Каменное обрамление бокового окна',new THREE.BoxGeometry(.16,1.34,.94),trim,[xFrame,2.02,z]);
+      add('Стекло бокового витража',new THREE.BoxGeometry(.045,1.08,.68),sideGlass,[xGlass,2.02,z]);
+      add('Вертикальная переплётная планка бокового окна',new THREE.BoxGeometry(.055,1.08,.055),metalwork,[xDetail,2.02,z]);
+      add('Горизонтальная переплётная планка бокового окна',new THREE.BoxGeometry(.055,.055,.68),metalwork,[xDetail,2.02,z]);
+      add('Подоконник бокового окна',new THREE.BoxGeometry(.24,.12,1.04),trim,[xFrame,1.32,z]);
+      add('Перемычка бокового окна',new THREE.BoxGeometry(.24,.12,1.04),trim,[xFrame,2.72,z]);
     }
 
     // Broad two-step stone porch, aligned with the clear entrance corridor.
