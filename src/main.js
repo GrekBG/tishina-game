@@ -157,7 +157,7 @@ function buildHangarTriangleColliders(model){
   model.updateMatrixWorld(true);
   // The visual steel frame remains visible, but the former office/mezzanine
   // assembly must not contribute invisible walls or walkable surfaces.
-  const ignoredCollisionGroups = new Set(['office_block','service_doors','structure']);
+  const ignoredCollisionGroups = new Set(['office_block','structure']);
   const belongsToRemovedInterior = node => {
     for(let parent=node; parent && parent!==model; parent=parent.parent){
       if(ignoredCollisionGroups.has(parent.name)) return true;
@@ -637,13 +637,13 @@ function loadHangarModel() {
       const hangarSize = hangarBounds.getSize(new THREE.Vector3());
       console.info('[ТИШИНА] Full-size hangar dimensions (m):',
         hangarSize.toArray().map(value => Number(value.toFixed(2))));
-      // 0.5.33: keep the hangar frame visual, but exclude former interior structure from collision/walkable surfaces.\n      // 0.5.32: remove the internal two-storey office block and its attached doors.
+      // 0.5.34: restore the separate service-door assembly; hide only the two-storey office block.
+      // The service doors are independent GLB geometry and retain their own solid colliders.
       // The hangar must remain a single open-volume shelter; hide before building
       // triangle colliders so the removed structure cannot remain physically solid.
       model.traverse(node => {
-        if (node.name === 'office_block' || node.name === 'service_doors') {
-          node.visible = false;
-        }
+        if (node.name === 'office_block') node.visible = false;
+        // service_doors is a separate set of hangar door leaves/frames. Keep it visible.
       });
       model.traverse(node => {
         if (!node.isMesh) return;
@@ -652,6 +652,14 @@ function loadHangarModel() {
         const materials = Array.isArray(node.material) ? node.material : [node.material];
         for (const material of materials) {
           if (!material) continue;
+          const materialName = String(material.name || '').toLowerCase();
+          if (materialName.includes('window') || materialName.includes('glass')) {
+            material.transparent = false;
+            material.opacity = 1;
+            material.depthWrite = true;
+            if (material.color) material.color.setHex(0x59615e);
+            material.needsUpdate = true;
+          }
           const textures = [material.map, material.normalMap, material.roughnessMap, material.metalnessMap, material.emissiveMap];
           for (const texture of textures) if (texture) texture.anisotropy = Math.min(isMobileDevice ? 4 : 8, renderer.capabilities.getMaxAnisotropy());
           material.needsUpdate = true;
