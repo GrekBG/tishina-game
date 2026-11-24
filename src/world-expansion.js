@@ -32,7 +32,38 @@ export function installWorldExpansion({ THREE, scene, camera, isMobileDevice = f
 
   // Extension ground: the original forecourt stays seamless and the player can walk south/east.
   // The enlarged base asphalt slab in main.js is continuous beneath this extension.
-  detail('Дорога — шероховатый мокрый асфальт', [10, 0.035, 82], [0, -0.012, 27], wetAsphalt);
+  // Poly Haven Road Damaged PBR set. Keep the procedural asphalt as a fallback
+  // so the road remains visible if a texture cannot be downloaded.
+  const damagedRoadMaterial = wetAsphalt.clone();
+  damagedRoadMaterial.name = 'Асфальт с выбоинами — Poly Haven PBR';
+  const damagedRoad = detail('Дорога — повреждённый асфальт Poly Haven', [10, 0.035, 82], [0, -0.012, 27], damagedRoadMaterial);
+  const roadTextureLoader = new THREE.TextureLoader();
+  const roadTextureFiles = {
+    map: '../assets/road-damaged/road-damaged-albedo.jpg',
+    normalMap: '../assets/road-damaged/road-damaged-normal.jpg',
+    roughnessMap: '../assets/road-damaged/road-damaged-roughness.jpg',
+    aoMap: '../assets/road-damaged/road-damaged-ao.jpg',
+    bumpMap: '../assets/road-damaged/road-damaged-displacement.jpg'
+  };
+  Promise.all(Object.entries(roadTextureFiles).map(async ([slot, path]) => {
+    const texture = await roadTextureLoader.loadAsync(new URL(path, import.meta.url).href);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(4.5, 37);
+    texture.anisotropy = isMobileDevice ? 2 : 4;
+    if (slot === 'map') texture.colorSpace = THREE.SRGBColorSpace;
+    return [slot, texture];
+  })).then(entries => {
+    for (const [slot, texture] of entries) damagedRoadMaterial[slot] = texture;
+    if (damagedRoad.geometry?.attributes?.uv && !damagedRoad.geometry.attributes.uv2) {
+      damagedRoad.geometry.setAttribute('uv2', damagedRoad.geometry.attributes.uv);
+    }
+    damagedRoadMaterial.normalScale.set(0.75, 0.75);
+    damagedRoadMaterial.bumpScale = 0.012;
+    damagedRoadMaterial.needsUpdate = true;
+  }).catch(error => {
+    console.warn('Не удалось загрузить PBR-текстуры повреждённой дороги; используется базовый асфальт.', error);
+  });
   // Distinct, non-mirrored ground zones: concrete apron, loose gravel shoulders and compacted earth.
   detail('Бетонный подъезд к ангару', [20.5, 0.045, 8.5], [0, -0.008, -2.4], apronConcrete);
   detail('Бетонная зона разгрузки', [20, 0.045, 8.0], [8.5, -0.008, 13.5], apronConcrete);
