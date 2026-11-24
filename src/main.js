@@ -680,7 +680,7 @@ function loadHangarModel() {
 // The procedural shell remains as a fallback until the GLB and its textures load.
 loadHangarModel();
 
-// 0.5.22: climbable maintenance ladder inside the hangar.
+// 0.5.24: climbable maintenance ladder inside the hangar.
 // The ladder leads to a small inspection platform; interaction toggles climb mode.
 let hangarLadderClimbing = false;
 let hangarLadderOnPlatform = false;
