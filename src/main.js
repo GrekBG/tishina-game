@@ -653,6 +653,13 @@ function loadHangarModel() {
         for (const material of materials) {
           if (!material) continue;
           const materialName = String(material.name || '').toLowerCase();
+          // 0.5.35: power is off inside the hangar. Keep lamp housings visible,
+          // but disable the emissive glow of ceiling lamps and red warning lights.
+          if (materialName === 'high_bay_lamp' || materialName === 'obstruction_red') {
+            if (material.emissive) material.emissive.setRGB(0, 0, 0);
+            material.emissiveIntensity = 0;
+            material.needsUpdate = true;
+          }
           if (materialName.includes('window') || materialName.includes('glass')) {
             material.transparent = false;
             material.opacity = 1;
