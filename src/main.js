@@ -155,12 +155,21 @@ function buildHangarTriangleColliders(model){
   hangarCollisionGrid.clear();
   hangarWalkableGrid.clear();
   model.updateMatrixWorld(true);
+  // The visual steel frame remains visible, but the former office/mezzanine
+  // assembly must not contribute invisible walls or walkable surfaces.
+  const ignoredCollisionGroups = new Set(['office_block','service_doors','structure']);
+  const belongsToRemovedInterior = node => {
+    for(let parent=node; parent && parent!==model; parent=parent.parent){
+      if(ignoredCollisionGroups.has(parent.name)) return true;
+    }
+    return false;
+  };
   const vertex = new THREE.Vector3();
   const edgeA = new THREE.Vector3();
   const edgeB = new THREE.Vector3();
   let triangleCount = 0;
   model.traverse(node => {
-    if (!node.isMesh || !node.visible || !node.geometry?.attributes?.position) return;
+    if (!node.isMesh || !node.visible || belongsToRemovedInterior(node) || !node.geometry?.attributes?.position) return;
     // Ground markings and light fixtures are not solid structural parts.
     if (node.name === 'floor_markings' || node.name === 'lights') return;
     const geometry = node.geometry;
@@ -628,7 +637,7 @@ function loadHangarModel() {
       const hangarSize = hangarBounds.getSize(new THREE.Vector3());
       console.info('[ТИШИНА] Full-size hangar dimensions (m):',
         hangarSize.toArray().map(value => Number(value.toFixed(2))));
-      // 0.5.32: remove the internal two-storey office block and its attached doors.
+      // 0.5.33: keep the hangar frame visual, but exclude former interior structure from collision/walkable surfaces.\n      // 0.5.32: remove the internal two-storey office block and its attached doors.
       // The hangar must remain a single open-volume shelter; hide before building
       // triangle colliders so the removed structure cannot remain physically solid.
       model.traverse(node => {
