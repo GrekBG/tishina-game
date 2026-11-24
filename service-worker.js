@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tishina-0-5-22-gate-collision';
+const CACHE_NAME = 'tishina-0-5-24-ladder-climb';
 const APP_SHELL = [
   './',
   './index.html',
