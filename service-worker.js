@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tishina-0-5-24-ladder-climb';
+const CACHE_NAME = 'tishina-0-5-25-polyhaven-road';
 const APP_SHELL = [
   './',
   './index.html',
@@ -14,7 +14,12 @@ const APP_SHELL = [
   './lod0.glb',
   './village-chapel.glb',
   './icon-192.png',
-  './icon-512.png'
+  './icon-512.png',
+  './assets/road-damaged/road-damaged-albedo.jpg',
+  './assets/road-damaged/road-damaged-normal.jpg',
+  './assets/road-damaged/road-damaged-roughness.jpg',
+  './assets/road-damaged/road-damaged-ao.jpg',
+  './assets/road-damaged/road-damaged-displacement.jpg'
 ];
 
 self.addEventListener('install', event => {
