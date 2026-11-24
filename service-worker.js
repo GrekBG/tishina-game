@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tishina-0-5-26-road-visual';
+const CACHE_NAME = 'tishina-0-5-27-road-pbr';
 const APP_SHELL = [
   './',
   './index.html',
@@ -8,7 +8,9 @@ const APP_SHELL = [
   './src/world-expansion.js',
   './src/story.js',
   './src/sky-weather.js',
+  './src/three-loader.js',
   './uaz.dae',
+  './hangar.glb',
   './uaz-body.webp',
   './uaz-details.webp',
   './lod0.glb',
