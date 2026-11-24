@@ -16,6 +16,7 @@ export async function installPbrSurfaces(THREE, surfaces, options = {}) {
     metal:        { baseRoughness: 0.70, metalness: 0.78, repeat: 2.8, hero: true,  normalStrength: 1.45, pattern: 'metal', bumpScale: 0.006 },
     rust:         { baseRoughness: 0.98, metalness: 0.24, repeat: 3.0, hero: false, normalStrength: 2.10, pattern: 'rust', bumpScale: 0.018 },
     floorMat:     { baseRoughness: 0.86, metalness: 0.12, repeat: 4.2, hero: true,  normalStrength: 2.30, pattern: 'asphalt', bumpScale: 0.014 },
+    asphaltGround:{ baseRoughness: 0.99, metalness: 0.01, repeat: 50, hero: true, normalStrength: 1.65, pattern: 'asphalt', bumpScale: 0.008 },
     wood:         { baseRoughness: 0.92, metalness: 0.02, repeat: 2.5, hero: false, normalStrength: 1.75, pattern: 'wood', bumpScale: 0.012 },
     paper:        { baseRoughness: 0.99, metalness: 0.00, repeat: 1.8, hero: false, normalStrength: 1.35, pattern: 'paper', bumpScale: 0.004 },
     yellow:       { baseRoughness: 0.90, metalness: 0.03, repeat: 2.2, hero: false, normalStrength: 1.25, pattern: 'paint', bumpScale: 0.005 },

@@ -8,10 +8,7 @@ export function installWorldExpansion({ THREE, scene, camera, isMobileDevice = f
   const darkSteel = toned(surfaces.darkConcrete, 0x202927, 0.82, 0.58);
   const fadedPaint = toned(surfaces.plaster, 0x59655d, 0.9, 0.16);
   const hazard = toned(surfaces.yellow, 0xb18b46, 0.86, 0.12);
-  const wetAsphalt = toned(surfaces.floorMat, 0x73776f, 0.985, 0.01);
-  const gravelGround = toned(surfaces.gravel || surfaces.floorMat, 0x66665d, 0.99, 0.0);
-  const earthGround = toned(surfaces.earth || surfaces.darkConcrete, 0x4f5149, 0.99, 0.0);
-  const apronConcrete = toned(surfaces.driveConcrete || surfaces.darkConcrete, 0x74766f, 0.97, 0.0);
+  const wetAsphalt = surfaces.asphaltGround || toned(surfaces.floorMat, 0x3d423e, 0.99, 0.01);
   const rust = toned(surfaces.rust, 0x684737, 0.96, 0.25);
   const glass = new THREE.MeshStandardMaterial({ color: 0x71817c, roughness: 0.46, metalness: 0.025, transparent: true, opacity: 0.34, side: THREE.DoubleSide });
   const lamps = [];
@@ -30,98 +27,14 @@ export function installWorldExpansion({ THREE, scene, camera, isMobileDevice = f
     mesh.name = name; mesh.position.set(...pos); mesh.castShadow = true; mesh.receiveShadow = true; scene.add(mesh); return mesh;
   }
 
-  // Extension ground: the original forecourt stays seamless and the player can walk south/east.
-  // The enlarged base asphalt slab in main.js is continuous beneath this extension.
-  // Poly Haven Road Damaged PBR set. The procedural asphalt remains a fallback.
-  const damagedRoadMaterial = wetAsphalt.clone();
-  damagedRoadMaterial.name = 'Асфальт с выбоинами — Poly Haven PBR';
-  damagedRoadMaterial.color.setHex(0xc2c6bf);
-  damagedRoadMaterial.roughness = 0.98;
-  const damagedRoad = detail('Дорога — повреждённый асфальт Poly Haven', [10, 0.035, 82], [0, -0.012, 27], damagedRoadMaterial);
-  const roadTextureLoader = new THREE.TextureLoader();
-  const roadTextureFiles = {
-    map: '../assets/road-damaged/road-damaged-albedo.jpg',
-    normalMap: '../assets/road-damaged/road-damaged-normal.jpg',
-    roughnessMap: '../assets/road-damaged/road-damaged-roughness.jpg',
-    aoMap: '../assets/road-damaged/road-damaged-ao.jpg',
-    bumpMap: '../assets/road-damaged/road-damaged-displacement.jpg'
-  };
-  Promise.all(Object.entries(roadTextureFiles).map(async ([slot, path]) => {
-    const texture = await roadTextureLoader.loadAsync(new URL(path, import.meta.url).href);
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.wrapT = THREE.RepeatWrapping;
-    // Fewer repeats make potholes and cracks readable on a phone screen.
-    texture.repeat.set(2.25, 11.5);
-    texture.anisotropy = isMobileDevice ? 2 : 4;
-    if (slot === 'map') texture.colorSpace = THREE.SRGBColorSpace;
-    return [slot, texture];
-  })).then(entries => {
-    for (const [slot, texture] of entries) damagedRoadMaterial[slot] = texture;
-    if (damagedRoad.geometry?.attributes?.uv && !damagedRoad.geometry.attributes.uv2) {
-      damagedRoad.geometry.setAttribute('uv2', damagedRoad.geometry.attributes.uv);
-    }
-    damagedRoadMaterial.normalScale.set(1.15, 1.15);
-    damagedRoadMaterial.bumpScale = 0.026;
-    damagedRoadMaterial.needsUpdate = true;
-  }).catch(error => {
-    console.warn('Не удалось загрузить PBR-текстуры повреждённой дороги; используется базовый асфальт.', error);
-  });
-  // Distinct, non-mirrored ground zones: concrete apron, loose gravel shoulders and compacted earth.
-  detail('Бетонный подъезд к ангару', [20.5, 0.045, 8.5], [0, -0.008, -2.4], apronConcrete);
-  detail('Бетонная зона разгрузки', [20, 0.045, 8.0], [8.5, -0.008, 13.5], apronConcrete);
-  function terrainShoulder(name, xCenter, material, seed) {
-    const geometry = new THREE.PlaneGeometry(14, 72, 48, 160);
-    geometry.rotateX(-Math.PI / 2);
-    const position = geometry.attributes.position;
-    for (let i = 0; i < position.count; i++) {
-      const x = position.getX(i), z = position.getZ(i);
-      const wave = Math.sin((x + seed) * .52) * Math.cos((z - seed) * .13) * .045
-        + Math.sin((x - seed) * 1.15 + z * .11) * .025
-        + Math.cos(z * .31 + seed) * .018;
-      position.setY(i, .035 + Math.max(-.018, wave));
-    }
-    position.needsUpdate = true;geometry.computeVertexNormals();
-    const terrain = new THREE.Mesh(geometry, material);terrain.name = name;terrain.position.set(xCenter, -.018, 25);
-    terrain.receiveShadow = true;terrain.castShadow = false;scene.add(terrain);return terrain;
-  }
-  terrainShoulder('Рельефная щебёночная обочина — запад', -38, gravelGround, 3.2);
-  terrainShoulder('Рельефная щебёночная обочина — восток', 38, gravelGround, 8.7);
-  detail('Утрамбованный грунт — северо-запад', [12, 0.04, 15], [-31, -0.009, 49], earthGround);
-  detail('Утрамбованный грунт — северо-восток', [12, 0.04, 15], [31, -0.009, 49], earthGround);
-  // Shared instanced gravel fragments add a readable uneven shoulder without hundreds of draw calls.
-  const pebbleGeometry = new THREE.DodecahedronGeometry(0.085, 0);
-  const pebbleMaterial = new THREE.MeshStandardMaterial({ color: 0x74736a, roughness: 0.99, metalness: 0 });
-  const pebbleCount = 320, pebbles = new THREE.InstancedMesh(pebbleGeometry, pebbleMaterial, pebbleCount);
-  const pebbleDummy = new THREE.Object3D();
-  let pebbleSeed = 33033; const pebbleRand = () => { pebbleSeed = (pebbleSeed * 1664525 + 1013904223) >>> 0; return pebbleSeed / 4294967296; };
-  for (let i = 0; i < pebbleCount; i++) {
-    const side = pebbleRand() > 0.5 ? 1 : -1;
-    const x = side * (29 + pebbleRand() * 15), z = 5 + pebbleRand() * 48;
-    pebbleDummy.position.set(x, 0.018 + pebbleRand() * 0.035, z);
-    pebbleDummy.rotation.set(pebbleRand() * 2.8, pebbleRand() * Math.PI, pebbleRand() * 2.8);
-    const scale = 0.5 + pebbleRand() * 1.2; pebbleDummy.scale.set(scale, 0.45 + pebbleRand() * 0.5, scale);
-    pebbleDummy.updateMatrix(); pebbles.setMatrixAt(i, pebbleDummy.matrix);
-  }
-  pebbles.name = 'Россыпь щебня — инстансированная';pebbles.castShadow=false;pebbles.receiveShadow=true;scene.add(pebbles);
+  // All outdoor ground now uses the same continuous asphalt material from main.js.
+  // The 1 × 1 km base slab is the only ground surface; no gravel, earth or concrete overlays.
 
   for (let z = -8; z <= 56; z += 7) {
     detail('Разметка дороги', [0.12, 0.028, 2.2], [0, 0.002, z], hazard);
     detail('Старая белая разметка', [0.09, 0.026, 1.4], [-5.45, 0.002, z + 2.5], mat(0x9ca49a, 0.82, 0));
   }
-  // Visible cracks and chipped pothole edges are placed ON the road lane,
-  // not on the distant shoulders. Geometry is deliberately sparse for mobile GPUs.
-  for (let i = 0; i < 13; i++) {
-    const x = -4.25 + (i % 5) * 1.95;
-    const z = 8 + Math.floor(i / 5) * 17 + (i % 2) * 2.1;
-    const crack = detail('Трещина на проезжей части', [0.035 + (i % 3) * 0.018, 0.018, 0.9 + (i % 4) * 0.42], [x, 0.014, z], darkSteel);
-    crack.rotation.y = (i % 2 ? 0.28 : -0.38);
-  }
-  for (let i = 0; i < 7; i++) {
-    const x = -3.8 + (i % 4) * 2.25;
-    const z = 13 + i * 9.2;
-    const chip = detail('Скол асфальта', [0.42 + (i % 3) * 0.12, 0.012, 0.28 + (i % 2) * 0.12], [x, 0.013, z], darkSteel);
-    chip.rotation.y = (i % 2) * 0.42;
-  }
+  // The asphalt remains continuous and visually uniform; no separate cracks or surface patches are layered on top.
 
   // Chain-link perimeter fence and an open vehicle gate.
   const fenceZ = 59.3;
@@ -312,10 +225,7 @@ export function installWorldExpansion({ THREE, scene, camera, isMobileDevice = f
   // Mobile rendering no longer depends on a remote/large GLB request; the original optimized GLB remains for desktop.
   const chapelX = 45.0, chapelZ = 25.0, chapelScale = 0.65;
   const chapelUrl = new URL('../village-chapel.glb', import.meta.url).href;
-  const chapelPad = detail('Площадка у заброшенной часовни', [9.8, 0.045, 11.8], [chapelX, -0.006, chapelZ], earthGround);
-  chapelPad.receiveShadow = true;
-  const chapelPath = detail('Грунтовая тропа к часовне', [4.8, 0.04, 7.4], [chapelX, 0.006, 19.7], gravelGround);
-  chapelPath.receiveShadow = true;
+  // The global asphalt slab continues uninterrupted beneath the chapel and its approach.
 
   let chapelCollidersAdded = false;
   function addChapelColliders() {

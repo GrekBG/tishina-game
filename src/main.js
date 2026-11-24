@@ -83,6 +83,8 @@ const concreteMap=grungeTexture('#777d77',7), plasterMap=grungeTexture('#999b90'
 const mat = (color, roughness=0.92, metalness=0) => new THREE.MeshStandardMaterial({ color, roughness, metalness });
 const concrete = mat(0x747a75), darkConcrete = mat(0x444b47), plaster = mat(0x888d85), dirtyWhite = mat(0x9a9b8f), metal = mat(0x414b49,.78,.62), rust = mat(0x704b37,.96,.08), glass = new THREE.MeshStandardMaterial({color:0x738b8a,roughness:.42,metalness:.02,transparent:true,opacity:.30}), floorMat = mat(0x686d66,.98,.015), wood = mat(0x554b3e), paper = mat(0xb7b39e), yellow = mat(0x9b8b55,.9,.03);
 const gravelMat = mat(0x65645a,.99,.0), earthMat = mat(0x4e5148,.99,.0), driveConcreteMat = mat(0x73766e,.96,.0);
+// One continuous dark asphalt material for the entire 1 × 1 km playable surface.
+const asphaltGround = mat(0x3d423e, .99, .01);
 // Shared hangar steel materials (also used by the main scene, not only the yard module).
 const steel = metal.clone(); steel.color.setHex(0x303a37); steel.roughness = 0.72; steel.metalness = 0.72;
 const darkSteel = darkConcrete.clone(); darkSteel.color.setHex(0x202927); darkSteel.roughness = 0.82; darkSteel.metalness = 0.58;
@@ -139,7 +141,7 @@ const hangarFabric = new THREE.MeshStandardMaterial({
 const hangarRoofFabric = hangarFabric.clone();
 hangarRoofFabric.color.setHex(0x858779);
 const fabricSeam = new THREE.MeshStandardMaterial({ color: 0x444b40, roughness: 0.98, metalness: 0.02 });
-const pbrBuild = installPbrSurfaces(THREE, { concrete, darkConcrete, plaster, dirtyWhite, metal, rust, floorMat, wood, paper, yellow, gravel:gravelMat, earth:earthMat, driveConcrete:driveConcreteMat }, {
+const pbrBuild = installPbrSurfaces(THREE, { concrete, darkConcrete, plaster, dirtyWhite, metal, rust, floorMat, asphaltGround, wood, paper, yellow, gravel:gravelMat, earth:earthMat, driveConcrete:driveConcreteMat }, {
  renderer, quality: isMobileDevice ? 'mobile' : 'ultra',
  resolution: isMobileDevice ? 512 : 1024,
  maxAnisotropy: isMobileDevice ? 2 : 8, rowsPerYield: isMobileDevice ? 8 : 24
@@ -257,7 +259,7 @@ const STANCE_TRANSITION_SECONDS=.38, SPRINT_MULTIPLIER=1.68, STAMINA_DRAIN=17, S
 const HEALTH_MAX=100,HEALTH_HAZARD_DAMAGE=9,HEALTH_HAZARD_INTERVAL=.72;
 const lowClearanceZones=[{minX:-4.28,maxX:4.28,minZ:-11.0,maxZ:-9.46,clearance:.66,label:'Обрушившаяся балка'}];
 concrete.map=concreteMap; plaster.map=plasterMap; floorMat.map=floorMap;
-const forecourtMat=floorMat.clone();forecourtMat.color.setHex(0x777b73);forecourtMat.roughness=.985;forecourtMat.metalness=.01;
+const forecourtMat=asphaltGround;
 
 function box(parent, name, size, pos, material, opts={}) {
  const mesh=new THREE.Mesh(new THREE.BoxGeometry(...size),material); mesh.name=name; mesh.position.set(...pos); mesh.castShadow=opts.cast!==false; mesh.receiveShadow=true; parent.add(mesh); if(opts.solid){const bounds=new THREE.Box3().setFromObject(mesh);colliders.push({minX:bounds.min.x,maxX:bounds.max.x,minY:bounds.min.y,maxY:bounds.max.y,minZ:bounds.min.z,maxZ:bounds.max.z});} return mesh;
@@ -267,10 +269,8 @@ function floor(name,x,z,w,d,material=floorMat,y=0){return box(scene,name,[w,.18,
 function addInteract(obj, title, description, type='ОБЪЕКТ', action=null){obj.userData.interaction={title,description,type,action};interactables.push(obj);return obj;}
 
 // Rain-darkened forecourt and approach.
-floor('Мокрый асфальт',0,4,120,140,forecourtMat,-.12);
-for(let i=0;i<9;i++){
- const puddle=new THREE.Mesh(new THREE.CircleGeometry(1.1+(i%3)*.45,24),new THREE.MeshStandardMaterial({color:0x7c8881,roughness:.42,metalness:.015,transparent:true,opacity:.24}));puddle.rotation.x=-Math.PI/2;puddle.position.set(-13+i*3.4,-.018,8+(i%2)*5);puddle.scale.y=.45;scene.add(puddle);
-}
+floor('Единое асфальтовое покрытие карты 1 × 1 км',0,0,1000,1000,forecourtMat,-.12);
+// The previous puddle overlays are removed so the asphalt stays visually uniform.
 // Distant industrial silhouettes.
 for(let i=0;i<6;i++){
  const x=-25+i*10; wall('Дальний корпус',x,5,-64,7,10,5,darkConcrete,false);
@@ -549,7 +549,7 @@ for(let i=0;i<24;i++){
 }
 // TISHINA_030_STORY_WORLD_UPGRADE
 // TISHINA_033_CAMERA_FLASHLIGHT_HANGAR_INTERACTION
-const expansion = installWorldExpansion({ THREE, scene, camera, isMobileDevice, box, floor, mat, addInteract, colliders, gltfLoaderPromise, surfaces: { metal, darkConcrete, plaster, yellow, floorMat, rust, gravel:gravelMat, earth:earthMat, driveConcrete:driveConcreteMat } });
+const expansion = installWorldExpansion({ THREE, scene, camera, isMobileDevice, box, floor, mat, addInteract, colliders, gltfLoaderPromise, surfaces: { metal, darkConcrete, plaster, yellow, floorMat, asphaltGround, rust, gravel:gravelMat, earth:earthMat, driveConcrete:driveConcreteMat } });
 const HANGAR_GLB_URL = new URL('../lod0.glb', import.meta.url).href;
 function loadHangarModel() {
   gltfLoaderPromise.then(loader => {
@@ -831,7 +831,7 @@ function applySnapshot(data){
  inventory.splice(0,inventory.length,...(Array.isArray(data.inventory)?data.inventory.filter(x=>typeof x==='string'):Array.isArray(data.items)?data.items.filter(x=>typeof x==='string'):[]));
  medkits=Math.max(0,Math.min(20,Number(data.medkits)||0));energyItems=Math.max(0,Math.min(20,Number(data.energyItems)||0));
  health=Math.max(1,Math.min(100,Number.isFinite(Number(data.health))?Number(data.health):100));stamina=Math.max(0,Math.min(100,Number(data.stamina??100)||0));sprintLocked=stamina<STAMINA_RESTART;sprintHeld=false;sprintBlend=0;staminaRecoveryDelay=0;
- const px=Number(data.player?.x),pz=Number(data.player?.z);camera.position.set(Number.isFinite(px)?THREE.MathUtils.clamp(px,-57,57):0,postures.stand.eye,Number.isFinite(pz)?THREE.MathUtils.clamp(pz,-63,71):10.5);yaw=Number.isFinite(Number(data.player?.yaw))?Number(data.player.yaw):0;pitch=Number.isFinite(Number(data.player?.pitch))?THREE.MathUtils.clamp(Number(data.player.pitch),-1.05,.8):0;look(0,0);
+ const px=Number(data.player?.x),pz=Number(data.player?.z);camera.position.set(Number.isFinite(px)?THREE.MathUtils.clamp(px,-498,498):0,postures.stand.eye,Number.isFinite(pz)?THREE.MathUtils.clamp(pz,-498,498):10.5);yaw=Number.isFinite(Number(data.player?.yaw))?Number(data.player.yaw):0;pitch=Number.isFinite(Number(data.player?.pitch))?THREE.MathUtils.clamp(Number(data.player.pitch),-1.05,.8):0;look(0,0);
  hangarLadderClimbing=false;hangarLadderOnPlatform=false;hangarLadderTopNotice=false;
  posture='stand';stanceFrom=null;stanceElapsed=1;Object.assign(stance,postures.stand);jumpHeight=0;jumpVelocity=0;grounded=true;
  story.restore(data.story, inventory);
@@ -936,7 +936,7 @@ function updateTarget(){
 function lowZoneAt(x,z,radius=0){return lowClearanceZones.find(zone=>x+radius>zone.minX&&x-radius<zone.maxX&&z+radius>zone.minZ&&z-radius<zone.maxZ)||null;}
 function canFitAt(x,z,mode=posture){const zone=lowZoneAt(x,z,postures[mode].radius);return !zone||postures[mode].height<=zone.clearance;}
 function canOccupyAt(x,z){const zone=lowZoneAt(x,z,stance.radius);return !zone||stance.height<=zone.clearance;}
-function collides(x,z){if(x < -58 || x > 58 || z < -64 || z > 72)return true;const radius=stance.radius,feetY=Math.max(0,camera.position.y-stance.eye),headY=feetY+stance.height;if(hangarMeshCollides(x,z,radius,feetY,headY))return true;for(const c of colliders){const verticalOverlap=feetY<c.maxY&&headY>c.minY;if(verticalOverlap&&x+radius>c.minX&&x-radius<c.maxX&&z+radius>c.minZ&&z-radius<c.maxZ)return true;}for(const obj of motionObjects){if(!obj.userData.blocksPassage||currentMotionFraction(obj)>=.98)continue;const leaf=obj.userData.leaf;if(!leaf)continue;const b=new THREE.Box3().setFromObject(leaf);const verticalOverlap=feetY<b.max.y&&headY>b.min.y;if(verticalOverlap&&x+radius>b.min.x&&x-radius<b.max.x&&z+radius>b.min.z&&z-radius<b.max.z)return true;}return false;}
+function collides(x,z){if(x < -498 || x > 498 || z < -498 || z > 498)return true;const radius=stance.radius,feetY=Math.max(0,camera.position.y-stance.eye),headY=feetY+stance.height;if(hangarMeshCollides(x,z,radius,feetY,headY))return true;for(const c of colliders){const verticalOverlap=feetY<c.maxY&&headY>c.minY;if(verticalOverlap&&x+radius>c.minX&&x-radius<c.maxX&&z+radius>c.minZ&&z-radius<c.maxZ)return true;}for(const obj of motionObjects){if(!obj.userData.blocksPassage||currentMotionFraction(obj)>=.98)continue;const leaf=obj.userData.leaf;if(!leaf)continue;const b=new THREE.Box3().setFromObject(leaf);const verticalOverlap=feetY<b.max.y&&headY>b.min.y;if(verticalOverlap&&x+radius>b.min.x&&x-radius<b.max.x&&z+radius>b.min.z&&z-radius<b.max.z)return true;}return false;}
 function updatePostureUI(){const crouch=$('crouch'),prone=$('prone');crouch.classList.toggle('active',posture==='crouch');prone.classList.toggle('active',posture==='prone');crouch.setAttribute('aria-pressed',String(posture==='crouch'));prone.setAttribute('aria-pressed',String(posture==='prone'));$('postureStatus').textContent=`ПОЗА: ${postures[posture].label}`;}
 function setPosture(next){if(!started||modalOpen)return;if(!grounded){notify('Сначала приземлись.');return;}if(next===posture)return;const x=camera.position.x,z=camera.position.z;if(!canFitAt(x,z,next)){notify('Над головой слишком мало места. Здесь можно только лечь.');return;}stanceFrom={eye:stance.eye,height:stance.height,radius:stance.radius,speed:stance.speed};stanceElapsed=0;posture=next;sprintHeld=false;updatePostureUI();notify(next==='stand'?'Поднимаешься на ноги.':next==='crouch'?'Плавно приседаешь.':'Опускаешься на землю.');}
 function updateStaminaUI(force=false){const value=Math.max(0,Math.min(100,Math.round(stamina)));if(!force&&value===lastStaminaShown)return;lastStaminaShown=value;const fill=$('staminaFill'),label=$('staminaValue');if(fill)fill.style.width=value+'%';if(label)label.textContent=value+'%';const track=$('staminaTrack');if(track)track.setAttribute('aria-valuenow',String(value));track?.classList.toggle('low',value<=20);const sprint=$('sprint');if(sprint){sprint.classList.toggle('active',sprintHeld&&sprintBlend>.08);sprint.classList.toggle('depleted',sprintLocked);sprint.setAttribute('aria-pressed',String(sprintHeld));}}
