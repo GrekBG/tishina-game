@@ -148,10 +148,12 @@ const pbrBuild = installPbrSurfaces(THREE, { concrete, darkConcrete, plaster, di
 }).catch(error => { console.error('[ТИШИНА] HD PBR generation failed; keeping base 1024px maps.', error); });
 const colliders=[]; const interactables=[]; const inventory=[]; const motionObjects=[]; const pickupObjects={};
 const hangarCollisionGrid = new Map();
+const hangarWalkableGrid = new Map();
 const HANGAR_COLLISION_CELL = 1.0;
 function hangarCellKey(x,z){return `${x},${z}`;}
 function buildHangarTriangleColliders(model){
   hangarCollisionGrid.clear();
+  hangarWalkableGrid.clear();
   model.updateMatrixWorld(true);
   const vertex = new THREE.Vector3();
   const edgeA = new THREE.Vector3();
@@ -176,8 +178,6 @@ function buildHangarTriangleColliders(model){
       const normal = edgeA.clone().cross(edgeB);
       if (normal.lengthSq() < 1e-9) continue;
       normal.normalize();
-      // Only vertical / steep structural surfaces block walking. Floors and roof faces do not.
-      if (Math.abs(normal.y) > 0.72) continue;
       const minX = Math.min(a.x,b.x,c.x), maxX = Math.max(a.x,b.x,c.x);
       const minZ = Math.min(a.z,b.z,c.z), maxZ = Math.max(a.z,b.z,c.z);
       const minY = Math.min(a.y,b.y,c.y), maxY = Math.max(a.y,b.y,c.y);
@@ -185,6 +185,18 @@ function buildHangarTriangleColliders(model){
         minX,maxX,minZ,maxZ,minY,maxY };
       const gx0=Math.floor(minX/HANGAR_COLLISION_CELL), gx1=Math.floor(maxX/HANGAR_COLLISION_CELL);
       const gz0=Math.floor(minZ/HANGAR_COLLISION_CELL), gz1=Math.floor(maxZ/HANGAR_COLLISION_CELL);
+      if (Math.abs(normal.y) > 0.72) {
+        // Horizontal / gently sloped faces are candidate walking surfaces.
+        // Store them separately so the player can find the next stair tread.
+        for(let gx=gx0;gx<=gx1;gx++) for(let gz=gz0;gz<=gz1;gz++){
+          const key=hangarCellKey(gx,gz);
+          let bucket=hangarWalkableGrid.get(key);
+          if(!bucket){bucket=[];hangarWalkableGrid.set(key,bucket);}
+          bucket.push(tri);
+        }
+        continue;
+      }
+      // Steep structural faces remain solid collision surfaces.
       for(let gx=gx0;gx<=gx1;gx++) for(let gz=gz0;gz<=gz1;gz++){
         const key=hangarCellKey(gx,gz);
         let bucket=hangarCollisionGrid.get(key);
@@ -217,6 +229,48 @@ function pointTriangleDistanceSqXZ(px,pz,t){
     pointSegmentDistanceSq(px,pz,cx,cz,ax,az)
   );
 }
+function triangleHeightAtXZ(x,z,t){
+  const {ax,az,ay,bx,bz,by,cx,cz,cy}=t;
+  const den=(bz-cz)*(ax-cx)+(cx-bx)*(az-cz);
+  if(Math.abs(den)<1e-9)return null;
+  const u=((bz-cz)*(x-cx)+(cx-bx)*(z-cz))/den;
+  const v=((cz-az)*(x-cx)+(ax-cx)*(z-cz))/den;
+  if(u < -0.002 || v < -0.002 || u+v > 1.002)return null;
+  return u*ay+v*by+(1-u-v)*cy;
+}
+function sampleHangarWalkableHeight(x,z,referenceY){
+  const gx=Math.floor(x/HANGAR_COLLISION_CELL),gz=Math.floor(z/HANGAR_COLLISION_CELL);
+  const bucket=hangarWalkableGrid.get(hangarCellKey(gx,gz));
+  if(!bucket)return null;
+  let best=null;
+  for(const tri of bucket){
+    if(x<tri.minX-1e-4||x>tri.maxX+1e-4||z<tri.minZ-1e-4||z>tri.maxZ+1e-4)continue;
+    const y=triangleHeightAtXZ(x,z,tri);
+    if(y===null)continue;
+    const delta=y-referenceY;
+    if(delta>MAX_AUTO_STEP_UP+0.025||delta<-(MAX_AUTO_STEP_DOWN+0.04))continue;
+    if(best===null||y>best)best=y;
+  }
+  return best;
+}
+function nextGroundOffset(x,z,dx,dz){
+  const current=playerStepOffset;
+  const centre=sampleHangarWalkableHeight(x,z,current);
+  let next=centre===null?current:centre;
+  // Probe just ahead of the player's feet. This lets the player rise onto a tread
+  // before the capsule reaches the vertical riser that would otherwise block it.
+  const length=Math.hypot(dx,dz);
+  if(length>1e-5){
+    const lead=current;
+    const leadX=x+(dx/length)*(stance.radius*0.86);
+    const leadZ=z+(dz/length)*(stance.radius*0.86);
+    const ahead=sampleHangarWalkableHeight(leadX,leadZ,current);
+    if(ahead!==null&&ahead>next)next=ahead;
+  }
+  // Outside the hangar mesh the open yard is level with the world floor.
+  if(x < -41 || x > 21 || z < -28 || z > 27)next=0;
+  return THREE.MathUtils.clamp(next,Math.max(0,current-MAX_AUTO_STEP_DOWN-0.04),current+MAX_AUTO_STEP_UP+0.025);
+}
 function hangarMeshCollides(x,z,radius,feetY,headY){
   // Keep the doorway threshold walkable, but restore collisions for the actual
   // gate leaves, hinges, side frames and other structural triangles.
@@ -248,6 +302,8 @@ let flashlightOn=Boolean(autosaved.flashlightOn);
 let medkits=Math.max(0,Number(autosaved.medkits)||0),energyItems=Math.max(0,Number(autosaved.energyItems)||0);
 let yaw=0, pitch=0, started=false, activeTarget=null, modalOpen=false, joy={x:0,y:0}, joyTarget={x:0,y:0}, keys={}, drag=null, last=performance.now(), bob=0;
 let posture='stand', jumpHeight=0, jumpVelocity=0, grounded=true, lowSpaceBlocked=false,peekState=null;
+let playerStepOffset=0; // Ground elevation gained by walking up real stair treads.
+const MAX_AUTO_STEP_UP=0.30, MAX_AUTO_STEP_DOWN=0.36;
 let handAction=null, soundContext=null, physicalFeedbackTimer=null, pendingPickupId=null;
 let stanceFrom=null, stanceElapsed=1, sprintHeld=false, sprintBlend=0, stamina=100, staminaRecoveryDelay=0, sprintLocked=false, lastStaminaShown=-1;
 const loadedHealth=Number(autosaved.health??100);
@@ -680,56 +736,7 @@ function loadHangarModel() {
 // The procedural shell remains as a fallback until the GLB and its textures load.
 loadHangarModel();
 
-// 0.5.24: climbable maintenance ladder inside the hangar.
-// The ladder leads to a small inspection platform; interaction toggles climb mode.
-let hangarLadderClimbing = false;
-let hangarLadderOnPlatform = false;
-let hangarLadderTopNotice = false;
-const hangarLadder = new THREE.Group();
-hangarLadder.name = 'Лестница технического обслуживания ангара';
-hangarLadder.position.set(16.5, 0, -8.0);
-scene.add(hangarLadder);
-const ladderMetal = new THREE.MeshStandardMaterial({ color: 0x68716e, metalness: 0.78, roughness: 0.42 });
-const ladderDark = new THREE.MeshStandardMaterial({ color: 0x343d3a, metalness: 0.68, roughness: 0.62 });
-for (const x of [-0.48, 0.48]) {
-  const rail = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 6.2, 8), ladderMetal);
-  rail.position.set(x, 3.1, 0); hangarLadder.add(rail);
-}
-for (let y = 0.35; y <= 5.95; y += 0.34) {
-  const rung = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 1.0, 8), ladderDark);
-  rung.rotation.z = Math.PI / 2; rung.position.set(0, y, 0); hangarLadder.add(rung);
-}
-const ladderPlatform = box(hangarLadder, 'Площадка обслуживания лестницы', [2.8, 0.18, 2.2], [0.9, 6.0, -0.95], metal, { cast: true });
-colliders.push({ minX: 16.0, maxX: 19.0, minY: 5.85, maxY: 6.15, minZ: -10.1, maxZ: -7.8 });
-// A real invisible mesh is required here: Raycaster cannot hit a bare Object3D.
-// The proximity fallback in updateTarget also makes this reliable on touch screens.
-const ladderPrompt = new THREE.Mesh(
-  new THREE.SphereGeometry(0.78, 12, 10),
-  new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false })
-);
-ladderPrompt.name = 'Точка взаимодействия с технической лестницей';
-ladderPrompt.position.set(0, 1.15, -0.72);
-ladderPrompt.userData.noCollision = true;
-hangarLadder.add(ladderPrompt);
-addInteract(ladderPrompt, 'Техническая лестница', 'Подняться на площадку обслуживания. На лестнице двигайся вперёд, чтобы подниматься, и назад, чтобы спускаться.', 'ДЕЙСТВИЕ', () => {
-  if (hangarLadderClimbing) return;
-  const dx = camera.position.x - 16.5, dz = camera.position.z - (-9.0);
-  if (Math.hypot(dx, dz) > 2.6 && !hangarLadderOnPlatform) {
-    notify('Подойди ближе к основанию лестницы.'); return;
-  }
-  const returningFromPlatform = hangarLadderOnPlatform;
-  hangarLadderClimbing = true;
-  hangarLadderOnPlatform = false;
-  hangarLadderTopNotice = false;
-  camera.position.x = 16.5;
-  camera.position.z = -9.0;
-  camera.position.y = returningFromPlatform ? 7.55 : Math.max(camera.position.y, 1.68);
-  yaw = Math.PI; camera.rotation.set(pitch, yaw, 0, 'YXZ');
-  grounded = true; jumpHeight = 0; jumpVelocity = 0;
-  stopSprint();
-  notify('Ты на лестнице. Веди стик вверх, чтобы подниматься, вниз — чтобы спускаться.');
-});
-
+// 0.5.29: stair climbing is handled by automatic step-height collision below.
 
 const story = createStoryController({ onObjective: value => { const el = $('objective'); if (el) el.textContent = value; }, notify });
 panel.userData.interaction.action = () => { story.markBreaker(); notify('ЭЛЕКТРОЩИТ: питание отключено. На схеме отмечен резервный контур в подвал.'); };
@@ -817,7 +824,7 @@ function updateInventoryUI(){
 }
 function makeSnapshot(){
  const motions=motionObjects.map(obj=>{const fraction=currentMotionFraction(obj),target=obj.userData.motion==='slide'?obj.position.z:obj.rotation.y;return {name:obj.name,open:fraction>=.99,ajar:fraction>.02&&fraction<.99,fraction,target};});
- return {version:4,savedAt:new Date().toISOString(),player:{x:camera.position.x,z:camera.position.z,yaw,pitch},health,stamina,flashlightOn,inventory:[...inventory],medkits,energyItems,story:story.snapshot(),sky:skyWeather.snapshot(),motions,collected:Object.keys(pickupObjects).filter(id=>!pickupObjects[id].visible)};
+ return {version:5,savedAt:new Date().toISOString(),player:{x:camera.position.x,z:camera.position.z,stepY:playerStepOffset,yaw,pitch},health,stamina,flashlightOn,inventory:[...inventory],medkits,energyItems,story:story.snapshot(),sky:skyWeather.snapshot(),motions,collected:Object.keys(pickupObjects).filter(id=>!pickupObjects[id].visible)};
 }
 function storeJson(key,data){try{localStorage.setItem(key,JSON.stringify(data));return true;}catch(err){console.warn('Не удалось сохранить игру:',err);return false;}}
 function save(){const ok=storeJson('tishinaAutoV1',makeSnapshot());storeJson('tishina02', {items:inventory,health,stamina,medkits,energyItems});updateInventoryUI();const cont=$('continueTitle');if(cont&&ok)cont.disabled=false;}
@@ -831,8 +838,7 @@ function applySnapshot(data){
  inventory.splice(0,inventory.length,...(Array.isArray(data.inventory)?data.inventory.filter(x=>typeof x==='string'):Array.isArray(data.items)?data.items.filter(x=>typeof x==='string'):[]));
  medkits=Math.max(0,Math.min(20,Number(data.medkits)||0));energyItems=Math.max(0,Math.min(20,Number(data.energyItems)||0));
  health=Math.max(1,Math.min(100,Number.isFinite(Number(data.health))?Number(data.health):100));stamina=Math.max(0,Math.min(100,Number(data.stamina??100)||0));sprintLocked=stamina<STAMINA_RESTART;sprintHeld=false;sprintBlend=0;staminaRecoveryDelay=0;
- const px=Number(data.player?.x),pz=Number(data.player?.z);camera.position.set(Number.isFinite(px)?THREE.MathUtils.clamp(px,-498,498):0,postures.stand.eye,Number.isFinite(pz)?THREE.MathUtils.clamp(pz,-498,498):10.5);yaw=Number.isFinite(Number(data.player?.yaw))?Number(data.player.yaw):0;pitch=Number.isFinite(Number(data.player?.pitch))?THREE.MathUtils.clamp(Number(data.player.pitch),-1.05,.8):0;look(0,0);
- hangarLadderClimbing=false;hangarLadderOnPlatform=false;hangarLadderTopNotice=false;
+ const px=Number(data.player?.x),pz=Number(data.player?.z);playerStepOffset=THREE.MathUtils.clamp(Number(data.player?.stepY)||0,0,18);camera.position.set(Number.isFinite(px)?THREE.MathUtils.clamp(px,-498,498):0,postures.stand.eye+playerStepOffset,Number.isFinite(pz)?THREE.MathUtils.clamp(pz,-498,498):10.5);yaw=Number.isFinite(Number(data.player?.yaw))?Number(data.player.yaw):0;pitch=Number.isFinite(Number(data.player?.pitch))?THREE.MathUtils.clamp(Number(data.player.pitch),-1.05,.8):0;look(0,0);
  posture='stand';stanceFrom=null;stanceElapsed=1;Object.assign(stance,postures.stand);jumpHeight=0;jumpVelocity=0;grounded=true;
  story.restore(data.story, inventory);
  skyWeather.restore(data.sky);
@@ -923,20 +929,15 @@ function updateTarget(){
  raycaster.setFromCamera(new THREE.Vector2(0,0),camera);
  const hits=raycaster.intersectObjects(interactables,false).filter(h=>h.distance<3.7&&isEffectivelyVisible(h.object));
  activeTarget=hits.length?hits[0].object:null;
- // Touch players do not need to aim at a tiny rung: show the ladder action when nearby.
- if(!activeTarget&&!hangarLadderClimbing){
-  const dx=camera.position.x-16.5,dz=camera.position.z-(-9.0);
-  if(Math.hypot(dx,dz)<2.35)activeTarget=ladderPrompt;
- }
  const interaction=activeTarget?.userData.interaction;
- const hint=interaction?.type==='ДВЕРЬ'?' · ОТКРЫТЬ / ЗАКРЫТЬ':interaction?.type==='ПРЕДМЕТ'?' · ОСМОТРЕТЬ':interaction?.title==='Техническая лестница'?' · ПОДНЯТЬСЯ / СПУСТИТЬСЯ':'';
+ const hint=interaction?.type==='ДВЕРЬ'?' · ОТКРЫТЬ / ЗАКРЫТЬ':interaction?.type==='ПРЕДМЕТ'?' · ОСМОТРЕТЬ':'';
  $('prompt').textContent=interaction?`◉ ${interaction.title}${hint}`:'';
  $('prompt').style.opacity=activeTarget?'1':'0';
 }
 function lowZoneAt(x,z,radius=0){return lowClearanceZones.find(zone=>x+radius>zone.minX&&x-radius<zone.maxX&&z+radius>zone.minZ&&z-radius<zone.maxZ)||null;}
 function canFitAt(x,z,mode=posture){const zone=lowZoneAt(x,z,postures[mode].radius);return !zone||postures[mode].height<=zone.clearance;}
 function canOccupyAt(x,z){const zone=lowZoneAt(x,z,stance.radius);return !zone||stance.height<=zone.clearance;}
-function collides(x,z){if(x < -498 || x > 498 || z < -498 || z > 498)return true;const radius=stance.radius,feetY=Math.max(0,camera.position.y-stance.eye),headY=feetY+stance.height;if(hangarMeshCollides(x,z,radius,feetY,headY))return true;for(const c of colliders){const verticalOverlap=feetY<c.maxY&&headY>c.minY;if(verticalOverlap&&x+radius>c.minX&&x-radius<c.maxX&&z+radius>c.minZ&&z-radius<c.maxZ)return true;}for(const obj of motionObjects){if(!obj.userData.blocksPassage||currentMotionFraction(obj)>=.98)continue;const leaf=obj.userData.leaf;if(!leaf)continue;const b=new THREE.Box3().setFromObject(leaf);const verticalOverlap=feetY<b.max.y&&headY>b.min.y;if(verticalOverlap&&x+radius>b.min.x&&x-radius<b.max.x&&z+radius>b.min.z&&z-radius<b.max.z)return true;}return false;}
+function collides(x,z,feetOffset=null){if(x < -498 || x > 498 || z < -498 || z > 498)return true;const radius=stance.radius,feetY=feetOffset===null?Math.max(0,camera.position.y-stance.eye):Math.max(0,feetOffset),headY=feetY+stance.height;if(hangarMeshCollides(x,z,radius,feetY,headY))return true;for(const c of colliders){const verticalOverlap=feetY<c.maxY&&headY>c.minY;if(verticalOverlap&&x+radius>c.minX&&x-radius<c.maxX&&z+radius>c.minZ&&z-radius<c.maxZ)return true;}for(const obj of motionObjects){if(!obj.userData.blocksPassage||currentMotionFraction(obj)>=.98)continue;const leaf=obj.userData.leaf;if(!leaf)continue;const b=new THREE.Box3().setFromObject(leaf);const verticalOverlap=feetY<b.max.y&&headY>b.min.y;if(verticalOverlap&&x+radius>b.min.x&&x-radius<b.max.x&&z+radius>b.min.z&&z-radius<b.max.z)return true;}return false;}
 function updatePostureUI(){const crouch=$('crouch'),prone=$('prone');crouch.classList.toggle('active',posture==='crouch');prone.classList.toggle('active',posture==='prone');crouch.setAttribute('aria-pressed',String(posture==='crouch'));prone.setAttribute('aria-pressed',String(posture==='prone'));$('postureStatus').textContent=`ПОЗА: ${postures[posture].label}`;}
 function setPosture(next){if(!started||modalOpen)return;if(!grounded){notify('Сначала приземлись.');return;}if(next===posture)return;const x=camera.position.x,z=camera.position.z;if(!canFitAt(x,z,next)){notify('Над головой слишком мало места. Здесь можно только лечь.');return;}stanceFrom={eye:stance.eye,height:stance.height,radius:stance.radius,speed:stance.speed};stanceElapsed=0;posture=next;sprintHeld=false;updatePostureUI();notify(next==='stand'?'Поднимаешься на ноги.':next==='crouch'?'Плавно приседаешь.':'Опускаешься на землю.');}
 function updateStaminaUI(force=false){const value=Math.max(0,Math.min(100,Math.round(stamina)));if(!force&&value===lastStaminaShown)return;lastStaminaShown=value;const fill=$('staminaFill'),label=$('staminaValue');if(fill)fill.style.width=value+'%';if(label)label.textContent=value+'%';const track=$('staminaTrack');if(track)track.setAttribute('aria-valuenow',String(value));track?.classList.toggle('low',value<=20);const sprint=$('sprint');if(sprint){sprint.classList.toggle('active',sprintHeld&&sprintBlend>.08);sprint.classList.toggle('depleted',sprintLocked);sprint.setAttribute('aria-pressed',String(sprintHeld));}}
@@ -977,47 +978,30 @@ function move(dt){
  // Three.js camera looks along local -Z. Use the same yaw basis for forward and right,
  // so pushing the stick up always follows the view direction, even after turning.
  const speed=moveSpeed*dt;
- if(hangarLadderClimbing){
-  // Up/down input follows the ladder; the player remains aligned with its rails.
-  camera.position.x=16.5; camera.position.z=-9.0;
-  camera.position.y=THREE.MathUtils.clamp(camera.position.y+forward*2.15*dt,1.68,7.65);
-  if(camera.position.y>=7.64){
-   hangarLadderClimbing=false;hangarLadderOnPlatform=true;
-   camera.position.y=7.68;camera.position.x=17.25;camera.position.z=-9.0;
-   if(!hangarLadderTopNotice){notify('Ты поднялся на верхнюю площадку. Осмотрись; к лестнице можно вернуться, чтобы спуститься.');hangarLadderTopNotice=true;}
-  }else if(camera.position.y<=1.69){
-   hangarLadderClimbing=false;hangarLadderOnPlatform=false;
-   camera.position.y=1.68;camera.position.x=16.5;camera.position.z=-9.8;
-   notify('Ты спустился с лестницы.');
-  }
-  updateHazards(dt);updateBodyAnimation(dt,len,false);return;
- }
- if(hangarLadderOnPlatform){
-  // Keep the camera at platform height and constrain movement to the walkable deck.
-  const fx=-Math.sin(yaw),fz=-Math.cos(yaw),rx=Math.cos(yaw),rz=-Math.sin(yaw);
-  const nx=THREE.MathUtils.clamp(camera.position.x+(fx*forward+rx*side)*speed,16.15,18.55);
-  const nz=THREE.MathUtils.clamp(camera.position.z+(fz*forward+rz*side)*speed,-10.0,-7.95);
-  camera.position.x=nx;camera.position.z=nz;camera.position.y=7.68;
-  updateHazards(dt);updateBodyAnimation(dt,len,false);return;
- }
-
  const forwardX=-Math.sin(yaw),forwardZ=-Math.cos(yaw);
  const rightX=Math.cos(yaw),rightZ=-Math.sin(yaw);
  const dx=(forwardX*forward+rightX*side)*speed;
  const dz=(forwardZ*forward+rightZ*side)*speed;
  const nx=camera.position.x+dx,nz=camera.position.z+dz;
+ const tryMoveAxis=(targetX,targetZ,moveDx,moveDz)=>{
+  const nextStepY=grounded?nextGroundOffset(targetX,targetZ,moveDx,moveDz):playerStepOffset;
+  if(!collides(targetX,targetZ,nextStepY+jumpHeight)&&canOccupyAt(targetX,targetZ)){
+   playerStepOffset=nextStepY;
+   camera.position.x=targetX;camera.position.z=targetZ;
+   return true;
+  }
+  return false;
+ };
  if(len>.02){
-  if(!collides(nx,camera.position.z)&&canOccupyAt(nx,camera.position.z))camera.position.x=nx;
-  else if(lowZoneAt(nx,camera.position.z,stance.radius)&&!lowSpaceBlocked){notify('Проход завален. Нужно лечь, чтобы проползти под балкой.');lowSpaceBlocked=true;}
-  if(!collides(camera.position.x,nz)&&canOccupyAt(camera.position.x,nz))camera.position.z=nz;
-  else if(lowZoneAt(camera.position.x,nz,stance.radius)&&!lowSpaceBlocked){notify('Проход завален. Нужно лечь, чтобы проползти под балкой.');lowSpaceBlocked=true;}
+  if(!tryMoveAxis(nx,camera.position.z,dx,0)&&lowZoneAt(nx,camera.position.z,stance.radius)&&!lowSpaceBlocked){notify('Проход завален. Нужно лечь, чтобы проползти под балкой.');lowSpaceBlocked=true;}
+  if(!tryMoveAxis(camera.position.x,nz,0,dz)&&lowZoneAt(camera.position.x,nz,stance.radius)&&!lowSpaceBlocked){notify('Проход завален. Нужно лечь, чтобы проползти под балкой.');lowSpaceBlocked=true;}
  }
  if(!lowZoneAt(camera.position.x,camera.position.z,stance.radius))lowSpaceBlocked=false;
  if(len>.05)bob+=dt*(activelySprinting?13:posture==='prone'?4:posture==='crouch'?6:9);
  if(!grounded){jumpVelocity-=14*dt;jumpHeight+=jumpVelocity*dt;if(jumpHeight<=0){const impact=Math.abs(jumpVelocity);jumpHeight=0;jumpVelocity=0;grounded=true;if(impact>8)damagePlayer(Math.min(30,(impact-7)*5),'Сильное приземление. Ты ушибся.');}}
  const bobAmount=activelySprinting?.032:posture==='stand'?.018:posture==='crouch'?.009:.004;
  const bobOffset=grounded&&len>.05?Math.sin(bob)*bobAmount:0;
- const targetEye=stance.eye+jumpHeight+bobOffset;camera.position.y=THREE.MathUtils.damp(camera.position.y,targetEye,12,dt);
+ const targetEye=stance.eye+playerStepOffset+jumpHeight+bobOffset;camera.position.y=THREE.MathUtils.damp(camera.position.y,targetEye,12,dt);
  const targetFov=72+4*sprintBlend;if(Math.abs(camera.fov-targetFov)>.025){camera.fov=THREE.MathUtils.damp(camera.fov,targetFov,5,dt);camera.updateProjectionMatrix();}
  updateHazards(dt);updateBodyAnimation(dt,len,activelySprinting);
 }
@@ -1064,7 +1048,7 @@ function resetWorld(){
  activeTarget=null;peekState=null;handAction=null;$('peekExit').style.display='none';$('physicalFeedback').classList.remove('visible');$('prompt').style.opacity='0';inventory.splice(0);medkits=0;energyItems=0;health=100;stamina=100;sprintLocked=false;sprintHeld=false;sprintBlend=0;staminaRecoveryDelay=0;
  for(const obj of Object.values(pickupObjects))obj.visible=true;
  for(const obj of motionObjects){obj.userData.open=false;obj.userData.ajar=false;obj.userData.targetFraction=0;obj.userData.target=obj.userData.closedValue??0;obj.userData.speed=7;obj.userData.velocity=0;obj.userData.manualHold=0;if(obj.userData.motion==='slide')obj.position.z=obj.userData.closedValue??-.4;else obj.rotation.y=obj.userData.closedValue??0;}
- posture='stand';stanceFrom=null;stanceElapsed=1;Object.assign(stance,postures.stand);jumpHeight=0;jumpVelocity=0;grounded=true;camera.position.set(0,postures.stand.eye,10.5);yaw=0;pitch=0;look(0,0);joy={x:0,y:0};joyTarget={x:0,y:0};nubReset();keys={};updatePostureUI();updateHealthUI(true);updateStaminaUI(true);updateInventoryUI();save();
+ posture='stand';stanceFrom=null;stanceElapsed=1;Object.assign(stance,postures.stand);playerStepOffset=0;jumpHeight=0;jumpVelocity=0;grounded=true;camera.position.set(0,postures.stand.eye,10.5);yaw=0;pitch=0;look(0,0);joy={x:0,y:0};joyTarget={x:0,y:0};nubReset();keys={};updatePostureUI();updateHealthUI(true);updateStaminaUI(true);updateInventoryUI();save();
 }
 function nubReset(){const nub=$('nub');if(nub)nub.style.transform='translate(0,0)';}
 function beginNewGame(){
@@ -1107,7 +1091,7 @@ bindMotionHold('motionHoldOpen',1);bindMotionHold('motionHoldClose',-1);$('peekE
 $('bag').onclick=()=>{$('inventory').style.display='flex';modalOpen=true;updateInventoryUI();};$('closeBag').onclick=()=>{$('inventory').style.display='none';modalOpen=false;};
 $('useMedkit').onclick=useMedkit;$('useEnergy').onclick=useEnergy;
 $('openMenu').onclick=openMainMenu;$('closeMenu').onclick=closeMainMenu;$('continueGame').onclick=closeMainMenu;$('saveGame').onclick=saveManual;$('loadGame').onclick=()=>loadManual();$('newGame').onclick=()=>{$('confirmNew').style.display='flex';};$('confirmNewNo').onclick=()=>{$('confirmNew').style.display='none';};$('confirmNewYes').onclick=beginNewGame;$('exitGame').onclick=exitGame;
-$('jump').onclick=jump;$('crouch').onclick=()=>setPosture(posture==='crouch'?'stand':'crouch');$('prone').onclick=()=>setPosture(posture==='prone'?'stand':'prone');$('recover').onclick=()=>{health=65;stamina=70;sprintLocked=false;sprintHeld=false;posture='stand';stanceFrom=null;stanceElapsed=1;Object.assign(stance,postures.stand);jumpHeight=0;jumpVelocity=0;grounded=true;camera.position.set(0,1.68,10.5);yaw=0;pitch=0;look(0,0);$('downed').style.display='none';modalOpen=false;updatePostureUI();updateStaminaUI(true);updateHealthUI(true);save();notify('Ты пришёл в себя у проходной. Будь осторожнее.');};updatePostureUI();updateStaminaUI(true);updateHealthUI(true);updateInventoryUI();refreshTitleMenuState();
+$('jump').onclick=jump;$('crouch').onclick=()=>setPosture(posture==='crouch'?'stand':'crouch');$('prone').onclick=()=>setPosture(posture==='prone'?'stand':'prone');$('recover').onclick=()=>{health=65;stamina=70;sprintLocked=false;sprintHeld=false;posture='stand';stanceFrom=null;stanceElapsed=1;Object.assign(stance,postures.stand);playerStepOffset=0;jumpHeight=0;jumpVelocity=0;grounded=true;camera.position.set(0,1.68,10.5);yaw=0;pitch=0;look(0,0);$('downed').style.display='none';modalOpen=false;updatePostureUI();updateStaminaUI(true);updateHealthUI(true);save();notify('Ты пришёл в себя у проходной. Будь осторожнее.');};updatePostureUI();updateStaminaUI(true);updateHealthUI(true);updateInventoryUI();refreshTitleMenuState();
 const sprintButton=$('sprint');sprintButton.addEventListener('pointerdown',e=>{e.preventDefault();sprintButton.setPointerCapture(e.pointerId);startSprint();});sprintButton.addEventListener('pointerup',e=>{e.preventDefault();stopSprint();});sprintButton.addEventListener('pointercancel',stopSprint);sprintButton.addEventListener('lostpointercapture',stopSprint);sprintButton.addEventListener('contextmenu',e=>e.preventDefault());
 $('fullscreen').onclick=async()=>{try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen();else await document.exitFullscreen();}catch{notify('Открой игру через «На экран Домой» для более полного режима.');}};
 const stick=$('stick'),nub=$('nub');let stickPointerId=null;
