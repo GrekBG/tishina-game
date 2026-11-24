@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tishina-0-5-31-grounded-stairs';
+const CACHE_NAME = 'tishina-0-5-32-open-hangar';
 const APP_SHELL = [
   './',
   './index.html',
