@@ -160,7 +160,7 @@ function buildHangarTriangleColliders(model){
   const edgeB = new THREE.Vector3();
   let triangleCount = 0;
   model.traverse(node => {
-    if (!node.isMesh || !node.geometry?.attributes?.position) return;
+    if (!node.isMesh || !node.visible || !node.geometry?.attributes?.position) return;
     // Ground markings and light fixtures are not solid structural parts.
     if (node.name === 'floor_markings' || node.name === 'lights') return;
     const geometry = node.geometry;
@@ -628,6 +628,14 @@ function loadHangarModel() {
       const hangarSize = hangarBounds.getSize(new THREE.Vector3());
       console.info('[ТИШИНА] Full-size hangar dimensions (m):',
         hangarSize.toArray().map(value => Number(value.toFixed(2))));
+      // 0.5.32: remove the internal two-storey office block and its attached doors.
+      // The hangar must remain a single open-volume shelter; hide before building
+      // triangle colliders so the removed structure cannot remain physically solid.
+      model.traverse(node => {
+        if (node.name === 'office_block' || node.name === 'service_doors') {
+          node.visible = false;
+        }
+      });
       model.traverse(node => {
         if (!node.isMesh) return;
         node.castShadow = !isMobileDevice;
