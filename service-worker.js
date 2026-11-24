@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tishina-0-5-27-road-pbr';
+const CACHE_NAME = 'tishina-0-5-28-one-km-asphalt';
 const APP_SHELL = [
   './',
   './index.html',
@@ -16,12 +16,7 @@ const APP_SHELL = [
   './lod0.glb',
   './village-chapel.glb',
   './icon-192.png',
-  './icon-512.png',
-  './assets/road-damaged/road-damaged-albedo.jpg',
-  './assets/road-damaged/road-damaged-normal.jpg',
-  './assets/road-damaged/road-damaged-roughness.jpg',
-  './assets/road-damaged/road-damaged-ao.jpg',
-  './assets/road-damaged/road-damaged-displacement.jpg'
+  './icon-512.png'
 ];
 
 self.addEventListener('install', event => {
