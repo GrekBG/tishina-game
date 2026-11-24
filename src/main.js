@@ -1,7 +1,7 @@
-import { installPbrSurfaces } from './pbr-surfaces.js';
-import { installWorldExpansion } from './world-expansion.js';
-import { createStoryController } from './story.js';
-import { installSkyWeather } from './sky-weather.js';
+import { installPbrSurfaces } from './pbr-surfaces.js?v=0.5.30';
+import { installWorldExpansion } from './world-expansion.js?v=0.5.30';
+import { createStoryController } from './story.js?v=0.5.30';
+import { installSkyWeather } from './sky-weather.js?v=0.5.30';
 
 const THREE = window.THREE;
 if (!THREE) throw new Error('Three.js не загружен: обновите страницу и проверьте соединение.');
