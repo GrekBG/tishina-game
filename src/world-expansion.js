@@ -32,10 +32,11 @@ export function installWorldExpansion({ THREE, scene, camera, isMobileDevice = f
 
   // Extension ground: the original forecourt stays seamless and the player can walk south/east.
   // The enlarged base asphalt slab in main.js is continuous beneath this extension.
-  // Poly Haven Road Damaged PBR set. Keep the procedural asphalt as a fallback
-  // so the road remains visible if a texture cannot be downloaded.
+  // Poly Haven Road Damaged PBR set. The procedural asphalt remains a fallback.
   const damagedRoadMaterial = wetAsphalt.clone();
   damagedRoadMaterial.name = 'Асфальт с выбоинами — Poly Haven PBR';
+  damagedRoadMaterial.color.setHex(0xc2c6bf);
+  damagedRoadMaterial.roughness = 0.98;
   const damagedRoad = detail('Дорога — повреждённый асфальт Poly Haven', [10, 0.035, 82], [0, -0.012, 27], damagedRoadMaterial);
   const roadTextureLoader = new THREE.TextureLoader();
   const roadTextureFiles = {
@@ -49,7 +50,8 @@ export function installWorldExpansion({ THREE, scene, camera, isMobileDevice = f
     const texture = await roadTextureLoader.loadAsync(new URL(path, import.meta.url).href);
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(4.5, 37);
+    // Fewer repeats make potholes and cracks readable on a phone screen.
+    texture.repeat.set(2.25, 11.5);
     texture.anisotropy = isMobileDevice ? 2 : 4;
     if (slot === 'map') texture.colorSpace = THREE.SRGBColorSpace;
     return [slot, texture];
@@ -58,8 +60,8 @@ export function installWorldExpansion({ THREE, scene, camera, isMobileDevice = f
     if (damagedRoad.geometry?.attributes?.uv && !damagedRoad.geometry.attributes.uv2) {
       damagedRoad.geometry.setAttribute('uv2', damagedRoad.geometry.attributes.uv);
     }
-    damagedRoadMaterial.normalScale.set(0.75, 0.75);
-    damagedRoadMaterial.bumpScale = 0.012;
+    damagedRoadMaterial.normalScale.set(1.15, 1.15);
+    damagedRoadMaterial.bumpScale = 0.026;
     damagedRoadMaterial.needsUpdate = true;
   }).catch(error => {
     console.warn('Не удалось загрузить PBR-текстуры повреждённой дороги; используется базовый асфальт.', error);
@@ -106,9 +108,19 @@ export function installWorldExpansion({ THREE, scene, camera, isMobileDevice = f
     detail('Разметка дороги', [0.12, 0.028, 2.2], [0, 0.002, z], hazard);
     detail('Старая белая разметка', [0.09, 0.026, 1.4], [-5.45, 0.002, z + 2.5], mat(0x9ca49a, 0.82, 0));
   }
-  for (let i = 0; i < 16; i++) {
-    const x = -37 + i * 4.9, z = 29 + (i % 2) * 2.8;
-    detail('Трещина в покрытии', [0.025 + (i % 3) * 0.018, 0.016, 1.1 + (i % 4) * 0.35], [x, -0.008, z], darkSteel).rotation.y = (i % 2 ? 0.3 : -0.45);
+  // Visible cracks and chipped pothole edges are placed ON the road lane,
+  // not on the distant shoulders. Geometry is deliberately sparse for mobile GPUs.
+  for (let i = 0; i < 13; i++) {
+    const x = -4.25 + (i % 5) * 1.95;
+    const z = 8 + Math.floor(i / 5) * 17 + (i % 2) * 2.1;
+    const crack = detail('Трещина на проезжей части', [0.035 + (i % 3) * 0.018, 0.018, 0.9 + (i % 4) * 0.42], [x, 0.014, z], darkSteel);
+    crack.rotation.y = (i % 2 ? 0.28 : -0.38);
+  }
+  for (let i = 0; i < 7; i++) {
+    const x = -3.8 + (i % 4) * 2.25;
+    const z = 13 + i * 9.2;
+    const chip = detail('Скол асфальта', [0.42 + (i % 3) * 0.12, 0.012, 0.28 + (i % 2) * 0.12], [x, 0.013, z], darkSteel);
+    chip.rotation.y = (i % 2) * 0.42;
   }
 
   // Chain-link perimeter fence and an open vehicle gate.
