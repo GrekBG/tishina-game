@@ -1,7 +1,7 @@
-import { installPbrSurfaces } from './pbr-surfaces.js?v=0.5.30';
-import { installWorldExpansion } from './world-expansion.js?v=0.5.30';
-import { createStoryController } from './story.js?v=0.5.30';
-import { installSkyWeather } from './sky-weather.js?v=0.5.30';
+import { installPbrSurfaces } from './pbr-surfaces.js?v=0.5.31';
+import { installWorldExpansion } from './world-expansion.js?v=0.5.31';
+import { createStoryController } from './story.js?v=0.5.31';
+import { installSkyWeather } from './sky-weather.js?v=0.5.31';
 
 const THREE = window.THREE;
 if (!THREE) throw new Error('Three.js не загружен: обновите страницу и проверьте соединение.');
@@ -256,17 +256,22 @@ function sampleHangarWalkableHeight(x,z,referenceY){
 function nextGroundOffset(x,z,dx,dz){
   const current=playerStepOffset;
   const centre=sampleHangarWalkableHeight(x,z,current);
-  let next=centre===null?current:centre;
-  // Probe just ahead of the player's feet. This lets the player rise onto a tread
-  // before the capsule reaches the vertical riser that would otherwise block it.
+  let ahead=null;
+  // Probe ahead by roughly one foot radius. This detects the next tread before
+  // the capsule reaches its riser, and also follows lower treads while descending.
   const length=Math.hypot(dx,dz);
   if(length>1e-5){
-    const lead=current;
     const leadX=x+(dx/length)*(stance.radius*0.86);
     const leadZ=z+(dz/length)*(stance.radius*0.86);
-    const ahead=sampleHangarWalkableHeight(leadX,leadZ,current);
-    if(ahead!==null&&ahead>next)next=ahead;
+    ahead=sampleHangarWalkableHeight(leadX,leadZ,current);
   }
+  let next;
+  if(centre!==null) next=centre;
+  else if(ahead!==null) next=ahead;
+  else next=0; // No supporting triangle underfoot: never preserve a stale height in mid-air.
+  // If the forward foot probe finds the adjacent tread (up OR down), blend the
+  // ground target to it. Larger drops are not treated as steps.
+  if(ahead!==null && Math.abs(ahead-next)<=MAX_AUTO_STEP_DOWN+0.04) next=ahead;
   // Outside the hangar mesh the open yard is level with the world floor.
   if(x < -41 || x > 21 || z < -28 || z > 27)next=0;
   return THREE.MathUtils.clamp(next,Math.max(0,current-MAX_AUTO_STEP_DOWN-0.04),current+MAX_AUTO_STEP_UP+0.025);
@@ -736,7 +741,7 @@ function loadHangarModel() {
 // The procedural shell remains as a fallback until the GLB and its textures load.
 loadHangarModel();
 
-// 0.5.29: stair climbing is handled by automatic step-height collision below.
+// 0.5.31: grounded stair traversal is handled by automatic step-height collision below.
 
 const story = createStoryController({ onObjective: value => { const el = $('objective'); if (el) el.textContent = value; }, notify });
 panel.userData.interaction.action = () => { story.markBreaker(); notify('ЭЛЕКТРОЩИТ: питание отключено. На схеме отмечен резервный контур в подвал.'); };
