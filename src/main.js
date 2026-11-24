@@ -683,6 +683,8 @@ loadHangarModel();
 // 0.5.22: climbable maintenance ladder inside the hangar.
 // The ladder leads to a small inspection platform; interaction toggles climb mode.
 let hangarLadderClimbing = false;
+let hangarLadderOnPlatform = false;
+let hangarLadderTopNotice = false;
 const hangarLadder = new THREE.Group();
 hangarLadder.name = 'Лестница технического обслуживания ангара';
 hangarLadder.position.set(16.5, 0, -8.0);
@@ -699,22 +701,33 @@ for (let y = 0.35; y <= 5.95; y += 0.34) {
 }
 const ladderPlatform = box(hangarLadder, 'Площадка обслуживания лестницы', [2.8, 0.18, 2.2], [0.9, 6.0, -0.95], metal, { cast: true });
 colliders.push({ minX: 16.0, maxX: 19.0, minY: 5.85, maxY: 6.15, minZ: -10.1, maxZ: -7.8 });
-const ladderPrompt = new THREE.Object3D();
-ladderPrompt.name = 'Точка подъёма по лестнице';
-ladderPrompt.position.set(0, 1.0, -0.9);
+// A real invisible mesh is required here: Raycaster cannot hit a bare Object3D.
+// The proximity fallback in updateTarget also makes this reliable on touch screens.
+const ladderPrompt = new THREE.Mesh(
+  new THREE.SphereGeometry(0.78, 12, 10),
+  new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false })
+);
+ladderPrompt.name = 'Точка взаимодействия с технической лестницей';
+ladderPrompt.position.set(0, 1.15, -0.72);
+ladderPrompt.userData.noCollision = true;
 hangarLadder.add(ladderPrompt);
-addInteract(ladderPrompt, 'Техническая лестница', 'Подняться на площадку обслуживания. Нажми кнопку взаимодействия ещё раз, чтобы спуститься.', 'ДЕЙСТВИЕ', () => {
-  hangarLadderClimbing = !hangarLadderClimbing;
-  if (hangarLadderClimbing) {
-    camera.position.x = 16.5;
-    camera.position.z = -9.0;
-    camera.position.y = Math.max(camera.position.y, 1.68);
-    grounded = true; jumpHeight = 0; jumpVelocity = 0;
-    notify('Ты на лестнице. Двигайся вперёд, чтобы подняться, назад — чтобы спуститься.');
-  } else {
-    camera.position.y = THREE.MathUtils.clamp(camera.position.y, 1.68, 6.8);
-    notify('Ты отошёл от лестницы.');
+addInteract(ladderPrompt, 'Техническая лестница', 'Подняться на площадку обслуживания. На лестнице двигайся вперёд, чтобы подниматься, и назад, чтобы спускаться.', 'ДЕЙСТВИЕ', () => {
+  if (hangarLadderClimbing) return;
+  const dx = camera.position.x - 16.5, dz = camera.position.z - (-9.0);
+  if (Math.hypot(dx, dz) > 2.6 && !hangarLadderOnPlatform) {
+    notify('Подойди ближе к основанию лестницы.'); return;
   }
+  const returningFromPlatform = hangarLadderOnPlatform;
+  hangarLadderClimbing = true;
+  hangarLadderOnPlatform = false;
+  hangarLadderTopNotice = false;
+  camera.position.x = 16.5;
+  camera.position.z = -9.0;
+  camera.position.y = returningFromPlatform ? 7.55 : Math.max(camera.position.y, 1.68);
+  yaw = Math.PI; camera.rotation.set(pitch, yaw, 0, 'YXZ');
+  grounded = true; jumpHeight = 0; jumpVelocity = 0;
+  stopSprint();
+  notify('Ты на лестнице. Веди стик вверх, чтобы подниматься, вниз — чтобы спускаться.');
 });
 
 
@@ -819,6 +832,7 @@ function applySnapshot(data){
  medkits=Math.max(0,Math.min(20,Number(data.medkits)||0));energyItems=Math.max(0,Math.min(20,Number(data.energyItems)||0));
  health=Math.max(1,Math.min(100,Number.isFinite(Number(data.health))?Number(data.health):100));stamina=Math.max(0,Math.min(100,Number(data.stamina??100)||0));sprintLocked=stamina<STAMINA_RESTART;sprintHeld=false;sprintBlend=0;staminaRecoveryDelay=0;
  const px=Number(data.player?.x),pz=Number(data.player?.z);camera.position.set(Number.isFinite(px)?THREE.MathUtils.clamp(px,-57,57):0,postures.stand.eye,Number.isFinite(pz)?THREE.MathUtils.clamp(pz,-63,71):10.5);yaw=Number.isFinite(Number(data.player?.yaw))?Number(data.player.yaw):0;pitch=Number.isFinite(Number(data.player?.pitch))?THREE.MathUtils.clamp(Number(data.player.pitch),-1.05,.8):0;look(0,0);
+ hangarLadderClimbing=false;hangarLadderOnPlatform=false;hangarLadderTopNotice=false;
  posture='stand';stanceFrom=null;stanceElapsed=1;Object.assign(stance,postures.stand);jumpHeight=0;jumpVelocity=0;grounded=true;
  story.restore(data.story, inventory);
  skyWeather.restore(data.sky);
@@ -905,7 +919,20 @@ function interact(){
 }
 const raycaster=new THREE.Raycaster();
 function isEffectivelyVisible(obj){for(let node=obj;node;node=node.parent){if(!node.visible)return false;}return true;}
-function updateTarget(){raycaster.setFromCamera(new THREE.Vector2(0,0),camera);const hits=raycaster.intersectObjects(interactables,false).filter(h=>h.distance<3.7&&isEffectivelyVisible(h.object));activeTarget=hits.length?hits[0].object:null;const interaction=activeTarget?.userData.interaction;const hint=interaction?.type==='ДВЕРЬ'?' · ОТКРЫТЬ / ЗАКРЫТЬ':interaction?.type==='ПРЕДМЕТ'?' · ОСМОТРЕТЬ':'';$('prompt').textContent=interaction?`◉ ${interaction.title}${hint}`:'';$('prompt').style.opacity=activeTarget?'1':'0';}
+function updateTarget(){
+ raycaster.setFromCamera(new THREE.Vector2(0,0),camera);
+ const hits=raycaster.intersectObjects(interactables,false).filter(h=>h.distance<3.7&&isEffectivelyVisible(h.object));
+ activeTarget=hits.length?hits[0].object:null;
+ // Touch players do not need to aim at a tiny rung: show the ladder action when nearby.
+ if(!activeTarget&&!hangarLadderClimbing){
+  const dx=camera.position.x-16.5,dz=camera.position.z-(-9.0);
+  if(Math.hypot(dx,dz)<2.35)activeTarget=ladderPrompt;
+ }
+ const interaction=activeTarget?.userData.interaction;
+ const hint=interaction?.type==='ДВЕРЬ'?' · ОТКРЫТЬ / ЗАКРЫТЬ':interaction?.type==='ПРЕДМЕТ'?' · ОСМОТРЕТЬ':interaction?.title==='Техническая лестница'?' · ПОДНЯТЬСЯ / СПУСТИТЬСЯ':'';
+ $('prompt').textContent=interaction?`◉ ${interaction.title}${hint}`:'';
+ $('prompt').style.opacity=activeTarget?'1':'0';
+}
 function lowZoneAt(x,z,radius=0){return lowClearanceZones.find(zone=>x+radius>zone.minX&&x-radius<zone.maxX&&z+radius>zone.minZ&&z-radius<zone.maxZ)||null;}
 function canFitAt(x,z,mode=posture){const zone=lowZoneAt(x,z,postures[mode].radius);return !zone||postures[mode].height<=zone.clearance;}
 function canOccupyAt(x,z){const zone=lowZoneAt(x,z,stance.radius);return !zone||stance.height<=zone.clearance;}
@@ -951,11 +978,26 @@ function move(dt){
  // so pushing the stick up always follows the view direction, even after turning.
  const speed=moveSpeed*dt;
  if(hangarLadderClimbing){
-  // Forward climbs; backward descends. Side input is ignored while on the ladder.
+  // Up/down input follows the ladder; the player remains aligned with its rails.
   camera.position.x=16.5; camera.position.z=-9.0;
   camera.position.y=THREE.MathUtils.clamp(camera.position.y+forward*2.15*dt,1.68,7.65);
-  if(camera.position.y>=7.6){hangarLadderClimbing=false;notify('Ты поднялся на верхнюю площадку.');}
-  else if(camera.position.y<=1.69){hangarLadderClimbing=false;notify('Ты спустился с лестницы.');}
+  if(camera.position.y>=7.64){
+   hangarLadderClimbing=false;hangarLadderOnPlatform=true;
+   camera.position.y=7.68;camera.position.x=17.25;camera.position.z=-9.0;
+   if(!hangarLadderTopNotice){notify('Ты поднялся на верхнюю площадку. Осмотрись; к лестнице можно вернуться, чтобы спуститься.');hangarLadderTopNotice=true;}
+  }else if(camera.position.y<=1.69){
+   hangarLadderClimbing=false;hangarLadderOnPlatform=false;
+   camera.position.y=1.68;camera.position.x=16.5;camera.position.z=-9.8;
+   notify('Ты спустился с лестницы.');
+  }
+  updateHazards(dt);updateBodyAnimation(dt,len,false);return;
+ }
+ if(hangarLadderOnPlatform){
+  // Keep the camera at platform height and constrain movement to the walkable deck.
+  const fx=-Math.sin(yaw),fz=-Math.cos(yaw),rx=Math.cos(yaw),rz=-Math.sin(yaw);
+  const nx=THREE.MathUtils.clamp(camera.position.x+(fx*forward+rx*side)*speed,16.15,18.55);
+  const nz=THREE.MathUtils.clamp(camera.position.z+(fz*forward+rz*side)*speed,-10.0,-7.95);
+  camera.position.x=nx;camera.position.z=nz;camera.position.y=7.68;
   updateHazards(dt);updateBodyAnimation(dt,len,false);return;
  }
 
